@@ -983,11 +983,17 @@ export default function TimesheetTable({
       onAddManualEntry?.(null);
       return;
     }
-    const copiedRows = INITIAL_PROJECTS.map((proj, idx) => ({
+    const sourceProjects = Array.isArray(projects) && projects.length > 0 ? projects : [];
+    if (sourceProjects.length === 0) {
+      showToast('No active projects to copy.');
+      setShowCopyMenu(false);
+      return;
+    }
+    const copiedRows = sourceProjects.map((proj, idx) => ({
       id: `ts-copied-${Date.now()}-${idx}`,
       projectId: proj.id,
       projectName: proj.name,
-      color: proj.color,
+      color: proj.color || '#10b981',
       hours: { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '', sun: '' },
       total: '00:00:00',
     }));
@@ -997,26 +1003,31 @@ export default function TimesheetTable({
   };
 
   const handleCopyProjectsWithHours = () => {
-    const sampleHours = ['03:45:00', '01:30:00', '02:00:00', '02:30:00', '04:00:00'];
-    const copiedRows = INITIAL_PROJECTS.map((proj, idx) => ({
+    const sourceProjects = Array.isArray(projects) && projects.length > 0 ? projects : [];
+    if (sourceProjects.length === 0) {
+      showToast('No active projects to copy.');
+      setShowCopyMenu(false);
+      return;
+    }
+    const copiedRows = sourceProjects.map((proj, idx) => ({
       id: `ts-copied-${Date.now()}-${idx}`,
       projectId: proj.id,
       projectName: proj.name,
-      color: proj.color,
+      color: proj.color || '#10b981',
       hours: {
-        mon: sampleHours[idx % sampleHours.length],
-        tue: sampleHours[(idx + 1) % sampleHours.length],
-        wed: idx % 2 === 0 ? '02:00:00' : '',
+        mon: '',
+        tue: '',
+        wed: '',
         thu: '',
         fri: '',
         sat: '',
         sun: ''
       },
-      total: '07:15:00',
+      total: '00:00:00',
     }));
     updateCurrentRows(copiedRows);
     setShowCopyMenu(false);
-    showToast('✓ Copied projects and tracked hours from last week');
+    showToast('✓ Copied projects from last week');
   };
 
   const handleSaveAsTemplate = () => {

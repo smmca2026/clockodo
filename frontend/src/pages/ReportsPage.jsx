@@ -1663,34 +1663,7 @@ export default function ReportsPage({
   };
 
   // Shared Reports State & Handlers with LocalStorage Persistence
-  const INITIAL_SHARED_REPORTS = [
-    {
-      id: 'shared-1',
-      name: 'Weekly Team Summary',
-      client: 'All Clients',
-      period: 'Aug 31 - Sep 6, 2026',
-      totalHours: '83:12:01',
-      isPublic: true,
-      showAmounts: true,
-      viewsCount: 24,
-      linkToken: 'rpt_jrks_9843a',
-      link: `${window.location.origin}/#/shared/rpt_jrks_9843a`,
-      createdDate: 'Sep 2, 2026'
-    },
-    {
-      id: 'shared-2',
-      name: 'JRKS Logistics - Dispatch Log',
-      client: 'JRKS Logistics',
-      period: 'Aug 31 - Sep 6, 2026',
-      totalHours: '28:30:00',
-      isPublic: true,
-      showAmounts: false,
-      viewsCount: 12,
-      linkToken: 'rpt_selva_4311b',
-      link: `${window.location.origin}/#/shared/rpt_selva_4311b`,
-      createdDate: 'Sep 1, 2026'
-    }
-  ];
+  const INITIAL_SHARED_REPORTS = [];
 
   const [sharedReportsList, setSharedReportsList] = useState(() => {
     try {

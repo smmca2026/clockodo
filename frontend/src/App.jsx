@@ -180,10 +180,10 @@ try {
     isRunning: false,
     isPaused: false,
     elapsedSeconds: 0,
-    projectId: 'proj-2',
-    projectName: 'JRKS Logistics',
-    projectColor: '#059669',
-    taskDescription: 'GPS fleet tracking & route dispatch',
+    projectId: '',
+    projectName: '',
+    projectColor: '#10b981',
+    taskDescription: '',
     isBillable: true,
     startedAt: null,
   });
@@ -210,7 +210,7 @@ try {
     return INITIAL_TIMESHEET_ROWS;
   });
 
-  const [todayTotalHours, setTodayTotalHours] = useState(24300); // 6h 45m
+  const [todayTotalHours, setTodayTotalHours] = useState(0);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
 
   // Persist registered users and auth state
