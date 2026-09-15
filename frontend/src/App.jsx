@@ -21,7 +21,8 @@ import {
   INITIAL_RECENT_ACTIVITIES,
   CALENDAR_WEEK_SCHEDULE,
   USER_PROFILE,
-  DEFAULT_REGISTERED_USERS 
+  DEFAULT_REGISTERED_USERS,
+  INITIAL_USERS
 } from './data/mockData';
 
 function App() {
@@ -103,7 +104,7 @@ try {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return [];
+    return INITIAL_USERS;
   });
 
   // Fetch live workspace data from MySQL backend on startup

@@ -11,9 +11,100 @@ export const INITIAL_PROJECTS = [
   { id: 'proj-8', name: 'Billing & Ledger Automation', client: 'Apex FinTech Global', color: '#06b6d4', tracked: '27.50h', progress: '—', access: 'Public', billableRate: 100, isFavorite: false }
 ];
 
-export const DIGIPLUS_TEAM_MEMBERS = [
-  { id: 'usr-admin-1', name: 'Bharath (Owner)', username: 'bharath_owner', email: 'bharath.owner@digiplusagency.com', role: 'Owner', group: 'Management / Executive', active: true }
+export const INITIAL_USERS = [
+  { 
+    id: 'usr-admin-1', 
+    name: 'Bharath (Owner)', 
+    username: 'bharath_owner', 
+    email: 'bharath.owner@digiplusagency.com', 
+    password: '1234567890',
+    role: 'admin', 
+    group: 'Management / Executive', 
+    department: 'Management / Executive', 
+    active: true,
+    accessGranted: true,
+    avatarInitials: 'BO',
+    avatarColor: '#10b981',
+    workspace: 'DigiPlus'
+  },
+  { 
+    id: 'usr-1788775861951', 
+    name: 'anbu', 
+    username: 'anbu2822', 
+    email: 'anbu2822@gmail.com', 
+    password: 'Anbu2822',
+    role: 'employee', 
+    group: 'Full Stack', 
+    department: 'Full Stack', 
+    active: true,
+    accessGranted: true,
+    avatarInitials: 'A',
+    avatarColor: '#14b8a6',
+    workspace: 'DigiPlus'
+  },
+  { 
+    id: 'usr-1788781817045', 
+    name: 'Muthu', 
+    username: 'muthulakshmi2002apk', 
+    email: 'muthulakshmi2002apk@gmail.com', 
+    password: 'Muthu2002',
+    role: 'employee', 
+    group: 'Frontend Dev', 
+    department: 'Frontend Dev', 
+    active: true,
+    accessGranted: true,
+    avatarInitials: 'M',
+    avatarColor: '#ec4899',
+    workspace: 'DigiPlus'
+  },
+  { 
+    id: 'usr-1788782032047', 
+    name: 'sivanparu', 
+    username: 'sivanparu', 
+    email: 'sivanparu@gmail.com', 
+    password: 'sivanparu',
+    role: 'employee', 
+    group: 'Backend Engineering', 
+    department: 'Backend Engineering', 
+    active: true,
+    accessGranted: true,
+    avatarInitials: 'S',
+    avatarColor: '#3b82f6',
+    workspace: 'DigiPlus'
+  },
+  { 
+    id: 'usr-1788783507309', 
+    name: 'mani', 
+    username: 'mani', 
+    email: 'mani@gmail.com', 
+    password: 'Mani02',
+    role: 'employee', 
+    group: 'Design & UI', 
+    department: 'Design & UI', 
+    active: true,
+    accessGranted: true,
+    avatarInitials: 'M',
+    avatarColor: '#06b6d4',
+    workspace: 'DigiPlus'
+  },
+  { 
+    id: 'usr-1789370216451', 
+    name: 'babu', 
+    username: 'babu', 
+    email: 'babu@gmail.com', 
+    password: 'babu123',
+    role: 'employee', 
+    group: 'Quality Assurance', 
+    department: 'Quality Assurance', 
+    active: true,
+    accessGranted: true,
+    avatarInitials: 'B',
+    avatarColor: '#06b6d4',
+    workspace: 'DigiPlus'
+  }
 ];
+
+export const DIGIPLUS_TEAM_MEMBERS = INITIAL_USERS;
 
 export const DASHBOARD_METRICS = {
   totalTime: '00:00:00',

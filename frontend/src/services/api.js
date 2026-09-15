@@ -1,6 +1,20 @@
 // Clockodo API Client Service Layer
-const API_HOST = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
-const API_BASE_URL = `http://${API_HOST}:5000/api`;
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    if (import.meta.env && import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+    }
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
+    // Production default: relative '/api' to avoid Mixed Content / port blocking
+    return '/api';
+  }
+  return 'http://localhost:5000/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;

@@ -49,6 +49,35 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 
+// Serve Frontend static assets if available (Production All-in-One / CloudPanel Deployment)
+const path = require('path');
+const fs = require('fs');
+const possibleDistPaths = [
+  path.join(__dirname, '../../frontend/dist'),
+  path.join(__dirname, '../public'),
+  path.join(__dirname, '../dist')
+];
+
+let activeDistPath = null;
+for (const p of possibleDistPaths) {
+  if (fs.existsSync(p)) {
+    activeDistPath = p;
+    break;
+  }
+}
+
+if (activeDistPath) {
+  app.use(express.static(activeDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api')) return next();
+    const indexPath = path.join(activeDistPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    next();
+  });
+}
+
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
