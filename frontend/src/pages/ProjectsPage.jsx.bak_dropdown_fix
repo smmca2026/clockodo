@@ -1,0 +1,282 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  FolderKanban, 
+  Search, 
+  Plus, 
+  Star, 
+  ChevronDown, 
+  Lock, 
+  Globe, 
+  Check,
+  CheckCircle2,
+  X,
+  Trash2
+} from 'lucide-react';
+import { INITIAL_PROJECTS } from '../data/mockData';
+
+export default function ProjectsPage({ 
+  projects = INITIAL_PROJECTS,
+  onCreateProject,
+  searchQuery: headerSearchQuery = '',
+  currentUser = null 
+}) {
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Active');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState({});
+
+  const isAdmin = currentUser?.role === 'admin' || (currentUser?.name && currentUser.name.toLowerCase().includes('owner'));
+  const effectiveSearchQuery = (headerSearchQuery || localSearchQuery).trim().toLowerCase();
+
+  // New project modal state
+  const [newProjName, setNewProjName] = useState('');
+  const [newProjClient, setNewProjClient] = useState('');
+  const [newProjColor, setNewProjColor] = useState('#10b981');
+
+  // Deduplicate projects list by name to guarantee NO DUPLICATES
+  const uniqueProjects = useMemo(() => {
+    const list = Array.isArray(projects) && projects.length > 0 ? projects : INITIAL_PROJECTS;
+    const seen = new Set();
+    const result = [];
+    list.forEach((p) => {
+      const nameKey = (p.name || '').trim().toLowerCase();
+      if (nameKey && !seen.has(nameKey)) {
+        seen.add(nameKey);
+        result.push(p);
+      }
+    });
+    return result;
+  }, [projects]);
+
+  const toggleFavorite = (id) => {
+    setFavoriteIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleCreateProject = (e) => {
+    e.preventDefault();
+    if (!currentUser || currentUser.role === 'guest') {
+      onCreateProject?.(null);
+      return;
+    }
+    if (!newProjName.trim()) return;
+    const cleanName = newProjName.trim();
+    
+    // Check for duplicate name
+    if (uniqueProjects.some(p => p.name.toLowerCase() === cleanName.toLowerCase())) {
+      alert(`Project "${cleanName}" already exists.`);
+      return;
+    }
+
+    const newP = {
+      id: `proj-${Date.now()}`,
+      name: cleanName,
+      client: newProjClient.trim() || 'DigiPlus Logistics',
+      color: newProjColor,
+      tracked: '0.00h',
+      progress: '0%',
+      access: 'Public',
+      billableRate: 75,
+      isFavorite: false,
+    };
+
+    if (onCreateProject) {
+      onCreateProject(newP);
+    }
+
+    setShowAddModal(false);
+    setNewProjName('');
+    setNewProjClient('');
+  };
+
+  const filteredProjects = uniqueProjects.filter(p => {
+    if (!effectiveSearchQuery) return true;
+    return p.name.toLowerCase().includes(effectiveSearchQuery) || 
+           (p.client && p.client.toLowerCase().includes(effectiveSearchQuery));
+  });
+
+  return (
+    <div className="page-container">
+      <div className="projects-view">
+        {/* Top Header Controls Bar */}
+        <div className="projects-filter-bar">
+          <div className="filter-items-group">
+            <button className="filter-pill-btn">
+              <span>FILTER:</span>
+              <strong style={{ color: 'var(--text-dark)' }}>{statusFilter}</strong>
+              <ChevronDown size={11} />
+            </button>
+            <button className="filter-pill-btn">
+              <span>Client</span>
+              <ChevronDown size={11} />
+            </button>
+            <button className="filter-pill-btn">
+              <span>Access</span>
+              <ChevronDown size={11} />
+            </button>
+            <button className="filter-pill-btn">
+              <span>Billing</span>
+              <ChevronDown size={11} />
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <input
+              type="text"
+              className="projects-search-input"
+              placeholder="Find by name..."
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
+            />
+            <button className="btn-apply-filter">
+              APPLY FILTER
+            </button>
+            {isAdmin && (
+              <button 
+                type="button"
+                className="btn-primary-gradient" 
+                style={{ padding: '6px 14px', fontSize: '12px' }}
+                onClick={() => {
+    if (!currentUser || currentUser.role === 'guest') {
+      onCreateProject?.(null);
+      return;
+    }
+    setShowAddModal(true);
+  }}
+              >
+                <Plus size={14} />
+                <span>CREATE PROJECT</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Projects Matrix Table */}
+        <div className="projects-table-card">
+          <table className="projects-table">
+            <thead>
+              <tr>
+                <th style={{ width: '35%' }}>NAME</th>
+                <th style={{ width: '20%' }}>CLIENT</th>
+                <th style={{ width: '15%' }}>TRACKED</th>
+                <th style={{ width: '15%' }}>PROGRESS</th>
+                <th style={{ width: '10%' }}>ACCESS</th>
+                <th style={{ width: '5%', textAlign: 'center' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProjects.map((proj) => {
+                const isFav = favoriteIds[proj.id] !== undefined ? favoriteIds[proj.id] : proj.isFavorite;
+                return (
+                  <tr key={proj.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span 
+                          className="project-bullet" 
+                          style={{ backgroundColor: proj.color || '#00cc00' }}
+                        />
+                        <span style={{ color: 'var(--text-dark)', fontWeight: 700 }}>{proj.name}</span>
+                      </div>
+                    </td>
+                    <td style={{ color: proj.client && proj.client !== '—' ? '#00cc00' : '#64748b', fontWeight: 600 }}>
+                      {proj.client || 'DigiPlus Logistics'}
+                    </td>
+                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-dark)', fontWeight: 700 }}>
+                      {proj.tracked || '0.00h'}
+                    </td>
+                    <td style={{ color: '#64748b' }}>
+                      {proj.progress || '—'}
+                    </td>
+                    <td>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#94a3b8', fontSize: '12px' }}>
+                        <Globe size={13} color="#10b981" />
+                        {proj.access || 'Public'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button 
+                        type="button"
+                        className={`star-btn ${isFav ? 'starred' : ''}`}
+                        onClick={() => toggleFavorite(proj.id)}
+                        title={isFav ? "Unstar project" : "Favorite project"}
+                      >
+                        <Star size={15} fill={isFav ? "currentColor" : "none"} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add Project Modal */}
+      {showAddModal && (
+        <div className="day-drawer-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="settings-card" style={{ margin: 'auto', width: '420px', maxWidth: '90%' }} onClick={e => e.stopPropagation()}>
+            <div className="notif-header">
+              <span className="notif-title">Create New Project</span>
+              <button type="button" className="btn-delete-row" onClick={() => setShowAddModal(false)}>
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleCreateProject} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="settings-field">
+                <label className="settings-label">Project Name</label>
+                <input 
+                  type="text" 
+                  className="settings-input" 
+                  placeholder="e.g. DigiPlus Client Portal" 
+                  value={newProjName}
+                  onChange={(e) => setNewProjName(e.target.value)}
+                  required 
+                  autoFocus
+                />
+              </div>
+
+              <div className="settings-field">
+                <label className="settings-label">Client Name</label>
+                <input 
+                  type="text" 
+                  className="settings-input" 
+                  placeholder="e.g. DigiPlus Logistics" 
+                  value={newProjClient}
+                  onChange={(e) => setNewProjClient(e.target.value)}
+                />
+              </div>
+
+              <div className="settings-field">
+                <label className="settings-label">Color Accent</label>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  {['#00cc00', '#10b981', '#059669', '#0284c7', '#8b5cf6', '#ef4444', '#f97316', '#06b6d4'].map((col) => (
+                    <div 
+                      key={col}
+                      onClick={() => setNewProjColor(col)}
+                      style={{ 
+                        width: 24, 
+                        height: 24, 
+                        borderRadius: '50%', 
+                        background: col, 
+                        cursor: 'pointer',
+                        boxShadow: newProjColor === col ? '0 0 0 2px #ffffff, 0 0 0 4px #00cc00' : 'none'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button type="button" className="btn-secondary-action" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-save-settings">
+                  <Check size={16} /> Save Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
