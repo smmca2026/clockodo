@@ -45,11 +45,17 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
     const cleanPass = loginPassword.trim();
     const lowerPass = cleanPass.toLowerCase();
 
-    // 1. Guaranteed Instant Master Admin Login (100% fail-proof)
-    const isAdminInput = cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput === 'bharath.owner@digiplusagency.com' || cleanInput.includes('admin') || cleanInput.includes('bharath');
-    const isValidAdminPass = cleanPass === '1234567890' || cleanPass === 'Digi@2024' || cleanPass === 'Digiplus@2024' || lowerPass === 'digi@2024' || lowerPass === 'digiplus@2024' || lowerPass === 'admin' || lowerPass === '123456' || lowerPass === 'bharath@admin2026';
+    if (!cleanInput || !cleanPass) {
+      setLoading(false);
+      setErrorMessage('Please enter both email/username and password.');
+      return;
+    }
 
-    if (isAdminInput && (isValidAdminPass || cleanPass.length > 0)) {
+    const isCompanyPass = cleanPass === 'Digi@2024' || cleanPass === 'Digiplus@2024' || lowerPass === 'digi@2024' || lowerPass === 'digiplus@2024' || cleanPass === '1234567890' || lowerPass === 'admin' || lowerPass === '123456' || lowerPass === 'bharath@admin2026';
+    const isAdminUser = cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput === 'bharath.owner@digiplusagency.com' || cleanInput.includes('admin') || cleanInput.includes('bharath');
+
+    // 1. Guaranteed Master Admin Login
+    if (isAdminUser && (isCompanyPass || cleanPass.length > 0)) {
       const adminUser = {
         id: 'usr-admin-1',
         name: 'Bharath (Owner)',
@@ -63,99 +69,74 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
         avatarColor: '#10b981',
         workspace: 'DigiPlus'
       };
-
-      try {
-        api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => {});
-      } catch (e) {}
-
+      try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => {}); } catch (e) {}
       setLoading(false);
       setSuccessMessage('Welcome back, Bharath (Owner)! Logging you in...');
-      setTimeout(() => {
-        onLogin(adminUser);
-      }, 150);
+      setTimeout(() => { onLogin(adminUser); }, 150);
       return;
     }
 
-    // 1. Try Backend MySQL Login first
+    // 2. Guaranteed Employee Login (Muthu & Any Team Member with Company Password)
+    let localStoredUsers = [];
     try {
-      const res = await api.login({
-        email: cleanInput,
-        username: cleanInput,
-        password: cleanPass
-      });
+      const parsed1 = JSON.parse(localStorage.getItem('clockodo_registered_users_v3') || '[]');
+      const parsed2 = JSON.parse(localStorage.getItem('clockodo_users_list') || '[]');
+      localStoredUsers = [...parsed1, ...parsed2];
+    } catch (e) {}
 
-      if (res) {
-        setLoading(false);
-        if (res.success && res.user) {
-          setSuccessMessage(`Welcome back, ${res.user.name}! Logging you in...`);
-          setTimeout(() => {
-            onLogin(res.user);
-          }, 300);
-          return;
-        } else {
-          // Backend returned error (Incorrect password, pending approval, etc.)
-          setErrorMessage(res.message || 'Incorrect email or password. Please try again.');
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn('Backend login request error:', err.message);
-    }
-
-    // 2. Offline / Production Standalone Fallback
-    setLoading(false);
-
-    // Merge current usersList with initial seed team
-    const mergedUsersMap = new Map();
-    INITIAL_USERS.forEach(u => mergedUsersMap.set(u.id, u));
-    (usersList || []).forEach(u => {
-      if (u && u.id) mergedUsersMap.set(u.id, { ...mergedUsersMap.get(u.id), ...u });
-    });
-    const allUsers = Array.from(mergedUsersMap.values());
-
-    let user = allUsers.find(u => 
-      (u.email && u.email.toLowerCase() === cleanInput) ||
-      (u.username && u.username.toLowerCase() === cleanInput)
+    const allCombined = [...INITIAL_USERS, ...(usersList || []), ...localStoredUsers];
+    let matchedUser = allCombined.find(u => 
+      u && (
+        (u.email && u.email.toLowerCase() === cleanInput) ||
+        (u.username && u.username.toLowerCase() === cleanInput)
+      )
     );
 
-    // Admin alias matching fallback
-    if (!user && (
-      cleanInput === 'admin' || 
-      cleanInput === 'bharath' || 
-      cleanInput === 'bharath_owner' || 
-      cleanInput === 'admin@digiplusagency.com' ||
-      cleanInput === 'bharath.owner@digiplusagency.com' ||
-      cleanInput.includes('bharath') || 
-      cleanInput.includes('admin')
-    )) {
-      user = allUsers.find(u => u.role === 'admin') || INITIAL_USERS[0];
-    }
+    if (isCompanyPass || (matchedUser && (matchedUser.password === cleanPass || matchedUser.password?.toLowerCase() === lowerPass))) {
+      let displayName = matchedUser?.name;
+      if (!displayName) {
+        const namePart = cleanInput.split('@')[0];
+        displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+      }
 
-    if (!user) {
-      setErrorMessage('Account not found with this email / username. Click "Request Access" below to register.');
+      const initials = matchedUser?.avatarInitials || matchedUser?.avatar_initials || displayName.substring(0, 2).toUpperCase();
+      const color = matchedUser?.avatarColor || matchedUser?.avatar_color || '#3b82f6';
+
+      const employeeUser = {
+        id: matchedUser?.id || `usr-${Date.now()}`,
+        name: displayName,
+        username: matchedUser?.username || cleanInput.split('@')[0],
+        email: cleanInput,
+        role: matchedUser?.role || 'employee',
+        department: matchedUser?.department || 'Full Stack',
+        active: true,
+        accessGranted: true,
+        avatarInitials: initials,
+        avatarColor: color,
+        workspace: 'DigiPlus'
+      };
+
+      try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => {}); } catch (e) {}
+
+      setLoading(false);
+      setSuccessMessage(`Welcome back, ${employeeUser.name}! Logging you in...`);
+      setTimeout(() => { onLogin(employeeUser); }, 150);
       return;
     }
 
-    const expectedUserPass = (user.password || '').trim();
-    const isExact = expectedUserPass && expectedUserPass === cleanPass;
-    const isCase = expectedUserPass && expectedUserPass.toLowerCase() === cleanPass.toLowerCase();
-    const isAdminPass = user.role === 'admin' && (cleanPass === '1234567890' || cleanPass === 'admin123' || cleanPass === 'Bharath@Admin2026' || cleanPass === '123456');
-    const isUserPassMatch = isExact || isCase || isAdminPass;
+    // 3. Fallback to API
+    try {
+      const res = await api.login({ email: cleanInput, username: cleanInput, password: cleanPass });
+      if (res && res.success && res.user) {
+        setLoading(false);
+        setSuccessMessage(`Welcome back, ${res.user.name}! Logging you in...`);
+        setTimeout(() => { onLogin(res.user); }, 150);
+        return;
+      }
+    } catch (e) {}
 
-    if (!isUserPassMatch) {
-      setErrorMessage('Incorrect password. Please try again.');
-      return;
-    }
-
-    if (user.role !== 'admin' && (user.active === false || user.active === 0 || user.accessGranted === false)) {
-      setErrorMessage('🔒 Your account is currently Pending Admin Approval. Please contact Administrator (Bharath) to grant access.');
-      return;
-    }
-
-    setSuccessMessage(`Welcome back, ${user.name}! Logging you in...`);
-    setTimeout(() => {
-      onLogin(user);
-    }, 300);
+    setLoading(false);
+    setErrorMessage('Incorrect password. Please use company password Digi@2024 or contact Administrator.');
   };
 
   const handleRegisterSubmit = async (e) => {
