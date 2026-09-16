@@ -10,10 +10,14 @@ router.post('/login', async (req, res) => {
     const cleanPass = (password || '').trim();
     const lowerPass = cleanPass.toLowerCase();
 
+    if (!cleanInput) {
+      return res.status(400).json({ success: false, message: 'Email or username is required.' });
+    }
+
     let rows = [];
     if (userId) {
       [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
-    } else if (cleanInput) {
+    } else {
       [rows] = await pool.query(`
         SELECT * FROM users 
         WHERE LOWER(email) = ? 
@@ -24,7 +28,7 @@ router.post('/login', async (req, res) => {
 
     let user = rows && rows[0];
 
-    // Fallback: If DB is fresh/empty, auto-provide Bharath Admin
+    // Fallback: If DB is fresh/empty and input is Admin, auto-provide Bharath Admin
     if (!user && (cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput.includes('bharath') || cleanInput.includes('admin') || cleanInput === 'bharath.owner@digiplusagency.com')) {
       user = {
         id: 'usr-admin-1',
@@ -78,22 +82,26 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    const userName = user.name || 'Team Member';
+    const userInitials = user.avatar_initials || user.avatarInitials || (userName ? userName.substring(0, 2).toUpperCase() : 'EM');
+    const userColor = user.avatar_color || user.avatarColor || '#3b82f6';
+
     return res.json({
       success: true,
       message: 'Login successful',
       user: {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        role: user.role,
+        id: user.id || 'usr-1',
+        name: userName,
+        username: user.username || cleanInput.split('@')[0],
+        email: user.email || cleanInput,
+        role: user.role || 'employee',
         department: user.department || 'Full Stack',
         active: Boolean(user.active),
-        avatarInitials: user.avatar_initials || user.avatarInitials || user.name.substring(0, 2).toUpperCase(),
-        avatarColor: user.avatar_color || user.avatarColor || '#3b82f6',
+        avatarInitials: userInitials,
+        avatarColor: userColor,
         workspace: user.workspace || 'DigiPlus'
       },
-      token: `jwt_mysql_${user.id}_${Date.now()}`
+      token: `jwt_mysql_${user.id || 'usr'}_${Date.now()}`
     });
   } catch (err) {
     console.error('Login error:', err);
