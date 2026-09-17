@@ -16,6 +16,23 @@
       "avatarColor": "#10b981",
       "workspace": "DigiPlus",
       "created_at": "2026-09-15T00:00:00.000Z"
+    },
+    {
+      "id": "usr-admin-2",
+      "name": "Punitha (Admin)",
+      "username": "punitha",
+      "email": "punitha@digipl.us",
+      "password": "punitha@2026",
+      "role": "admin",
+      "department": "Management / Executive",
+      "active": true,
+      "accessGranted": true,
+      "avatar_initials": "PU",
+      "avatarInitials": "PU",
+      "avatar_color": "#8b5cf6",
+      "avatarColor": "#8b5cf6",
+      "workspace": "DigiPlus",
+      "created_at": "2026-09-17T11:29:48.460Z"
     }
   ],
   "projects": [
