@@ -1106,77 +1106,108 @@ export default function DashboardPage({
 
           {/* VIEW 1: BIG VERTICAL BAR CHART BY PROJECT (Spans full width with large, tall vertical bars) */}
           {isSingleDayView ? (
-            <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
+            <div style={{ width: '100%', padding: '4px 0' }}>
               {singleDayProjectBars.length === 0 ? (
-                <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
                   No activities logged for this selection yet
                 </div>
               ) : (
-                <div 
-                  style={{ 
-                    display: 'flex', 
-                    justifyContent: singleDayProjectBars.length <= 4 ? 'space-around' : 'flex-start',
-                    alignItems: 'flex-end', 
-                    gap: '24px', 
-                    height: '310px', 
-                    paddingBottom: '20px',
-                    minWidth: `${Math.max(500, singleDayProjectBars.length * 130)}px`
-                  }}
-                >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+                  {/* Top Stacked Composite Bar for Total Day Overview */}
+                  <div style={{ marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>
+                        TOTAL WORKSPACE TIME DISTRIBUTION
+                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#008a00' }}>
+                        100% Tracked ({singleDayProjectBars.length} Projects)
+                      </span>
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '20px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      overflow: 'hidden',
+                      background: '#f1f5f9',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      {singleDayProjectBars.map((item, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            width: `${item.percentage}%`,
+                            height: '100%',
+                            backgroundColor: item.color || '#00cc00',
+                            transition: 'width 0.3s ease'
+                          }}
+                          title={`${item.project}: ${item.time} (${item.percentage}%)`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Horizontal Project Progress Bars (Spanning Full Width) */}
                   {singleDayProjectBars.map((item, idx) => (
                     <div 
                       key={idx} 
                       style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center', 
-                        height: '100%', 
-                        justifyContent: 'flex-end', 
-                        gap: '10px',
-                        flex: singleDayProjectBars.length <= 5 ? 1 : '0 0 130px',
-                        maxWidth: '160px'
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '14px 18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '9px',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#cbd5e1';
+                        e.currentTarget.style.background = '#ffffff';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.background = '#f8fafc';
+                        e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      {/* Top Duration & Percentage Label */}
-                      <div style={{ textAlign: 'center' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#0f172a', fontWeight: 800, display: 'block' }}>
-                          {item.time}
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                          {item.percentage}%
-                        </span>
+                      {/* Top Row: Project Info + Duration */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
+                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.project}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#64748b', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                            {item.client || 'DigiPlus Clients'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                          <span style={{ fontSize: '14px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#0f172a' }}>
+                            {item.time}
+                          </span>
+                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: item.color || '#008a00', background: `${item.color}18` || 'rgba(0,204,0,0.1)', padding: '2px 7px', borderRadius: '6px' }}>
+                            {item.percentage}%
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Large Vertical Project Bar Fill with Project Color */}
-                      <div 
-                        style={{ 
-                          width: '100%',
-                          maxWidth: '120px',
-                          height: `${item.heightPercent}%`,
-                          minHeight: '24px',
-                          borderRadius: '8px 8px 0 0',
-                          backgroundColor: item.color || '#00cc00',
-                          boxShadow: `0 6px 16px ${item.color}40`,
-                          transition: 'height 0.35s ease, transform 0.15s ease',
-                          cursor: 'pointer'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scaleY(1.03)';
-                          e.currentTarget.style.filter = 'brightness(1.08)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scaleY(1)';
-                          e.currentTarget.style.filter = 'none';
-                        }}
-                        title={`${item.project}: ${item.time} (${item.percentage}%)`}
-                      />
-
-                      {/* Bottom Project Name Label */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '100%', marginTop: '6px', textAlign: 'center', justifyContent: 'center' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
-                        <span style={{ fontSize: '12.5px', color: '#0f172a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.project}>
-                          {item.project}
-                        </span>
+                      {/* Wide Horizontal Progress Bar */}
+                      <div style={{ width: '100%', height: '16px', background: '#e2e8f0', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                        <div
+                          style={{
+                            width: `${Math.max(3, item.percentage)}%`,
+                            height: '100%',
+                            backgroundColor: item.color || '#00cc00',
+                            borderRadius: '8px',
+                            boxShadow: `0 2px 6px ${item.color}50`,
+                            transition: 'width 0.4s ease'
+                          }}
+                          title={`${item.project}: ${item.time} (${item.percentage}%)`}
+                        />
                       </div>
                     </div>
                   ))}
