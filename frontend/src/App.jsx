@@ -141,10 +141,10 @@ try {
 
     // 4. Live Projects with deduplication
     api.getProjects().then(res => {
-      if (res && res.success && Array.isArray(res.data)) {
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
         const seen = new Set();
         const unique = [];
-        res.data.forEach(p => {
+        [...res.data, ...INITIAL_PROJECTS].forEach(p => {
           const nameKey = (p.name || '').trim().toLowerCase();
           if (nameKey && !seen.has(nameKey)) {
             seen.add(nameKey);
@@ -188,11 +188,25 @@ try {
     startedAt: null,
   });
 
-  // State for Projects, Recent Activities, and Timesheet Rows with localStorage persistence
+  // State for Projects with catalog merge
   const [projects, setProjects] = useState(() => {
     try {
       const saved = localStorage.getItem('clockodo_projects');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const seen = new Set();
+          const merged = [];
+          [...parsed, ...INITIAL_PROJECTS].forEach(p => {
+            const k = (p.name || '').trim().toLowerCase();
+            if (k && !seen.has(k)) {
+              seen.add(k);
+              merged.push(p);
+            }
+          });
+          return merged;
+        }
+      }
     } catch (e) {}
     return INITIAL_PROJECTS;
   });
