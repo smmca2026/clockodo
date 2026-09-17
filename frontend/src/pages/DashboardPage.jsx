@@ -1089,19 +1089,18 @@ export default function DashboardPage({
           </div>
         </div>
 
-                        {/* 1. Full-Width 7-Day Weekly Activity Overview (Vertical Stacked Multi-Color Bar Chart) */}
-        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '24px 30px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
-          {/* Header Row: Title & Peak */}
+                        {/* 1. Full-Width Activity Overview: WIDE SINGLE STACKED BAR ON SINGLE DATE */}
+        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '26px 32px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          {/* Header Row: Title & Total */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-              Weekly Activity Overview
-            </span>
-
-            {peakDay.hours > 0 && (
-              <span style={{ fontSize: '13px', fontWeight: 800, color: '#008a00' }}>
-                Peak: {peakDay.day} ({peakDay.hours.toFixed(2)}h)
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                Activity Overview • {singleDayData.day}
               </span>
-            )}
+              <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', padding: '2px 9px', borderRadius: '12px', fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                Total: {singleDayData.time}
+              </span>
+            </div>
           </div>
 
           {/* Project Color Legend matching Pie Chart */}
@@ -1117,65 +1116,84 @@ export default function DashboardPage({
             </div>
           )}
 
-          {/* 7-DAY WEEKLY MULTI-COLUMN VERTICAL STACKED BAR GRID */}
-          <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
-            <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px', height: '300px', alignItems: 'flex-end', paddingBottom: '16px' }}>
-              {dailyBarData.map((d, idx) => (
-                <div key={idx} className="reports-bar-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px' }}>
-                  {/* Top Duration Label */}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                    {d.time}
-                  </span>
+          {/* SINGLE DATE ONLY - HUGE WIDE STACKED VERTICAL BAR MATCHING REFERENCE IMAGE 1 (NO OTHER DAYS, NO 7 COLUMNS, NO SHADOWS) */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0 16px' }}>
+            {/* Top Total Duration Label */}
+            <div style={{ marginBottom: '14px', textAlign: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>
+                {singleDayData.time}
+              </span>
+            </div>
 
-                  {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
-                  <div 
-                    className="reports-bar-fill" 
-                    style={{ 
-                      width: '100%',
-                      maxWidth: '110px',
-                      height: `${d.heightPercent}%`,
-                      minHeight: d.hours > 0 ? '16px' : '4px',
-                      borderRadius: '6px 6px 0 0',
-                      display: 'flex',
-                      flexDirection: 'column-reverse',
-                      overflow: 'hidden',
-                      background: d.hours > 0 ? 'transparent' : '#e2e8f0',
-                      boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 0, 0, 0.12)' : 'none',
-                      transition: 'height 0.35s ease',
-                      position: 'relative',
-                      cursor: 'pointer'
-                    }}
-                    title={`${d.day}: ${d.time}${d.projectSegments && d.projectSegments.length > 0 ? '\n' + d.projectSegments.map(s => `${s.project}: ${formatSecondsToHMS(s.sec)}`).join('\n') : ''}`}
-                  >
-                    {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
-                      d.projectSegments.map((seg, sIdx) => {
-                        const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
-                        return (
-                          <div
-                            key={sIdx}
-                            style={{
-                              width: '100%',
-                              height: `${segPercent}%`,
-                              minHeight: '3px',
-                              backgroundColor: seg.color || '#00cc00',
-                              transition: 'height 0.2s ease',
-                              position: 'relative'
-                            }}
-                            title={`${seg.project}: ${formatSecondsToHMS(seg.sec)} (${segPercent.toFixed(1)}%)`}
-                          />
-                        );
-                      })
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
-                    )}
-                  </div>
-
-                  {/* Day Label Beneath Baseline */}
-                  <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
-                    {d.day}
-                  </span>
+            {/* HUGE WIDE STACKED BAR SPANNING ~88% OF CONTAINER (EXACTLY MATCHING REFERENCE IMAGE 1) */}
+            <div 
+              style={{ 
+                width: '88%',
+                maxWidth: '850px',
+                minWidth: '280px',
+                height: '290px',
+                borderRadius: '8px',
+                display: 'flex',
+                flexDirection: 'column-reverse',
+                overflow: 'hidden',
+                background: singleDayData.hours > 0 ? 'transparent' : '#f1f5f9',
+                boxShadow: singleDayData.hours > 0 ? '0 8px 24px rgba(0, 0, 0, 0.12)' : 'none',
+                border: '1px solid #cbd5e1',
+                position: 'relative'
+              }}
+            >
+              {singleDayData.hours > 0 && singleDayData.projectSegments && singleDayData.projectSegments.length > 0 ? (
+                singleDayData.projectSegments.map((seg, sIdx) => {
+                  const segPercent = singleDayData.totalSec > 0 ? (seg.sec / singleDayData.totalSec) * 100 : 0;
+                  return (
+                    <div
+                      key={sIdx}
+                      style={{
+                        width: '100%',
+                        height: segPercent + '%',
+                        minHeight: '12px',
+                        backgroundColor: seg.color || '#00cc00',
+                        transition: 'all 0.25s ease',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 24px',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                        fontSize: '13.5px',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box',
+                        borderBottom: sIdx > 0 ? '1px solid rgba(255,255,255,0.2)' : 'none'
+                      }}
+                      title={seg.project + ': ' + formatSecondsToHMS(seg.sec) + ' (' + segPercent.toFixed(1) + '%)'}
+                    >
+                      {segPercent >= 8 && (
+                        <>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%', fontWeight: 800 }}>
+                            {seg.project}
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', flexShrink: 0, fontWeight: 700 }}>
+                            {formatSecondsToHMS(seg.sec)} ({segPercent.toFixed(0)}%)
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>
+                  No activities recorded for {singleDayData.day}
                 </div>
-              ))}
+              )}
+            </div>
+
+            {/* Day Label Beneath Baseline (ONLY SINGLE ACTIVE DATE) */}
+            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+              <span style={{ fontSize: '16.5px', color: '#0f172a', fontWeight: 800 }}>
+                {singleDayData.day}
+              </span>
             </div>
           </div>
         </div>
