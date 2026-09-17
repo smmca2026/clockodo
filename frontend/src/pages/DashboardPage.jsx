@@ -164,6 +164,8 @@ export default function DashboardPage({
   const showAdminWideStackedBar = isAdmin && (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone');
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [pinnedTeamCard, setPinnedTeamCard] = useState(true);
+  const [hoveredStackedSeg, setHoveredStackedSeg] = useState(null);
+  const [stackedTooltipPos, setStackedTooltipPos] = useState({ x: 0, y: 0, visible: false });
   
   // Helper to get real Today ISO
   const getTodayISO = () => {
