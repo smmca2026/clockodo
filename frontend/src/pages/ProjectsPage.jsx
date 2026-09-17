@@ -94,21 +94,7 @@ export default function ProjectsPage({
   // Toast feedback
   const [toastMessage, setToastMessage] = useState('');
 
-    // Reset page when filters or search change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [appliedStatus, appliedClients, appliedAccess, localSearchQuery, searchQuery]);
 
-  const totalFilteredCount = computedFilteredProjects.length;
-  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / itemsPerPage));
-
-  const startIndex = totalFilteredCount === 0 ? 0 : (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalFilteredCount);
-  const displayedRange = totalFilteredCount === 0 ? '0-0 of 0' : `${startIndex + 1}-${endIndex} of ${totalFilteredCount}`;
-
-  const paginatedProjects = useMemo(() => {
-    return computedFilteredProjects.slice(startIndex, endIndex);
-  }, [computedFilteredProjects, startIndex, endIndex]);
 
   const isAdmin = currentUser?.role === 'admin' || 
                   currentUser?.role === 'owner' || 
@@ -245,6 +231,22 @@ export default function ProjectsPage({
       };
     });
   }, [projects, activities, localSearchQuery, searchQuery, appliedStatus, appliedClients, appliedAccess]);
+
+  // Reset page when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedStatus, appliedClients, appliedAccess, localSearchQuery, searchQuery]);
+
+  const totalFilteredCount = computedFilteredProjects.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / itemsPerPage));
+
+  const startIndex = totalFilteredCount === 0 ? 0 : (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalFilteredCount);
+  const displayedRange = totalFilteredCount === 0 ? '0-0 of 0' : `${startIndex + 1}-${endIndex} of ${totalFilteredCount}`;
+
+  const paginatedProjects = useMemo(() => {
+    return computedFilteredProjects.slice(startIndex, endIndex);
+  }, [computedFilteredProjects, startIndex, endIndex]);
 
   // Handle Create Project Submit
   const handleCreateProject = (e) => {
