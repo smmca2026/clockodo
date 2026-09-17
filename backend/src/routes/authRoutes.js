@@ -71,6 +71,76 @@ router.post('/login', async (req, res) => {
           ON DUPLICATE KEY UPDATE active = 1, role = 'admin', password = 'punitha@2026'
         `, [user.id, user.name, user.username, user.email, user.password, user.role, user.department, user.active, user.avatar_initials, user.avatar_color, user.workspace]);
       } catch (e) {}
+    } else if (!user && (cleanInput === 'mani' || cleanInput === 'mani@digipl.us' || cleanInput.includes('mani'))) {
+      user = {
+        id: 'usr-emp-1',
+        name: 'Mani',
+        username: 'mani',
+        email: 'mani@digipl.us',
+        password: 'Digi@2024',
+        role: 'employee',
+        department: 'Design & UI',
+        active: 1,
+        avatar_initials: 'MA',
+        avatar_color: '#00cc00',
+        workspace: 'DigiPlus'
+      };
+    } else if (!user && (cleanInput === 'muthu' || cleanInput === 'muthu@digipl.us' || cleanInput.includes('muthu'))) {
+      user = {
+        id: 'usr-emp-2',
+        name: 'Muthu',
+        username: 'muthu',
+        email: 'muthu@digipl.us',
+        password: 'Digi@2024',
+        role: 'employee',
+        department: 'Frontend Dev',
+        active: 1,
+        avatar_initials: 'MU',
+        avatar_color: '#3b82f6',
+        workspace: 'DigiPlus'
+      };
+    } else if (!user && (cleanInput === 'anbu' || cleanInput === 'anbu@digipl.us' || cleanInput.includes('anbu'))) {
+      user = {
+        id: 'usr-emp-3',
+        name: 'Anbu',
+        username: 'anbu',
+        email: 'anbu@digipl.us',
+        password: 'Digi@2024',
+        role: 'employee',
+        department: 'Full Stack',
+        active: 1,
+        avatar_initials: 'AN',
+        avatar_color: '#f59e0b',
+        workspace: 'DigiPlus'
+      };
+    } else if (!user && (cleanInput === 'sivanparu' || cleanInput === 'sivanparu@digipl.us' || cleanInput.includes('sivanparu'))) {
+      user = {
+        id: 'usr-emp-4',
+        name: 'Sivanparu',
+        username: 'sivanparu',
+        email: 'sivanparu@digipl.us',
+        password: 'Digi@2024',
+        role: 'employee',
+        department: 'QA & Testing',
+        active: 1,
+        avatar_initials: 'SI',
+        avatar_color: '#ec4899',
+        workspace: 'DigiPlus'
+      };
+    } else if (!user && (cleanInput === 'karthick' || cleanInput === 'karthick@digipl.us' || cleanInput.includes('karthick'))) {
+      user = {
+        id: 'usr-emp-5',
+        name: 'Karthick Raja',
+        username: 'karthick',
+        email: 'karthick@digipl.us',
+        password: 'Digi@2024',
+        role: 'employee',
+        department: 'Backend Engineering',
+        active: 1,
+        avatar_initials: 'KA',
+        avatar_color: '#06b6d4',
+        workspace: 'DigiPlus'
+      };
     }
 
     if (!user) {

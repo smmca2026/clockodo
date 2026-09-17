@@ -8,14 +8,10 @@
       "password": "1234567890",
       "role": "admin",
       "department": "Management / Executive",
-      "active": true,
-      "accessGranted": true,
+      "active": 1,
       "avatar_initials": "BO",
-      "avatarInitials": "BO",
       "avatar_color": "#10b981",
-      "avatarColor": "#10b981",
-      "workspace": "DigiPlus",
-      "created_at": "2026-09-15T00:00:00.000Z"
+      "workspace": "DigiPlus"
     },
     {
       "id": "usr-admin-2",
@@ -25,14 +21,75 @@
       "password": "punitha@2026",
       "role": "admin",
       "department": "Management / Executive",
-      "active": true,
-      "accessGranted": true,
+      "active": 1,
       "avatar_initials": "PU",
-      "avatarInitials": "PU",
       "avatar_color": "#8b5cf6",
-      "avatarColor": "#8b5cf6",
-      "workspace": "DigiPlus",
-      "created_at": "2026-09-17T11:29:48.460Z"
+      "workspace": "DigiPlus"
+    },
+    {
+      "id": "usr-emp-1",
+      "name": "Mani",
+      "username": "mani",
+      "email": "mani@digipl.us",
+      "password": "Digi@2024",
+      "role": "employee",
+      "department": "Design & UI",
+      "active": 1,
+      "avatar_initials": "MA",
+      "avatar_color": "#00cc00",
+      "workspace": "DigiPlus"
+    },
+    {
+      "id": "usr-emp-2",
+      "name": "Muthu",
+      "username": "muthu",
+      "email": "muthu@digipl.us",
+      "password": "Digi@2024",
+      "role": "employee",
+      "department": "Frontend Dev",
+      "active": 1,
+      "avatar_initials": "MU",
+      "avatar_color": "#3b82f6",
+      "workspace": "DigiPlus"
+    },
+    {
+      "id": "usr-emp-3",
+      "name": "Anbu",
+      "username": "anbu",
+      "email": "anbu@digipl.us",
+      "password": "Digi@2024",
+      "role": "employee",
+      "department": "Full Stack",
+      "active": 1,
+      "avatar_initials": "AN",
+      "avatar_color": "#f59e0b",
+      "workspace": "DigiPlus"
+    },
+    {
+      "id": "usr-emp-4",
+      "name": "Sivanparu",
+      "username": "sivanparu",
+      "email": "sivanparu@digipl.us",
+      "password": "Digi@2024",
+      "role": "employee",
+      "department": "QA & Testing",
+      "active": 1,
+      "avatar_initials": "SI",
+      "avatar_color": "#ec4899",
+      "workspace": "DigiPlus"
+    },
+    {
+      "id": "usr-emp-5",
+      "name": "Karthick Raja",
+      "username": "karthick",
+      "email": "karthick@digipl.us",
+      "password": "Digi@2024",
+      "role": "employee",
+      "department": "Backend Engineering",
+      "active": 1,
+      "avatar_initials": "KA",
+      "avatar_color": "#06b6d4",
+      "workspace": "DigiPlus"
     }
   ],
   "projects": [
