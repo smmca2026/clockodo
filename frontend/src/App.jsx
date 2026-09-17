@@ -444,6 +444,54 @@ try {
     setUsersList(prev => [fallbackUser, ...prev]);
   };
 
+  const handleUpdateMemberDepartment = async (idOrEmail, newDepartment) => {
+    if (isGuestSession || !currentUser || currentUser.role === 'guest') {
+      setGuestDeniedModal({
+        title: 'Action Restricted: Sign In Required',
+        subtitle: 'Read-Only Guest Mode Active',
+        message: 'You are currently viewing in Read-Only Guest Mode. Adding new time entries, creating projects, starting timers, and making workspace changes are restricted to authorized accounts.'
+      });
+      return;
+    }
+    if (!idOrEmail || !newDepartment) return;
+    const cleanDept = newDepartment.trim();
+
+    // Optimistically update local usersList state
+    setUsersList((prev) => {
+      const updated = prev.map((u) => {
+        if (u.id === idOrEmail || (u.email && u.email.toLowerCase() === String(idOrEmail).toLowerCase())) {
+          return { ...u, department: cleanDept, group: cleanDept };
+        }
+        return u;
+      });
+      try {
+        localStorage.setItem('clockodo_registered_users_v2', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // If current logged-in user, update session as well
+    if (
+      effectiveUser &&
+      (effectiveUser.id === idOrEmail || (effectiveUser.email && effectiveUser.email.toLowerCase() === String(idOrEmail).toLowerCase()))
+    ) {
+      setCurrentUser((prev) => {
+        const merged = { ...prev, department: cleanDept };
+        try {
+          localStorage.setItem('clockodo_session_user', JSON.stringify(merged));
+        } catch (e) {}
+        return merged;
+      });
+    }
+
+    // Backend MySQL Sync
+    try {
+      await api.updateProfile(idOrEmail, { department: cleanDept });
+    } catch (err) {
+      console.warn('Backend update department error:', err);
+    }
+  };
+
   // Real-time stopwatch ticker
   useEffect(() => {
     let interval = null;
@@ -1255,6 +1303,7 @@ try {
               usersList={usersList}
               onToggleUserAccess={handleToggleUserAccess}
               onAddTeamMember={handleAddTeamMember}
+              onUpdateMemberDepartment={handleUpdateMemberDepartment}
             />
           )}
 

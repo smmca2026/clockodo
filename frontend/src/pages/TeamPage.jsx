@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Users, 
   Search, 
@@ -14,15 +14,34 @@ import {
   XCircle, 
   AlertTriangle,
   Clock,
-  UserCheck
+  UserCheck,
+  Edit2,
+  Building2,
+  Sparkles
 } from 'lucide-react';
+
+const DEFAULT_DEPARTMENTS = [
+  'Full Stack',
+  'Frontend Dev',
+  'Backend Engineering',
+  'Mobile Apps',
+  'Quality Assurance',
+  'Design & UI',
+  'DevOps & Cloud',
+  'Marketing & Sales',
+  'Accounts & Finance',
+  'HR & Operations',
+  'Project Management',
+  'Customer Support'
+];
 
 export default function TeamPage({ 
   searchQuery: headerSearchQuery = '',
   currentUser = null,
   usersList = [],
   onToggleUserAccess,
-  onAddTeamMember
+  onAddTeamMember,
+  onUpdateMemberDepartment
 }) {
   const [activeSubtab, setActiveSubtab] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'PENDING'
   const [localSearchQuery, setLocalSearchQuery] = useState('');
@@ -36,6 +55,10 @@ export default function TeamPage({
   const [addRole, setAddRole] = useState('employee');
   const [addPassword, setAddPassword] = useState('Digi@2024');
 
+  // Inline table department edit state
+  const [editingDeptUserId, setEditingDeptUserId] = useState(null);
+  const [editingDeptValue, setEditingDeptValue] = useState('');
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 2800);
@@ -43,6 +66,14 @@ export default function TeamPage({
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.name?.toLowerCase().includes('bharath');
   const effectiveSearchQuery = (headerSearchQuery || localSearchQuery).trim().toLowerCase();
+
+  // Combine default preset departments with any custom departments already in usersList
+  const availableDepartments = Array.from(
+    new Set([
+      ...DEFAULT_DEPARTMENTS,
+      ...usersList.map(u => u.department || u.group).filter(Boolean)
+    ])
+  );
 
   // Filter members by Search Query AND Subtab (ALL | ACTIVE | PENDING)
   const filteredMembers = usersList.filter(u => {
@@ -69,23 +100,48 @@ export default function TeamPage({
   const handleAddSubmit = (e) => {
     e.preventDefault();
     if (!addName.trim() || !addEmail.trim()) {
-      showToast('⚠️ Please provide name and email');
+      showToast('Please provide name and email');
       return;
     }
+    const finalDepartment = addDepartment.trim() || 'Full Stack';
     if (onAddTeamMember) {
       onAddTeamMember({
         name: addName.trim(),
         email: addEmail.trim().toLowerCase(),
-        department: addDepartment,
+        department: finalDepartment,
         role: addRole,
         password: addPassword.trim() || 'Digi@2024'
       });
-      showToast(`✅ Team member ${addName} added with password (${addPassword.trim() || 'Digi@2024'})!`);
+      showToast(`Team member ${addName} added in ${finalDepartment} with password (${addPassword.trim() || 'Digi@2024'})!`);
       setAddName('');
       setAddEmail('');
+      setAddDepartment('Full Stack');
       setAddPassword('Digi@2024');
       setShowAddModal(false);
     }
+  };
+
+  const handleStartEditDept = (member) => {
+    setEditingDeptUserId(member.id || member.email);
+    setEditingDeptValue(member.department || member.group || 'Full Stack');
+  };
+
+  const handleSaveDept = (memberIdOrEmail, memberName) => {
+    if (!editingDeptValue.trim()) {
+      showToast('Department name cannot be empty');
+      return;
+    }
+    const cleanDept = editingDeptValue.trim();
+    if (onUpdateMemberDepartment) {
+      onUpdateMemberDepartment(memberIdOrEmail, cleanDept);
+      showToast(`Department updated to "${cleanDept}" for ${memberName || 'employee'}`);
+    }
+    setEditingDeptUserId(null);
+  };
+
+  const handleCancelDept = () => {
+    setEditingDeptUserId(null);
+    setEditingDeptValue('');
   };
 
   return (
@@ -114,12 +170,12 @@ export default function TeamPage({
             <button
               type="button"
               onClick={() => {
-    if (!currentUser || currentUser.role === 'guest') {
-      onAddTeamMember?.(null);
-      return;
-    }
-    setShowAddModal(true);
-  }}
+                if (!currentUser || currentUser.role === 'guest') {
+                  onAddTeamMember?.(null);
+                  return;
+                }
+                setShowAddModal(true);
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -181,13 +237,13 @@ export default function TeamPage({
           </button>
         </div>
 
-        {/* Clean, Non-Clipped Search Box */}
+        {/* Clean Search Box */}
         <div className="filter-search-wrapper">
           <Search size={14} className="filter-search-icon" />
           <input
             type="text"
             className="filter-search-input"
-            placeholder="Search by name, email, role..."
+            placeholder="Search by name, email, department, role..."
             value={localSearchQuery}
             onChange={(e) => setLocalSearchQuery(e.target.value)}
           />
@@ -200,9 +256,9 @@ export default function TeamPage({
           <thead>
             <tr>
               <th style={{ width: '220px' }}>EMPLOYEE</th>
-              <th style={{ width: '260px' }}>WORK EMAIL</th>
-              <th style={{ width: '140px' }}>ROLE</th>
-              <th style={{ width: '180px' }}>DEPARTMENT / GROUP</th>
+              <th style={{ width: '250px' }}>WORK EMAIL</th>
+              <th style={{ width: '130px' }}>ROLE</th>
+              <th style={{ width: '210px' }}>DEPARTMENT / GROUP</th>
               <th style={{ width: '220px', textAlign: 'center' }}>LOGIN ACCESS & ACTIONS</th>
             </tr>
           </thead>
@@ -215,17 +271,19 @@ export default function TeamPage({
                     No members found matching "{effectiveSearchQuery || activeSubtab}"
                   </div>
                   <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
-                    New employees can request access from the login screen.
+                    New employees can request access from the login screen or admin can add directly.
                   </div>
                 </td>
               </tr>
             ) : (
               filteredMembers.map((member) => {
+                const memberIdKey = member.id || member.email;
                 const isMemberAdmin = member.role === 'admin';
                 const isGranted = Boolean(member.active) || isMemberAdmin || member.accessGranted === true;
+                const isEditingThisDept = editingDeptUserId === memberIdKey;
 
                 return (
-                  <tr key={member.id || member.email}>
+                  <tr key={memberIdKey}>
                     <td>
                       <div className="detailed-user-cell">
                         <div 
@@ -263,7 +321,7 @@ export default function TeamPage({
                           fontSize: '11px',
                           fontWeight: 700
                         }}>
-                          👑 Admin (Owner)
+                          Admin (Owner)
                         </span>
                       ) : (
                         <span style={{
@@ -280,8 +338,117 @@ export default function TeamPage({
                       )}
                     </td>
 
-                    <td style={{ color: '#475569', fontSize: '13px', fontWeight: 500 }}>
-                      {member.department || member.group || 'Full Stack'}
+                    {/* Department Cell - Editable for Admin */}
+                    <td>
+                      {isEditingThisDept ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <input
+                            type="text"
+                            list="table-dept-datalist"
+                            value={editingDeptValue}
+                            onChange={(e) => setEditingDeptValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveDept(memberIdKey, member.name);
+                              } else if (e.key === 'Escape') {
+                                handleCancelDept();
+                              }
+                            }}
+                            autoFocus
+                            placeholder="Type or pick dept..."
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              borderRadius: '6px',
+                              border: '1.5px solid #00cc00',
+                              outline: 'none',
+                              width: '135px',
+                              background: '#ffffff',
+                              color: '#1e293b',
+                              fontWeight: 600
+                            }}
+                          />
+                          <datalist id="table-dept-datalist">
+                            {availableDepartments.map((d) => (
+                              <option key={d} value={d} />
+                            ))}
+                          </datalist>
+                          <button
+                            type="button"
+                            onClick={() => handleSaveDept(memberIdKey, member.name)}
+                            title="Save Department"
+                            style={{
+                              background: '#00cc00',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '5px',
+                              padding: '4px 6px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <Check size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelDept}
+                            title="Cancel"
+                            style={{
+                              background: '#f1f5f9',
+                              color: '#64748b',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '5px',
+                              padding: '4px 6px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <XCircle size={13} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => isAdmin && handleStartEditDept(member)}
+                          title={isAdmin ? "Click to edit department" : undefined}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            padding: '4px 9px',
+                            borderRadius: '6px',
+                            cursor: isAdmin ? 'pointer' : 'default',
+                            transition: 'all 0.15s ease',
+                            maxWidth: '190px'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (isAdmin) {
+                              e.currentTarget.style.borderColor = '#00cc00';
+                              e.currentTarget.style.background = '#f0fdf4';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (isAdmin) {
+                              e.currentTarget.style.borderColor = '#e2e8f0';
+                              e.currentTarget.style.background = '#f8fafc';
+                            }
+                          }}
+                        >
+                          <Building2 size={12} color="#64748b" />
+                          <span style={{ color: '#1e293b', fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {member.department || member.group || 'Full Stack'}
+                          </span>
+                          {isAdmin && (
+                            <Edit2 size={11} color="#94a3b8" style={{ marginLeft: '2px', flexShrink: 0 }} />
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     <td style={{ textAlign: 'center' }}>
@@ -382,7 +549,7 @@ export default function TeamPage({
             background: '#ffffff',
             borderRadius: '12px',
             width: '100%',
-            maxWidth: '460px',
+            maxWidth: '500px',
             overflow: 'hidden',
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
           }}>
@@ -410,7 +577,7 @@ export default function TeamPage({
                   placeholder="e.g. Sridhar Raman"
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                   required
                 />
               </div>
@@ -424,28 +591,107 @@ export default function TeamPage({
                   placeholder="sridhar@digiplusagency.com"
                   value={addEmail}
                   onChange={(e) => setAddEmail(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                   required
                 />
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
-                  DEPARTMENT / GROUP
-                </label>
-                <select
-                  value={addDepartment}
-                  onChange={(e) => setAddDepartment(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
-                >
-                  <option value="Frontend Dev">Frontend Dev</option>
-                  <option value="Backend Engineering">Backend Engineering</option>
-                  <option value="Full Stack">Full Stack</option>
-                  <option value="Mobile Apps">Mobile Apps</option>
-                  <option value="Quality Assurance">Quality Assurance</option>
-                  <option value="Design & UI">Design & UI</option>
-                  <option value="DevOps & Cloud">DevOps & Cloud</option>
-                </select>
+              {/* Editable Department / Group */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+                    DEPARTMENT / GROUP (EDITABLE)
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#008a00', fontWeight: 600 }}>
+                    Custom or Preset
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="text"
+                      list="modal-dept-presets"
+                      placeholder="Type custom department or pick preset..."
+                      value={addDepartment}
+                      onChange={(e) => setAddDepartment(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '6px',
+                        border: '1.5px solid #00cc00',
+                        fontSize: '13px',
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        background: '#ffffff',
+                        fontWeight: 600,
+                        color: '#1e293b'
+                      }}
+                      required
+                    />
+                    <datalist id="modal-dept-presets">
+                      {availableDepartments.map((dept) => (
+                        <option key={dept} value={dept} />
+                      ))}
+                    </datalist>
+                  </div>
+
+                  <select
+                    value={availableDepartments.includes(addDepartment) ? addDepartment : ''}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setAddDepartment(e.target.value);
+                      }
+                    }}
+                    style={{
+                      width: '130px',
+                      padding: '9px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '12px',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="" disabled>Presets...</option>
+                    {availableDepartments.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Quick Select Preset Pills */}
+                <div style={{ marginTop: '8px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                    💡 Quick select or type any custom department name above:
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {DEFAULT_DEPARTMENTS.slice(0, 8).map((dept) => {
+                      const isSelected = addDepartment === dept;
+                      return (
+                        <button
+                          key={dept}
+                          type="button"
+                          onClick={() => setAddDepartment(dept)}
+                          style={{
+                            fontSize: '11px',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            border: isSelected ? '1px solid #00cc00' : '1px solid #e2e8f0',
+                            background: isSelected ? 'rgba(0, 204, 0, 0.12)' : '#f8fafc',
+                            color: isSelected ? '#008a00' : '#475569',
+                            cursor: 'pointer',
+                            fontWeight: isSelected ? 700 : 500,
+                            transition: 'all 0.12s ease'
+                          }}
+                        >
+                          {dept}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div style={{ marginBottom: '14px' }}>
@@ -457,7 +703,7 @@ export default function TeamPage({
                   placeholder="e.g. Digi@2024"
                   value={addPassword}
                   onChange={(e) => setAddPassword(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
                   required
                 />
                 <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
