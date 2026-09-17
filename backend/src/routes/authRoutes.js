@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
 
     let user = rows && rows[0];
 
-    // Fallback: If DB is fresh/empty and input is Admin, auto-provide Bharath Admin
+    // Fallback: If DB is fresh/empty and input is Admin (Bharath or Punitha)
     if (!user && (cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput.includes('bharath') || cleanInput.includes('admin') || cleanInput === 'bharath.owner@digiplusagency.com')) {
       user = {
         id: 'usr-admin-1',
@@ -50,6 +50,27 @@ router.post('/login', async (req, res) => {
           ON DUPLICATE KEY UPDATE active = 1, role = 'admin'
         `, [user.id, user.name, user.username, user.email, user.password, user.role, user.department, user.active, user.avatar_initials, user.avatar_color, user.workspace]);
       } catch (e) {}
+    } else if (!user && (cleanInput === 'punitha' || cleanInput === 'punitha@digipl.us' || cleanInput.includes('punitha'))) {
+      user = {
+        id: 'usr-admin-2',
+        name: 'Punitha (Admin)',
+        username: 'punitha',
+        email: 'punitha@digipl.us',
+        password: 'punitha@2026',
+        role: 'admin',
+        department: 'Management / Executive',
+        active: 1,
+        avatar_initials: 'PU',
+        avatar_color: '#8b5cf6',
+        workspace: 'DigiPlus'
+      };
+      try {
+        await pool.query(`
+          INSERT INTO users (id, name, username, email, password, role, department, active, avatar_initials, avatar_color, workspace)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE active = 1, role = 'admin', password = 'punitha@2026'
+        `, [user.id, user.name, user.username, user.email, user.password, user.role, user.department, user.active, user.avatar_initials, user.avatar_color, user.workspace]);
+      } catch (e) {}
     }
 
     if (!user) {
@@ -63,7 +84,9 @@ router.post('/login', async (req, res) => {
     const isAdminPass = user.role === 'admin' && (
       cleanPass === '1234567890' || 
       cleanPass === '123456' || 
-      cleanPass === 'Bharath@Admin2026' || 
+      cleanPass === 'Bharath@Admin2026' ||
+      cleanPass === 'punitha@2026' ||
+      lowerPass === 'punitha@2026' || 
       lowerPass === 'admin' ||
       lowerPass === 'digi@2026'
     );

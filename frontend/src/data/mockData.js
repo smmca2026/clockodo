@@ -5538,6 +5538,21 @@ export const INITIAL_USERS = [
     avatarInitials: 'BO',
     avatarColor: '#10b981',
     workspace: 'DigiPlus'
+  },
+  { 
+    id: 'usr-admin-2', 
+    name: 'Punitha (Admin)', 
+    username: 'punitha', 
+    email: 'punitha@digipl.us', 
+    password: 'punitha@2026',
+    role: 'admin', 
+    group: 'Management / Executive', 
+    department: 'Management / Executive', 
+    active: true,
+    accessGranted: true,
+    avatarInitials: 'PU',
+    avatarColor: '#8b5cf6',
+    workspace: 'DigiPlus'
   }
 ];
 
