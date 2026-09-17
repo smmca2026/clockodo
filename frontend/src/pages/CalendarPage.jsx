@@ -9,6 +9,7 @@ export default function CalendarPage({
   activities,
   timesheetRows,
   projects,
+  currentUser,
   onAddManualEntry,
   onDeleteCalendarEntry
 }) {
@@ -16,6 +17,7 @@ export default function CalendarPage({
     <div className="page-container">
       {/* Calendar Component */}
       <Calendar
+        currentUser={currentUser}
         calendarSchedule={calendarSchedule}
         onUpdateCalendarSchedule={onUpdateCalendarSchedule}
         activeTimer={activeTimer}

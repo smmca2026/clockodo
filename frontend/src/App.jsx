@@ -1253,6 +1253,7 @@ try {
 
           {!sharedToken && activePage === 'calendar' && (
             <CalendarPage
+              currentUser={currentUser}
               calendarSchedule={calendarSchedule}
               onUpdateCalendarSchedule={setCalendarSchedule}
               activeTimer={activeTimer}

@@ -59,6 +59,7 @@ export default function Calendar({
   activities = [],
   timesheetRows = [],
   projects = INITIAL_PROJECTS,
+  currentUser = null,
   onAddManualEntry,
   onDeleteCalendarEntry
 }) {
@@ -69,6 +70,26 @@ export default function Calendar({
   // Real-time dynamic current date tracking (Auto-rolls over at midnight)
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDayDate, setSelectedDayDate] = useState(() => new Date());
+
+  // Helper to match activities for the currently logged in user (Admin / Employee personal scoping)
+  const userFilteredActivities = useMemo(() => {
+    if (!currentUser) return activities;
+    const myName = (currentUser.name || '').trim().toLowerCase();
+    const myEmail = (currentUser.email || '').trim().toLowerCase();
+    const myId = currentUser.id ? String(currentUser.id) : '';
+
+    return activities.filter(act => {
+      const actUser = (act.user || act.userName || act.user_name || act.member || act.assignedTo || '').trim().toLowerCase();
+      const actEmail = (act.userEmail || act.email || '').trim().toLowerCase();
+      const actUserId = (act.userId || act.user_id) ? String(act.userId || act.user_id) : '';
+
+      if (myId && actUserId && myId === actUserId) return true;
+      if (myEmail && actEmail && myEmail === actEmail) return true;
+      if (myName && actUser && (actUser === myName || actUser.includes(myName) || myName.includes(actUser))) return true;
+      if (!actUser && !actEmail && !actUserId) return true; // legacy local items created in current session
+      return false;
+    });
+  }, [activities, currentUser]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePopoverRef = useRef(null);
   const timelineScrollRef = useRef(null);
@@ -433,7 +454,7 @@ export default function Calendar({
       const isoDate = `${yr}-${mo}-${da}`;
 
       // Filter activities for this day from master activities ONLY by exact ISO date
-      const dayActs = activities.filter(act => {
+      const dayActs = userFilteredActivities.filter(act => {
         const actDate = getActivityDate(act);
         return actDate === isoDate;
       });
@@ -694,7 +715,7 @@ export default function Calendar({
                 ? dynamicWeekTotal 
                 : (() => {
                     let totalSec = 0;
-                    activities.filter(act => getActivityDate(act) === dayViewIsoDate).forEach(act => {
+                    userFilteredActivities.filter(act => getActivityDate(act) === dayViewIsoDate).forEach(act => {
                       const p = (act.durationFormatted || '00:00:00').split(':').map(Number);
                       totalSec += act.durationSeconds || ((p[0] || 0) * 3600 + (p[1] || 0) * 60 + (p[2] || 0));
                     });
@@ -894,7 +915,7 @@ export default function Calendar({
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 800, color: '#008a00' }}>
                 {(() => {
                   let totalSec = 0;
-                  activities.filter(act => getActivityDate(act) === dayViewIsoDate).forEach(act => {
+                  userFilteredActivities.filter(act => getActivityDate(act) === dayViewIsoDate).forEach(act => {
                     const p = (act.durationFormatted || '00:00:00').split(':').map(Number);
                     totalSec += act.durationSeconds || ((p[0] || 0) * 3600 + (p[1] || 0) * 60 + (p[2] || 0));
                   });
@@ -973,7 +994,7 @@ export default function Calendar({
 
                 {/* Day Activity Blocks */}
                 {(() => {
-                  const dayActs = activities.filter(act => {
+                  const dayActs = userFilteredActivities.filter(act => {
                     const actDate = getActivityDate(act);
                     return actDate === dayViewIsoDate;
                   });
