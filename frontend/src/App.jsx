@@ -744,7 +744,43 @@ try {
     api.deleteActivity(actId).catch(e => console.warn('Backend sync failed:', e));
   };
 
+  const handleUpdateActivity = (actId, updates) => {
+    if (isGuestSession || !currentUser || currentUser.role === 'guest') {
+      setGuestDeniedModal({
+        title: 'Action Restricted: Sign In Required',
+        subtitle: 'Read-Only Guest Mode Active',
+        message: 'You are currently viewing in Read-Only Guest Mode. Adding new time entries, creating projects, starting timers, and making workspace changes are restricted to authorized accounts. Please sign in as an Admin or Staff member.'
+      });
+      return;
+    }
+    if (!actId || !updates) return;
+
+    setActivities((prev) =>
+      prev.map((a) => {
+        if (a.id === actId) {
+          return {
+            ...a,
+            ...updates,
+          };
+        }
+        return a;
+      })
+    );
+
+    api.updateActivity(actId, updates).catch((e) => console.warn('Backend sync failed for updateActivity:', e));
+  };
+
   const handleUpdateActivityDate = (actId, newISODate, newGroupLabel) => {
+    if (isGuestSession || !currentUser || currentUser.role === 'guest') {
+      setGuestDeniedModal({
+        title: 'Action Restricted: Sign In Required',
+        subtitle: 'Read-Only Guest Mode Active',
+        message: 'You are currently viewing in Read-Only Guest Mode.'
+      });
+      return;
+    }
+    if (!actId) return;
+
     setActivities((prev) =>
       prev.map((a) => {
         if (a.id === actId) {
@@ -757,6 +793,8 @@ try {
         return a;
       })
     );
+
+    api.updateActivity(actId, { date: newISODate, group: newGroupLabel }).catch(e => console.warn('Backend sync failed:', e));
   };
 
   const handleDeleteProjectActivities = (projectName, weekOffset = 0) => {

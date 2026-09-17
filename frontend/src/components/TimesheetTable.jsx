@@ -1464,6 +1464,7 @@ export default function TimesheetTable({
                         onOpenChange={(isOpen) => setActivePickerRowId(isOpen ? row.id : null)}
                         onSelectProject={(projId) => handleSelectRowProject(row.id, projId)}
                         onCreateProject={onCreateProject}
+                        currentUser={currentUser}
                       />
                     </td>
 

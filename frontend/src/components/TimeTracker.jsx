@@ -20,7 +20,8 @@ export default function TimeTracker({
   onCreateProject,
   activeTimer = null,
   onStartTimer = () => {},
-  onStopTimer = () => {}
+  onStopTimer = () => {},
+  currentUser = null
 }) {
   const [trackerMode, setTrackerMode] = useState('timer'); // 'timer' (Stopwatch) | 'manual' (Time range + ADD)
   const [taskDescription, setTaskDescription] = useState('');
@@ -37,7 +38,7 @@ export default function TimeTracker({
 
   // Date States
   const [selectedDateLabel, setSelectedDateLabel] = useState('Today');
-  const [selectedDateObj, setSelectedDateObj] = useState(new Date(2026, 8, 8)); // Sep 8, 2026 (Today) // Sep 1, 2026 (Today)
+  const [selectedDateObj, setSelectedDateObj] = useState(new Date()); // Sep 8, 2026 (Today) // Sep 1, 2026 (Today)
   const [viewMonth, setViewMonth] = useState(8); // 0-indexed, 8 = September
   const [viewYear, setViewYear] = useState(2026);
   const [showDatePopover, setShowDatePopover] = useState(false);
@@ -328,6 +329,7 @@ export default function TimeTracker({
           selectedProjectId={selectedProjectId}
           onSelectProject={(id) => setSelectedProjectId(id)}
           onCreateProject={onCreateProject}
+          currentUser={currentUser}
         />
       </div>
 

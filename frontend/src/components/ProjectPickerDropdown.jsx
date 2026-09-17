@@ -22,7 +22,10 @@ export default function ProjectPickerDropdown({
   isOpen: isOpenProp,
   onOpenChange,
   defaultOpen = false,
-  onClose
+  onClose,
+  currentUser = null,
+  isAdmin: isAdminProp,
+  allowCreate: allowCreateProp
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = typeof isOpenProp === 'boolean';
@@ -37,6 +40,20 @@ export default function ProjectPickerDropdown({
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
 
+  // Determine if the current user has permission to create new projects
+  // Admins & Owners CAN create projects; Standard Employees CANNOT (Option hidden)
+  const isUserAdmin = typeof isAdminProp === 'boolean'
+    ? isAdminProp
+    : (currentUser ? (
+        currentUser.role === 'admin' || 
+        currentUser.role === 'owner' || 
+        currentUser.email === 'admin' ||
+        currentUser.email === 'admin@digiplus.com' ||
+        currentUser.name?.toLowerCase().includes('admin')
+      ) : true);
+
+  const canCreateProject = typeof allowCreateProp === 'boolean' ? allowCreateProp : isUserAdmin;
+
   // Guarantee list is NEVER empty
   const allProjects = (Array.isArray(projects) && projects.length > 0) ? projects : INITIAL_PROJECTS;
 
@@ -49,75 +66,80 @@ export default function ProjectPickerDropdown({
       if (byName) return byName;
     }
     if (selectedProjectName) {
-      const byName = allProjects.find(p => p.name.toLowerCase() === String(selectedProjectName).toLowerCase());
+      const byName = allProjects.find(p => p.name.toLowerCase() === selectedProjectName.toLowerCase());
       if (byName) return byName;
-      return { id: selectedProjectName, name: selectedProjectName, color: '#00cc00', client: 'General' };
     }
     return null;
   })();
 
-  // Close on outside click
+  // Close dropdown on outside click
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         if (!isControlled) setInternalOpen(false);
-        setShowCreateForm(false);
         if (onOpenChange) onOpenChange(false);
         if (onClose) onClose();
+        setShowCreateForm(false);
       }
-    }
+    };
     if (open) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [open, isControlled, onOpenChange, onClose]);
 
-  // Focus search when dropdown opens
+  // Focus search input when popover opens
   useEffect(() => {
     if (open && searchInputRef.current) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
     }
   }, [open]);
 
-  // Filter projects by search
-  const filteredProjects = allProjects.filter((p) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
+  const handleToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    const nextState = !open;
+    if (!isControlled) setInternalOpen(nextState);
+    if (onOpenChange) onOpenChange(nextState);
+    if (!nextState && onClose) onClose();
+  };
+
+  // Filter projects by search query
+  const filteredProjects = allProjects.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
     return (
-      p.name.toLowerCase().includes(q) ||
+      (p.name && p.name.toLowerCase().includes(q)) ||
       (p.client && p.client.toLowerCase().includes(q))
     );
   });
 
-  // Group by client
+  // Group filtered projects by client
   const clientGroups = filteredProjects.reduce((acc, proj) => {
-    const clientName = (!proj.client || proj.client === '—') ? 'NO CLIENT' : proj.client.toUpperCase();
+    const clientName = proj.client || 'General / Internal';
     if (!acc[clientName]) acc[clientName] = [];
     acc[clientName].push(proj);
     return acc;
   }, {});
 
-  const handleToggle = (e) => {
-    e.stopPropagation();
-    if (disabled) return;
-    const next = !open;
-    if (!isControlled) setInternalOpen(next);
-    if (onOpenChange) onOpenChange(next);
-  };
-
   const handleCreateSubmit = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!newProjName.trim()) return;
 
     const newProject = {
       id: `proj-${Date.now()}`,
       name: newProjName.trim(),
-      client: newProjClient.trim() || '—',
+      client: newProjClient.trim() || 'DigiPlus Clients',
       color: newProjColor,
-      tracked: '0.00h',
-      billableRate: 75,
-      isFavorite: false,
-      tasksCount: 1
+      tracked: '00:00',
+      tasksCount: 1,
+      isFavorite: false
     };
 
     if (onCreateProject) {
@@ -263,70 +285,72 @@ export default function ProjectPickerDropdown({
             )}
           </div>
 
-          {/* Create New Project Section */}
-          <div className="project-picker-footer">
-            {!showCreateForm ? (
-              <button
-                type="button"
-                className="btn-create-project-trigger"
-                onClick={() => setShowCreateForm(true)}
-              >
-                <Plus size={15} />
-                <span>Create new Project</span>
-              </button>
-            ) : (
-              <form onSubmit={handleCreateSubmit} className="project-create-form">
-                <div className="create-form-title">Create New Project</div>
-                <input
-                  type="text"
-                  className="create-form-input"
-                  placeholder="Project name..."
-                  value={newProjName}
-                  onChange={(e) => setNewProjName(e.target.value)}
-                  autoFocus
-                />
-                <input
-                  type="text"
-                  className="create-form-input"
-                  placeholder="Client name (optional)..."
-                  value={newProjClient}
-                  onChange={(e) => setNewProjClient(e.target.value)}
-                />
+          {/* Create New Project Section - ONLY VISIBLE FOR ADMINS (HIDDEN FOR EMPLOYEES) */}
+          {canCreateProject && (
+            <div className="project-picker-footer">
+              {!showCreateForm ? (
+                <button
+                  type="button"
+                  className="btn-create-project-trigger"
+                  onClick={() => setShowCreateForm(true)}
+                >
+                  <Plus size={15} />
+                  <span>Create new Project</span>
+                </button>
+              ) : (
+                <form onSubmit={handleCreateSubmit} className="project-create-form">
+                  <div className="create-form-title">Create New Project</div>
+                  <input
+                    type="text"
+                    className="create-form-input"
+                    placeholder="Project name..."
+                    value={newProjName}
+                    onChange={(e) => setNewProjName(e.target.value)}
+                    autoFocus
+                  />
+                  <input
+                    type="text"
+                    className="create-form-input"
+                    placeholder="Client name (optional)..."
+                    value={newProjClient}
+                    onChange={(e) => setNewProjClient(e.target.value)}
+                  />
 
-                <div className="color-palette-picker">
-                  <span className="color-label">Color:</span>
-                  <div className="color-dots-row">
-                    {presetColors.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        className={`color-dot-btn ${newProjColor === color ? 'selected' : ''}`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => setNewProjColor(color)}
-                      />
-                    ))}
+                  <div className="color-palette-picker">
+                    <span className="color-label">Color:</span>
+                    <div className="color-dots-row">
+                      {presetColors.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          className={`color-dot-btn ${newProjColor === color ? 'selected' : ''}`}
+                          style={{ backgroundColor: color }}
+                          onClick={() => setNewProjColor(color)}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="create-form-actions">
-                  <button
-                    type="button"
-                    className="btn-cancel-create"
-                    onClick={() => setShowCreateForm(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-confirm-create"
-                    disabled={!newProjName.trim()}
-                  >
-                    Create
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+                  <div className="create-form-actions">
+                    <button
+                      type="button"
+                      className="btn-cancel-create"
+                      onClick={() => setShowCreateForm(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-confirm-create"
+                      disabled={!newProjName.trim()}
+                    >
+                      Create
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

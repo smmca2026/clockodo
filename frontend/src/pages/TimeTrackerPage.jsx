@@ -1,22 +1,194 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Calendar as CalendarIcon, 
-  IndianRupee, 
   Play, 
   Pause, 
-  Square, 
   MoreVertical, 
-  Layers, 
-  Copy, 
-  Trash2, 
-  RotateCcw,
-  CheckCircle2,
+  ChevronDown, 
+  ChevronRight, 
   ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  X 
+  Calendar as CalendarIcon, 
+  IndianRupee, 
+  Trash2, 
+  Copy, 
+  CheckCircle2,
+  Edit3,
+  Check,
+  X
 } from 'lucide-react';
 import TimeTracker from '../components/TimeTracker';
+
+// Reusable Inline Date Picker Popover Component
+function RowDatePickerPopover({
+  currentIsoDate,
+  onSelectDate,
+  onClose
+}) {
+  const popoverRef = useRef(null);
+  
+  // Parse initial year/month from currentIsoDate (YYYY-MM-DD) or default to today
+  const initDate = (() => {
+    if (currentIsoDate && /^\d{4}-\d{2}-\d{2}$/.test(currentIsoDate)) {
+      const [y, m, d] = currentIsoDate.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  })();
+
+  const [viewYear, setViewYear] = useState(initDate.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initDate.getMonth());
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
+  const handlePrevMonth = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(prev => prev - 1);
+    } else {
+      setViewMonth(prev => prev - 1);
+    }
+  };
+
+  const handleNextMonth = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(prev => prev + 1);
+    } else {
+      setViewMonth(prev => prev + 1);
+    }
+  };
+
+  const handleSelectQuickDate = (type, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const d = new Date();
+    if (type === 'yesterday') {
+      d.setDate(d.getDate() - 1);
+    }
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    onSelectDate(`${yr}-${mo}-${da}`);
+  };
+
+  const handleSelectDay = (dayNum, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const yr = viewYear;
+    const mo = String(viewMonth + 1).padStart(2, '0');
+    const da = String(dayNum).padStart(2, '0');
+    onSelectDate(`${yr}-${mo}-${da}`);
+  };
+
+  const firstDayOfMonth = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  const now = new Date();
+  const isSelectedDate = (dayNum) => {
+    const yr = viewYear;
+    const mo = String(viewMonth + 1).padStart(2, '0');
+    const da = String(dayNum).padStart(2, '0');
+    return `${yr}-${mo}-${da}` === currentIsoDate;
+  };
+
+  return (
+    <div 
+      className="clockify-entry-cal-popover" 
+      ref={popoverRef}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {/* Quick date shortcuts */}
+      <div className="calendar-quick-actions">
+        <button 
+          type="button" 
+          className="quick-date-chip"
+          onClick={(e) => handleSelectQuickDate('today', e)}
+        >
+          Today
+        </button>
+        <button 
+          type="button" 
+          className="quick-date-chip"
+          onClick={(e) => handleSelectQuickDate('yesterday', e)}
+        >
+          Yesterday
+        </button>
+      </div>
+
+      {/* Month & Year navigation */}
+      <div className="calendar-month-nav">
+        <button type="button" className="cal-nav-btn" onClick={handlePrevMonth}>
+          <ChevronLeft size={15} />
+        </button>
+        <span className="cal-current-month">
+          {monthNames[viewMonth]} {viewYear}
+        </span>
+        <button type="button" className="cal-nav-btn" onClick={handleNextMonth}>
+          <ChevronRight size={15} />
+        </button>
+      </div>
+
+      {/* Weekday Headers */}
+      <div className="calendar-weekdays-grid">
+        <span>Su</span>
+        <span>Mo</span>
+        <span>Tu</span>
+        <span>We</span>
+        <span>Th</span>
+        <span>Fr</span>
+        <span>Sa</span>
+      </div>
+
+      {/* Days Grid */}
+      <div className="calendar-days-grid">
+        {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+          <span key={`empty-${i}`} className="cal-day-empty" />
+        ))}
+
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const dayNum = i + 1;
+          const isSelected = isSelectedDate(dayNum);
+          const isToday = 
+            viewYear === now.getFullYear() && 
+            viewMonth === now.getMonth() && 
+            dayNum === now.getDate();
+
+          return (
+            <button
+              key={dayNum}
+              type="button"
+              className={`cal-day-btn ${isSelected ? 'selected' : ''} ${isToday ? 'is-today' : ''}`}
+              onClick={(e) => handleSelectDay(dayNum, e)}
+              title={isToday ? "Today" : undefined}
+            >
+              {dayNum}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function TimeTrackerPage({
   projects = [],
@@ -29,16 +201,46 @@ export default function TimeTrackerPage({
   onStopTimer = () => {},
   onDeleteActivity = () => {},
   onDuplicateActivity = () => {},
-  onUpdateActivityDate = () => {}
+  onUpdateActivityDate = () => {},
+  onUpdateActivity = () => {},
+  currentUser = null
 }) {
+  // State for active 3-dots dropdown menu
   const [activeMenuId, setActiveMenuId] = useState(null);
-  const [activeDayDetailsId, setActiveDayDetailsId] = useState(null);
+
+  // State for expanded project cluster rows
+  const [expandedTasks, setExpandedTasks] = useState({});
+
+  // State for collapsed day groups
   const [collapsedGroups, setCollapsedGroups] = useState({});
-  const [pickerMonth, setPickerMonth] = useState(7); // 7 = August (0-indexed)
-  const [pickerYear, setPickerYear] = useState(2026);
+
+  // State for in-app toast feedback
   const [toastMessage, setToastMessage] = useState(null);
 
-  const [expandedTasks, setExpandedTasks] = useState({});
+  // State for active date picker popover: string key or null (e.g. 'parent_web design', 'sub_act-123')
+  const [activeDatePickerKey, setActiveDatePickerKey] = useState(null);
+
+  // State for inline description editing: string key or null, and text draft
+  const [editingItemKey, setEditingItemKey] = useState(null);
+  const [editingDescText, setEditingDescText] = useState('');
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2800);
+  };
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleDocumentClick = () => {
+      setActiveMenuId(null);
+    };
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, []);
 
   const toggleTaskExpand = (taskKey) => {
     setExpandedTasks(prev => ({
@@ -47,74 +249,14 @@ export default function TimeTrackerPage({
     }));
   };
 
-  const toggleGroupCollapse = (groupName) => {
+  const toggleGroupCollapse = (dateKey) => {
     setCollapsedGroups(prev => ({
       ...prev,
-      [groupName]: !prev[groupName]
+      [dateKey]: !prev[dateKey]
     }));
   };
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-  const getFirstDayOfWeek = (y, m) => {
-    const day = new Date(y, m, 1).getDay();
-    return day === 0 ? 6 : day - 1; // 0 = Mon ... 6 = Sun
-  };
-
-  const handleSelectEntryDate = (item, dayNum, monthIdx, yearNum) => {
-    const d = new Date(yearNum, monthIdx, dayNum);
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, '0');
-    const da = String(d.getDate()).padStart(2, '0');
-    const isoDate = `${yr}-${mo}-${da}`;
-
-    let groupLabel = '';
-    const todayISO = getTodayISO();
-    const yestISO = getYesterdayISO();
-    if (isoDate === todayISO) {
-      groupLabel = 'Today';
-    } else if (isoDate === yestISO) {
-      groupLabel = 'Yesterday';
-    } else {
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      groupLabel = `${dayNames[d.getDay()]}, ${shortMonths[monthIdx]} ${da}`;
-    }
-
-    if (onUpdateActivityDate) {
-      onUpdateActivityDate(item.id, isoDate, groupLabel);
-    }
-    setActiveDayDetailsId(null);
-    showToast(`✓ Moved entry to ${groupLabel}`);
-  };
-
-  // Helper to show temporary in-app toast
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2800);
-  };
-
-  // Close 3-dots menu & Calendar sessions popover on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest('.clockify-entry-menu-wrapper')) {
-        setActiveMenuId(null);
-      }
-      if (!e.target.closest('.clockify-cal-action-wrapper')) {
-        setActiveDayDetailsId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Helper to parse time strings like "10:53 AM", "11:00", "15:08" into minutes from midnight
+  // Helper to parse start time into minutes for chronological sorting
   const parseStartMinutes = (t) => {
     if (!t) return 0;
     const clean = t.trim().toUpperCase();
@@ -175,14 +317,6 @@ export default function TimeTrackerPage({
     const secs = sec % 60;
     return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
-
-  // Filter activities by searchQuery
-  const filteredActivities = activities.filter(act => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (act.description && act.description.toLowerCase().includes(q)) ||
-           (act.project && act.project.toLowerCase().includes(q));
-  });
 
   // Dynamic helpers for Real-Life Today & Yesterday
   const getTodayISO = () => {
@@ -246,8 +380,15 @@ export default function TimeTrackerPage({
     return `${dayOfWeek}, ${monthStr} ${dayStr}`;
   };
 
+  // Filter activities by searchQuery
+  const filteredActivities = activities.filter(act => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (act.description && act.description.toLowerCase().includes(q)) ||
+           (act.project && act.project.toLowerCase().includes(q));
+  });
+
   // Group activities strictly by unique canonical ISO date (YYYY-MM-DD)
-  // This guarantees NO DUPLICATE DAY CARDS can ever exist for the same day!
   const groupedByDate = filteredActivities.reduce((acc, act) => {
     const isoDate = normalizeActivityDate(act);
     if (!acc[isoDate]) acc[isoDate] = [];
@@ -296,16 +437,53 @@ export default function TimeTrackerPage({
     showToast(`✓ Duplicated entry for "${item.project}"`);
   };
 
-  const handleDiscard = (item) => {
-    onDeleteActivity(item.id);
-    setActiveMenuId(null);
-    showToast(`✓ Discarded time entry for "${item.project}"`);
-  };
-
   const handleDelete = (item) => {
     onDeleteActivity(item.id);
     setActiveMenuId(null);
     showToast(`✓ Deleted time entry`);
+  };
+
+  // Start editing description
+  const startEditingDescription = (itemKey, currentText, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setEditingItemKey(itemKey);
+    setEditingDescText(currentText || '');
+    setActiveMenuId(null);
+  };
+
+  // Save edited description
+  const handleSaveDescription = (itemOrCluster, newText) => {
+    const cleanText = newText.trim() || 'Working session';
+    if (itemOrCluster.sessions && Array.isArray(itemOrCluster.sessions)) {
+      // Cluster parent row: update all sessions in this cluster
+      itemOrCluster.sessions.forEach(s => {
+        onUpdateActivity(s.id, { description: cleanText });
+      });
+    } else {
+      // Individual session
+      onUpdateActivity(itemOrCluster.id, { description: cleanText });
+    }
+    setEditingItemKey(null);
+    showToast(`✓ Description updated: "${cleanText}"`);
+  };
+
+  // Handle date change from Date Picker Popover
+  const handleSelectNewDate = (itemOrCluster, newIsoDate) => {
+    const newGroupLabel = getDisplayLabelForDate(newIsoDate);
+    if (itemOrCluster.sessions && Array.isArray(itemOrCluster.sessions)) {
+      itemOrCluster.sessions.forEach(s => {
+        onUpdateActivityDate(s.id, newIsoDate, newGroupLabel);
+        onUpdateActivity(s.id, { date: newIsoDate, group: newGroupLabel });
+      });
+    } else {
+      onUpdateActivityDate(itemOrCluster.id, newIsoDate, newGroupLabel);
+      onUpdateActivity(itemOrCluster.id, { date: newIsoDate, group: newGroupLabel });
+    }
+    setActiveDatePickerKey(null);
+    showToast(`✓ Entry moved to ${newGroupLabel}`);
   };
 
   return (
@@ -318,6 +496,7 @@ export default function TimeTrackerPage({
         activeTimer={activeTimer}
         onStartTimer={onStartTimer}
         onStopTimer={onStopTimer}
+        currentUser={currentUser}
       />
 
       {/* 2. List Header: "This week" and "Week total: 23:30:00" */}
@@ -342,32 +521,15 @@ export default function TimeTrackerPage({
 
             // Sort items inside group with latest start time at top
             const groupItems = [...rawItems].sort((a, b) => {
-              const parseStart = (t) => {
-                if (!t) return 0;
-                const clean = t.trim().toUpperCase();
-                const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)?/);
-                if (match) {
-                  let h = parseInt(match[1], 10);
-                  const m = parseInt(match[2], 10) || 0;
-                  const marker = match[3];
-                  if (marker === 'PM' && h < 12) h += 12;
-                  if (marker === 'AM' && h === 12) h = 0;
-                  return h * 60 + m;
-                }
-                const parts = t.split(':').map(Number);
-                let h = parts[0] || 0;
-                if (h >= 1 && h <= 6) h += 12;
-                return h * 60 + (parts[1] || 0);
-              };
-              return parseStart(b.startTime) - parseStart(a.startTime);
+              return parseStartMinutes(b.startTime) - parseStartMinutes(a.startTime);
             });
 
-            // Calculate day total
-            let groupSec = 0;
-            groupItems.forEach(item => {
-              groupSec += parseTimeToSeconds(item.durationFormatted);
+            // Calculate total time for this day
+            let daySec = 0;
+            rawItems.forEach(item => {
+              daySec += parseTimeToSeconds(item.durationFormatted);
             });
-            const groupTotal = formatSecondsToTime(groupSec);
+            const groupTotal = formatSecondsToTime(daySec);
             const isLastGroup = groupIdx === sortedDateKeys.length - 1;
 
             return (
@@ -408,7 +570,7 @@ export default function TimeTrackerPage({
                 {!isCollapsed && (
                   <div className="clockify-entries-list">
                     {(() => {
-                      // 1. Group tasks inside this day by PROJECT so same-project tasks collapse/expand as dropdowns
+                      // 1. Group tasks inside this day by PROJECT
                       const clustersMap = {};
                       const clustersOrder = [];
 
@@ -452,6 +614,11 @@ export default function TimeTrackerPage({
                         const isLastInGroup = cIdx === clustersOrder.length - 1;
                         const shouldOpenUpwards = isLastGroup || isLastInGroup;
 
+                        // Keys for parent row controls
+                        const parentRowKey = `parent_${isoDate}_${clusterKey}`;
+                        const isEditingDesc = editingItemKey === parentRowKey;
+                        const isDatePickerOpen = activeDatePickerKey === parentRowKey;
+
                         // Calculate overall time span (Earliest start to latest end)
                         let earliestMin = 99999;
                         let earliestStartStr = cluster.sessions[0].startTime;
@@ -471,19 +638,26 @@ export default function TimeTrackerPage({
                           }
                         });
 
+                        const displayDesc = isMultiSession
+                          ? (cluster.sessions[0]?.description || cluster.project)
+                          : (cluster.sessions[0]?.description || cluster.project);
+
                         return (
-                          <div key={clusterKey} className={`clockify-entry-cluster ${isExpanded ? 'is-cluster-expanded' : ''}`}>
+                          <div 
+                            key={clusterKey} 
+                            className={`clockify-entry-cluster ${isExpanded ? 'is-cluster-expanded' : ''}`}
+                            style={{ position: 'relative', zIndex: (isDatePickerOpen || activeMenuId === parentRowKey) ? 9999 : (isExpanded ? 10 : 1) }}
+                          >
                             {/* Main Task Row */}
                             <div 
                               className={`clockify-entry-row ${running ? 'is-row-running' : ''} ${isMultiSession ? 'is-multi-session' : ''}`}
                               onClick={() => {
-                                if (isMultiSession) {
+                                if (isMultiSession && !isEditingDesc) {
                                   toggleTaskExpand(taskExpandedKey);
                                 }
                               }}
                               style={{ 
                                 cursor: isMultiSession ? 'pointer' : 'default',
-                                zIndex: activeMenuId && (activeMenuId === `parent_${clusterKey}` || activeMenuId.includes(clusterKey)) ? 9999 : (isExpanded ? 10 : 1),
                                 position: 'relative'
                               }}
                             >
@@ -505,11 +679,63 @@ export default function TimeTrackerPage({
                                   <span className="cluster-single-indent" />
                                 )}
 
-                                <span className="clockify-entry-desc">
-                                  {isMultiSession 
-                                    ? `${cluster.sessions[0]?.description || cluster.project} (+${cluster.sessions.length - 1} more)`
-                                    : cluster.sessions[0]?.description || cluster.project}
-                                </span>
+                                {/* Editable Description Box */}
+                                {isEditingDesc ? (
+                                  <div className="clockify-desc-edit-wrapper" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="text"
+                                      className="clockify-desc-inline-input"
+                                      value={editingDescText}
+                                      onChange={(e) => setEditingDescText(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveDescription(cluster, editingDescText);
+                                        if (e.key === 'Escape') setEditingItemKey(null);
+                                      }}
+                                      autoFocus
+                                      placeholder="Task description..."
+                                    />
+                                    <button
+                                      type="button"
+                                      className="clockify-desc-btn-save"
+                                      onClick={() => handleSaveDescription(cluster, editingDescText)}
+                                      title="Save Description (Enter)"
+                                    >
+                                      <Check size={13} color="#00cc00" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="clockify-desc-btn-cancel"
+                                      onClick={() => setEditingItemKey(null)}
+                                      title="Cancel (Esc)"
+                                    >
+                                      <X size={13} color="#94a3b8" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="clockify-desc-display-wrap" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <span 
+                                      className="clockify-entry-desc is-editable"
+                                      onClick={(e) => startEditingDescription(parentRowKey, displayDesc, e)}
+                                      title="Click to edit task description"
+                                    >
+                                      {displayDesc}
+                                      {isMultiSession && (
+                                        <span className="sub-session-count-tag" style={{ marginLeft: '6px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                                          (+{cluster.sessions.length - 1} sessions)
+                                        </span>
+                                      )}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="clockify-desc-quick-edit-btn"
+                                      onClick={(e) => startEditingDescription(parentRowKey, displayDesc, e)}
+                                      title="Edit description"
+                                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
+                                    >
+                                      <Edit3 size={12} />
+                                    </button>
+                                  </div>
+                                )}
                                 
                                 <div className="clockify-entry-project">
                                   <span 
@@ -529,42 +755,42 @@ export default function TimeTrackerPage({
                                 />
                               </div>
 
-                              {/* Time Window (From - To) */}
+                              {/* Interval: Span from earliest start to latest end */}
                               <div className="clockify-entry-window">
-                                {isMultiSession ? (
-                                  <span>{formatTimeWithAmPm(earliestStartStr)} - {formatTimeWithAmPm(latestEndStr)}</span>
-                                ) : (
-                                  <>
-                                    <span>{formatTimeWithAmPm(repItem.startTime)}</span>
-                                    <span className="window-sep">-</span>
-                                    <span>{formatTimeWithAmPm(repItem.endTime)}</span>
-                                  </>
-                                )}
+                                <span>{formatTimeWithAmPm(earliestStartStr)}</span>
+                                <span className="window-sep">-</span>
+                                <span>{formatTimeWithAmPm(latestEndStr)}</span>
                               </div>
 
-                              {/* Calendar Icon Button - Clicking it toggles inline sessions */}
+                              {/* Calendar Icon Button with Interactive Date Picker Popover */}
                               <div className="clockify-cal-action-wrapper">
                                 <button
                                   type="button"
-                                  className={`clockify-entry-cal-btn ${isExpanded ? 'active' : ''}`}
+                                  className={`clockify-entry-cal-btn is-clickable ${isDatePickerOpen ? 'active' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (isMultiSession) {
-                                      toggleTaskExpand(taskExpandedKey);
-                                    }
+                                    setActiveDatePickerKey(isDatePickerOpen ? null : parentRowKey);
                                   }}
-                                  title={isMultiSession ? (isExpanded ? "Collapse inline sessions" : "Expand inline sessions row by row") : `Session on ${groupLabel}`}
+                                  title="Click to view/change date"
                                 >
                                   <CalendarIcon size={14} />
                                 </button>
+
+                                {isDatePickerOpen && (
+                                  <RowDatePickerPopover
+                                    currentIsoDate={isoDate}
+                                    onSelectDate={(newDate) => handleSelectNewDate(cluster, newDate)}
+                                    onClose={() => setActiveDatePickerKey(null)}
+                                  />
+                                )}
                               </div>
 
-                              {/* Duration */}
+                              {/* Duration / Cluster Total */}
                               <div 
                                 className="clockify-entry-duration"
                                 style={running ? { color: '#009900', fontWeight: 800 } : {}}
                               >
-                                {running 
+                                {running && activeTimer?.isRunning
                                   ? `${String(Math.floor(activeTimer.elapsedSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((activeTimer.elapsedSeconds % 3600) / 60)).padStart(2, '0')}:${String(activeTimer.elapsedSeconds % 60).padStart(2, '0')}`
                                   : formattedClusterTotal}
                               </div>
@@ -601,22 +827,30 @@ export default function TimeTrackerPage({
                                 <div className="clockify-entry-menu-wrapper" style={{ position: 'relative' }}>
                                   <button 
                                     type="button" 
-                                    className={`entry-btn-options ${activeMenuId === `parent_${clusterKey}` ? 'active' : ''}`}
+                                    className={`entry-btn-options ${activeMenuId === parentRowKey ? 'active' : ''}`}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setActiveMenuId(activeMenuId === `parent_${clusterKey}` ? null : `parent_${clusterKey}`);
+                                      setActiveMenuId(activeMenuId === parentRowKey ? null : parentRowKey);
                                     }}
-                                    title="More options (Duplicate, Delete)"
+                                    title="More options (Edit, Duplicate, Delete)"
                                   >
                                     <MoreVertical size={14} />
                                   </button>
 
                                   {/* 3-Dots Dropdown Menu */}
-                                  {activeMenuId === `parent_${clusterKey}` && (
+                                  {activeMenuId === parentRowKey && (
                                     <div 
                                       className={`clockify-entry-dropdown-menu ${shouldOpenUpwards ? 'open-upwards' : ''}`}
                                       onClick={(e) => e.stopPropagation()}
                                     >
+                                      <button 
+                                        type="button" 
+                                        className="clockify-entry-menu-item"
+                                        onClick={(e) => startEditingDescription(parentRowKey, displayDesc, e)}
+                                      >
+                                        <Edit3 size={13} color="#3b82f6" />
+                                        <span>Edit Description</span>
+                                      </button>
                                       <button 
                                         type="button" 
                                         className="clockify-entry-menu-item"
@@ -648,17 +882,73 @@ export default function TimeTrackerPage({
                               <div className="clockify-sub-sessions-list">
                                 {cluster.sessions.map((session, sIdx) => {
                                   const sessionRunning = isItemRunning(session);
-                                  const subMenuKey = `sub_${session.id || sIdx}`;
+                                  const subRowKey = `sub_${session.id || sIdx}`;
+                                  const isSubEditingDesc = editingItemKey === subRowKey;
+                                  const isSubDatePickerOpen = activeDatePickerKey === subRowKey;
+
                                   return (
                                     <div 
                                       key={session.id || sIdx} 
                                       className={`clockify-entry-row clockify-sub-session-row ${sessionRunning ? 'is-row-running' : ''}`}
-                                      style={{ zIndex: activeMenuId === subMenuKey ? 9999 : 2, position: 'relative' }}
+                                      style={{ zIndex: (isSubDatePickerOpen || activeMenuId === subRowKey) ? 9999 : 2, position: 'relative' }}
                                     >
                                       {/* Description & Project */}
                                       <div className="clockify-entry-left">
                                         <span className="sub-session-indent-spacer" />
-                                        <span className="clockify-entry-desc">{session.description}</span>
+                                        
+                                        {/* Sub-Session Editable Description */}
+                                        {isSubEditingDesc ? (
+                                          <div className="clockify-desc-edit-wrapper" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                              type="text"
+                                              className="clockify-desc-inline-input"
+                                              value={editingDescText}
+                                              onChange={(e) => setEditingDescText(e.target.value)}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveDescription(session, editingDescText);
+                                                if (e.key === 'Escape') setEditingItemKey(null);
+                                              }}
+                                              autoFocus
+                                              placeholder="Session description..."
+                                            />
+                                            <button
+                                              type="button"
+                                              className="clockify-desc-btn-save"
+                                              onClick={() => handleSaveDescription(session, editingDescText)}
+                                              title="Save Description (Enter)"
+                                            >
+                                              <Check size={13} color="#00cc00" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="clockify-desc-btn-cancel"
+                                              onClick={() => setEditingItemKey(null)}
+                                              title="Cancel (Esc)"
+                                            >
+                                              <X size={13} color="#94a3b8" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="clockify-desc-display-wrap" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                            <span 
+                                              className="clockify-entry-desc is-editable"
+                                              onClick={(e) => startEditingDescription(subRowKey, session.description, e)}
+                                              title="Click to edit session description"
+                                            >
+                                              {session.description || 'Session details'}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              className="clockify-desc-quick-edit-btn"
+                                              onClick={(e) => startEditingDescription(subRowKey, session.description, e)}
+                                              title="Edit description"
+                                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
+                                            >
+                                              <Edit3 size={12} />
+                                            </button>
+                                          </div>
+                                        )}
+
                                         <div className="clockify-entry-project">
                                           <span 
                                             className="clockify-proj-dot" 
@@ -684,15 +974,27 @@ export default function TimeTrackerPage({
                                         <span>{formatTimeWithAmPm(session.endTime)}</span>
                                       </div>
 
-                                      {/* Calendar Icon */}
+                                      {/* Calendar Icon Button with Interactive Date Picker Popover */}
                                       <div className="clockify-cal-action-wrapper">
                                         <button
                                           type="button"
-                                          className="clockify-entry-cal-btn"
-                                          title={`Session on ${groupLabel}`}
+                                          className={`clockify-entry-cal-btn is-clickable ${isSubDatePickerOpen ? 'active' : ''}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveDatePickerKey(isSubDatePickerOpen ? null : subRowKey);
+                                          }}
+                                          title="Click to view/change date"
                                         >
                                           <CalendarIcon size={14} />
                                         </button>
+
+                                        {isSubDatePickerOpen && (
+                                          <RowDatePickerPopover
+                                            currentIsoDate={normalizeActivityDate(session)}
+                                            onSelectDate={(newDate) => handleSelectNewDate(session, newDate)}
+                                            onClose={() => setActiveDatePickerKey(null)}
+                                          />
+                                        )}
                                       </div>
 
                                       {/* Duration */}
@@ -713,7 +1015,7 @@ export default function TimeTrackerPage({
                                               e.stopPropagation();
                                               handleTogglePlayEntry(session);
                                             }}
-                                            title={`Pause session`}
+                                            title="Pause session"
                                             style={{ color: '#009900' }}
                                           >
                                             <Pause size={13} fill="currentColor" />
@@ -726,7 +1028,7 @@ export default function TimeTrackerPage({
                                               e.stopPropagation();
                                               handleTogglePlayEntry(session);
                                             }}
-                                            title={`Resume session`}
+                                            title="Resume session"
                                           >
                                             <Play size={13} fill="currentColor" />
                                           </button>
@@ -735,21 +1037,29 @@ export default function TimeTrackerPage({
                                         <div className="clockify-entry-menu-wrapper" style={{ position: 'relative' }}>
                                           <button 
                                             type="button" 
-                                            className={`entry-btn-options ${activeMenuId === subMenuKey ? 'active' : ''}`}
+                                            className={`entry-btn-options ${activeMenuId === subRowKey ? 'active' : ''}`}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              setActiveMenuId(activeMenuId === subMenuKey ? null : subMenuKey);
+                                              setActiveMenuId(activeMenuId === subRowKey ? null : subRowKey);
                                             }}
-                                            title="More options (Duplicate, Delete)"
+                                            title="More options (Edit, Duplicate, Delete)"
                                           >
                                             <MoreVertical size={14} />
                                           </button>
 
-                                          {activeMenuId === subMenuKey && (
+                                          {activeMenuId === subRowKey && (
                                             <div 
                                               className="clockify-entry-dropdown-menu open-upwards"
                                               onClick={(e) => e.stopPropagation()}
                                             >
+                                              <button 
+                                                type="button" 
+                                                className="clockify-entry-menu-item"
+                                                onClick={(e) => startEditingDescription(subRowKey, session.description, e)}
+                                              >
+                                                <Edit3 size={13} color="#3b82f6" />
+                                                <span>Edit Description</span>
+                                              </button>
                                               <button 
                                                 type="button" 
                                                 className="clockify-entry-menu-item"

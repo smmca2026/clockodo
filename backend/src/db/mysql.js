@@ -195,6 +195,37 @@ async function fallbackQuery(sql, params = []) {
     return [{ insertId: id }, []];
   }
 
+  if (lowerSql.startsWith('update activities set') && lowerSql.includes('where id = ?')) {
+    const targetId = params[params.length - 1];
+    store.activities = (store.activities || []).map(a => {
+      if (a.id === targetId) {
+        const [durF, durS, desc, proj, projCol, sTime, eTime, bill, dDate, dGroup] = params;
+        return {
+          ...a,
+          duration_formatted: durF !== null && durF !== undefined ? durF : a.duration_formatted,
+          durationFormatted: durF !== null && durF !== undefined ? durF : a.durationFormatted,
+          duration_seconds: durS !== null && durS !== undefined ? durS : a.duration_seconds,
+          durationSeconds: durS !== null && durS !== undefined ? durS : a.durationSeconds,
+          description: desc !== null && desc !== undefined ? desc : a.description,
+          project: proj !== null && proj !== undefined ? proj : a.project,
+          project_color: projCol !== null && projCol !== undefined ? projCol : a.project_color,
+          projectColor: projCol !== null && projCol !== undefined ? projCol : a.projectColor,
+          start_time: sTime !== null && sTime !== undefined ? sTime : a.start_time,
+          startTime: sTime !== null && sTime !== undefined ? sTime : a.startTime,
+          end_time: eTime !== null && eTime !== undefined ? eTime : a.end_time,
+          endTime: eTime !== null && eTime !== undefined ? eTime : a.endTime,
+          billable: bill !== null && bill !== undefined ? Boolean(bill) : a.billable,
+          date: dDate !== null && dDate !== undefined ? dDate : a.date,
+          group_name: dGroup !== null && dGroup !== undefined ? dGroup : a.group_name,
+          group: dGroup !== null && dGroup !== undefined ? dGroup : a.group
+        };
+      }
+      return a;
+    });
+    saveStore(store);
+    return [{ affectedRows: 1 }, []];
+  }
+
   if (lowerSql.startsWith('delete from activities where id = ?')) {
     store.activities = (store.activities || []).filter(a => a.id !== params[0]);
     saveStore(store);

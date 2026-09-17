@@ -91,21 +91,29 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { durationFormatted, durationSeconds, description, projectColor, startTime, endTime, billable } = req.body;
+    const { durationFormatted, durationSeconds, description, project, projectColor, startTime, endTime, billable, date, group } = req.body;
 
     await pool.query(`
       UPDATE activities 
       SET duration_formatted = COALESCE(?, duration_formatted),
           duration_seconds = COALESCE(?, duration_seconds),
           description = COALESCE(?, description),
+          project = COALESCE(?, project),
           project_color = COALESCE(?, project_color),
           start_time = COALESCE(?, start_time),
           end_time = COALESCE(?, end_time),
-          billable = COALESCE(?, billable)
+          billable = COALESCE(?, billable),
+          date = COALESCE(?, date),
+          group_name = COALESCE(?, group_name)
       WHERE id = ?
-    `, [durationFormatted, durationSeconds, description, projectColor, startTime, endTime, billable, id]);
+    `, [durationFormatted, durationSeconds, description, project, projectColor, startTime, endTime, billable, date, group, id]);
 
     res.json({ success: true, message: 'Activity updated successfully in database.' });
+  } catch (err) {
+    console.error('Update activity error:', err);
+    res.status(500).json({ success: false, message: 'Error updating activity', error: err.message });
+  }
+});
   } catch (err) {
     console.error('Update activity error:', err);
     res.status(500).json({ success: false, message: 'Error updating activity', error: err.message });
