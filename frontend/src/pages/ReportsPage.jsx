@@ -1663,14 +1663,43 @@ export default function ReportsPage({
   };
 
   // Shared Reports State & Handlers with LocalStorage Persistence
-  const INITIAL_SHARED_REPORTS = [];
+  const INITIAL_SHARED_REPORTS = [
+    {
+      id: 'shared-live-1',
+      name: 'JRKS Logistics - Milestone 1 Deliverables',
+      client: 'JRKS Digital India Logistics LLP',
+      period: 'This week (Sep 14 - Sep 20, 2026)',
+      totalHours: '06:35:00',
+      isPublic: true,
+      showAmounts: true,
+      viewsCount: 5,
+      linkToken: 'rpt_nl98_492i',
+      link: typeof window !== 'undefined' ? `${window.location.origin}/#/shared/rpt_nl98_492i` : '',
+      createdDate: 'Sep 17, 2026'
+    },
+    {
+      id: 'shared-live-2',
+      name: 'DigiPlus Workspace Live Summary Report',
+      client: 'All Projects',
+      period: 'This week (Sep 14 - Sep 20, 2026)',
+      totalHours: '06:35:00',
+      isPublic: true,
+      showAmounts: true,
+      viewsCount: 2,
+      linkToken: 'rpt_live_workspace',
+      link: typeof window !== 'undefined' ? `${window.location.origin}/#/shared/rpt_live_workspace` : '',
+      createdDate: 'Sep 17, 2026'
+    }
+  ];
 
   const [sharedReportsList, setSharedReportsList] = useState(() => {
     try {
       const saved = localStorage.getItem('clockodo_shared_reports_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
     } catch (e) {}
     return INITIAL_SHARED_REPORTS;
@@ -1765,7 +1794,8 @@ export default function ReportsPage({
       viewsCount: 0,
       linkToken: token,
       link: fullUrl,
-      createdDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      createdDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      entries: (filteredActivities && filteredActivities.length > 0) ? filteredActivities : activities
     };
 
     setSharedReportsList(prev => [newReport, ...prev]);
@@ -2646,17 +2676,19 @@ export default function ReportsPage({
           </div>
         ) : activeSubtab === 'Shared' ? (
           /* SHARED REPORTS MANAGEMENT VIEW */
-          <div className="reports-detailed-card">
-            <div className="detailed-report-section-header">
-              <div className="detailed-report-section-title">
+          <div className="reports-detailed-card" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+            <div className="detailed-report-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <div className="detailed-report-section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
                 <Globe size={18} color="#00cc00" />
                 <span>Team & Management Shared Reports</span>
-                <span className="detailed-count-badge">{sharedReportsList.length} Active Links</span>
+                <span className="detailed-count-badge" style={{ background: '#00cc00', color: '#ffffff', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 800 }}>
+                  {sharedReportsList.length} Active Links
+                </span>
               </div>
               <button 
                 type="button" 
                 className="btn-clockify-apply"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#00cc00', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
                 onClick={handleOpenShareModal}
               >
                 <Plus size={14} />
@@ -2664,15 +2696,15 @@ export default function ReportsPage({
               </button>
             </div>
 
-            <div className="reports-shared-kpi-grid">
-              <div className="attendance-kpi-item">
-                <span className="attendance-kpi-label">Active Shared Links</span>
-                <div className="attendance-kpi-val" style={{ color: '#00cc00' }}>{sharedReportsList.length} Shared Links</div>
-                <span className="attendance-kpi-sub">Live management review portals</span>
+            <div className="reports-shared-kpi-grid" style={{ padding: '20px 20px 10px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div className="attendance-kpi-item" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                <span className="attendance-kpi-label" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Active Shared Links</span>
+                <div className="attendance-kpi-val" style={{ color: '#00cc00', fontSize: '24px', fontWeight: 800, margin: '4px 0 2px 0' }}>{sharedReportsList.length} Shared Links</div>
+                <span className="attendance-kpi-sub" style={{ fontSize: '11px', color: '#94a3b8' }}>Live management review portals</span>
               </div>
-              <div className="attendance-kpi-item">
-                <span className="attendance-kpi-label">Active Employees</span>
-                <div className="attendance-kpi-val" style={{ color: '#3b82f6' }}>
+              <div className="attendance-kpi-item" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                <span className="attendance-kpi-label" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Active Employees</span>
+                <div className="attendance-kpi-val" style={{ color: '#3b82f6', fontSize: '24px', fontWeight: 800, margin: '4px 0 2px 0' }}>
                   {(() => {
                     const activeCount = Array.isArray(usersList) && usersList.length > 0 
                       ? usersList.filter(u => u.active !== false && u.accessGranted !== false).length || usersList.length 
@@ -2680,11 +2712,11 @@ export default function ReportsPage({
                     return `${activeCount} Employees`;
                   })()}
                 </div>
-                <span className="attendance-kpi-sub">Logged in & using Clockodo</span>
+                <span className="attendance-kpi-sub" style={{ fontSize: '11px', color: '#94a3b8' }}>Logged in & using Clockodo</span>
               </div>
-              <div className="attendance-kpi-item">
-                <span className="attendance-kpi-label">Updating Tasks</span>
-                <div className="attendance-kpi-val" style={{ color: '#10b981' }}>
+              <div className="attendance-kpi-item" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                <span className="attendance-kpi-label" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Updating Tasks</span>
+                <div className="attendance-kpi-val" style={{ color: '#10b981', fontSize: '24px', fontWeight: 800, margin: '4px 0 2px 0' }}>
                   {(() => {
                     const userSet = new Set();
                     if (Array.isArray(activities)) {
@@ -2697,121 +2729,172 @@ export default function ReportsPage({
                     return `${count} Employees`;
                   })()}
                 </div>
-                <span className="attendance-kpi-sub">Actively tracking & logging work</span>
+                <span className="attendance-kpi-sub" style={{ fontSize: '11px', color: '#94a3b8' }}>Actively tracking & logging work</span>
               </div>
             </div>
 
-            <div className="clockodo-detailed-table-wrapper">
-              <table className="clockodo-detailed-table">
+            <div className="clockodo-detailed-table-wrapper" style={{ padding: '0 20px 20px 20px' }}>
+              <table className="clockodo-detailed-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr>
-                    <th style={{ width: '260px' }}>REPORT NAME</th>
-                    <th style={{ width: '160px' }}>PROJECT / SCOPE</th>
-                    <th style={{ width: '150px' }}>PERIOD</th>
-                    <th style={{ width: '110px', textAlign: 'right' }}>TOTAL TIME</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>ACCESS</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>VIEWS</th>
-                    <th style={{ width: '180px', textAlign: 'center' }}>ACTIONS</th>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', color: '#64748b', fontSize: '11px', textAlign: 'left' }}>
+                    <th style={{ width: '280px', padding: '12px 14px', fontWeight: 700 }}>REPORT NAME</th>
+                    <th style={{ width: '180px', padding: '12px 14px', fontWeight: 700 }}>PROJECT / SCOPE</th>
+                    <th style={{ width: '160px', padding: '12px 14px', fontWeight: 700 }}>PERIOD</th>
+                    <th style={{ width: '120px', padding: '12px 14px', fontWeight: 700, textAlign: 'right' }}>TOTAL TIME</th>
+                    <th style={{ width: '130px', padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>ACCESS</th>
+                    <th style={{ width: '110px', padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>VIEWS</th>
+                    <th style={{ width: '180px', padding: '12px 14px', fontWeight: 700, textAlign: 'center' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sharedReportsList.map((rep) => {
-                    const isCopied = copiedLinkToken === rep.linkToken;
-                    const scopeLabel = (rep.client === 'All Clients' || !rep.client) ? 'All Projects' : rep.client;
-                    return (
-                      <tr key={rep.id}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Globe size={15} color="#00cc00" />
-                            <div>
-                              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>{rep.name}</div>
-                              <div style={{ fontSize: '11px', color: '#94a3b8' }}>Created: {rep.createdDate}</div>
+                  {sharedReportsList.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                          <Globe size={28} color="#94a3b8" />
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: '#334155' }}>No Shared Reports Created Yet</div>
+                          <div style={{ fontSize: '12px', color: '#94a3b8', maxWidth: '400px' }}>
+                            Create a public share link to provide your clients and management with a live, real-time deliverable portal.
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSharedReportsList(INITIAL_SHARED_REPORTS);
+                              localStorage.setItem('clockodo_shared_reports_v2', JSON.stringify(INITIAL_SHARED_REPORTS));
+                            }}
+                            style={{
+                              marginTop: '8px',
+                              padding: '6px 14px',
+                              background: '#f1f5f9',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              color: '#334155',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Restore Default Live Reports
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    sharedReportsList.map((rep) => {
+                      const isCopied = copiedLinkToken === rep.linkToken;
+                      const scopeLabel = (rep.client === 'All Clients' || !rep.client) ? 'All Projects' : rep.client;
+                      return (
+                        <tr key={rep.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'rgba(0, 204, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Globe size={16} color="#008a00" />
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>{rep.name}</div>
+                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>Created: {rep.createdDate}</div>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="detailed-billable-badge" style={{ background: '#f1f5f9', color: '#475569' }}>
-                            {scopeLabel}
-                          </span>
-                        </td>
-                        <td className="detailed-date-cell">{rep.period}</td>
-                        <td className="detailed-duration-cell" style={{ textAlign: 'right', fontWeight: 800 }}>
-                          {rep.totalHours}
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          {rep.isPublic ? (
-                            <span className="detailed-billable-badge" style={{ background: 'rgba(0, 204, 0, 0.1)', color: '#008a00' }}>
-                              ● Public Link
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <span className="detailed-billable-badge" style={{ background: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>
+                              {scopeLabel}
                             </span>
-                          ) : (
-                            <span className="detailed-billable-badge" style={{ background: '#fef3c7', color: '#b45309' }}>
-                              <Lock size={11} style={{ marginRight: 4 }} /> Private
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#64748b' }}>
-                          {rep.viewsCount} views
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyShareLink(rep.linkToken)}
-                              title="Copy Public Link"
-                              style={{
-                                background: isCopied ? '#00cc00' : '#f1f5f9',
-                                color: isCopied ? '#ffffff' : '#334155',
-                                border: 'none',
-                                padding: '5px 9px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              {isCopied ? <Check size={12} /> : <Copy size={12} />}
-                              <span>{isCopied ? 'Copied' : 'Copy'}</span>
-                            </button>
-                            <button type="button" onClick={() => window.open(`${window.location.origin}/#/shared/${rep.linkToken}`, '_blank')}
-                              title="Preview Shared Report"
-                              style={{
-                                background: '#f1f5f9',
-                                color: '#0284c7',
-                                border: 'none',
-                                padding: '5px 8px',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <ExternalLink size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSharedReport(rep.id)}
-                              title="Delete Link"
-                              style={{
-                                background: '#fee2e2',
-                                color: '#dc2626',
-                                border: 'none',
-                                padding: '5px 8px',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td className="detailed-date-cell" style={{ padding: '12px 14px', fontSize: '12px', color: '#334155' }}>
+                            {rep.period}
+                          </td>
+                          <td className="detailed-duration-cell" style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 800, color: '#008a00', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+                            {rep.totalHours}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                            {rep.isPublic ? (
+                              <span className="detailed-billable-badge" style={{ background: 'rgba(0, 204, 0, 0.1)', color: '#008a00', border: '1px solid rgba(0, 204, 0, 0.3)', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                                ● Public Link
+                              </span>
+                            ) : (
+                              <span className="detailed-billable-badge" style={{ background: '#fef3c7', color: '#b45309', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                                <Lock size={11} style={{ marginRight: 4 }} /> Private
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#64748b', fontSize: '12px' }}>
+                            {rep.viewsCount || 0} views
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyShareLink(rep.linkToken)}
+                                title="Copy Public Link"
+                                style={{
+                                  background: isCopied ? '#00cc00' : '#f1f5f9',
+                                  color: isCopied ? '#ffffff' : '#334155',
+                                  border: 'none',
+                                  padding: '5px 10px',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                                <span>{isCopied ? 'Copied' : 'Copy'}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => window.open(`${window.location.origin}/#/shared/${rep.linkToken}`, '_blank')}
+                                title="Preview Shared Report"
+                                style={{
+                                  background: '#f1f5f9',
+                                  color: '#0284c7',
+                                  border: 'none',
+                                  padding: '5px 10px',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <ExternalLink size={12} />
+                                <span>Preview</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSharedReport(rep.id)}
+                                title="Delete Link"
+                                style={{
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: 'none',
+                                  padding: '5px 8px',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
+
         ) : hasRecords ? (
           <>
             {/* Top Summary Role-Based KPI Metric Cards */}

@@ -21,91 +21,131 @@ import {
   Globe
 } from 'lucide-react';
 
+function parseTimeToSeconds(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return 0;
+  const parts = timeStr.trim().split(':').map(Number);
+  if (parts.length === 3) return (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+  if (parts.length === 2) return (parts[0] || 0) * 3600 + (parts[1] || 0) * 60;
+  return 0;
+}
+
+function formatSecondsToHMS(sec) {
+  if (!sec || sec <= 0) return '00:00:00';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export default function SharedPublicReportPage({ 
-  token = 'rpt_selva_4311b', 
+  token = 'rpt_live_workspace', 
   currentUser = null, 
+  activities = [],
+  projects = [],
+  timesheetRows = [],
   onBackToApp = null,
   onGoToLogin = null
 }) {
   const [showRestrictedModal, setShowRestrictedModal] = useState(false);
-  const [restrictedModalTitle, setRestrictedModalTitle] = useState('Access Denied: Cannot Access or Modify This Page');
+  const [restrictedModalTitle, setRestrictedModalTitle] = useState('Access Denied: Cannot Modify This Page');
   const [restrictedModalMsg, setRestrictedModalMsg] = useState(
-    'Do Not Access / Modify This Page: You are viewing a Shared Public Link. Adding or modifying work details is strictly restricted. Only authorized admins and active employees in the main workspace can add work logs.'
+    'Do Not Access / Modify This Page: You are viewing a Shared Public Link. Adding or modifying work details is strictly restricted. Only authorized workspace administrators and logged-in employees can manage work logs.'
   );
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [inputTaskName, setInputTaskName] = useState('');
   const [inputDuration, setInputDuration] = useState('02:00:00');
 
-  // Predefined shared report datasets based on token
+  // Dynamic report dataset derived from REAL workspace activities and saved reports
   const reportData = useMemo(() => {
-    if (token.includes('jrks')) {
-      return {
-        id: 'sr-1',
-        title: 'JRKS Logistics - Client Timesheet (Sep 2026)',
-        client: 'JRKS Fleet',
-        projectName: 'JRKS Logistics',
-        projectColor: '#059669',
-        period: 'September 2026 (Live)',
-        totalHours: '68:14:00',
-        totalBillable: '68:14:00',
-        billableRate: '$95 / hr',
-        totalAmount: '$6,482.16',
-        createdDate: 'September 1, 2026',
-        leadName: 'Karthick Raja (Project Lead)',
-        entries: [
-          { id: 1, date: 'Wed, Sep 2, 2026', task: 'Testing and Fleet Invoicing API module', user: 'Karthick Raja', duration: '05:40:00', billable: true },
-          { id: 2, date: 'Wed, Sep 2, 2026', task: 'Challan record payable field verification', user: 'Priya Dharshini', duration: '04:00:00', billable: true },
-          { id: 3, date: 'Tue, Sep 1, 2026', task: 'Logistics ledger calculation & voucher entries', user: 'Ariharasudhan', duration: '05:30:00', billable: true },
-          { id: 4, date: 'Tue, Sep 1, 2026', task: 'Client review meeting & sprint planning', user: 'Bharath (Owner)', duration: '02:00:00', billable: true },
-          { id: 5, date: 'Mon, Aug 31, 2026', task: 'Trip sheet automated billing logic', user: 'Aishwarya', duration: '06:15:00', billable: true },
-        ]
-      };
-    } else if (token.includes('exec')) {
-      return {
-        id: 'sr-3',
-        title: 'DigiPlus Executive Summary Report',
-        client: 'DigiPlusAgency',
-        projectName: 'A2z4r.com & Operations',
-        projectColor: '#10b981',
-        period: 'Last Month (August 2026)',
-        totalHours: '140:58:00',
-        totalBillable: '140:58:00',
-        billableRate: '$85 / hr',
-        totalAmount: '$11,982.30',
-        createdDate: 'August 25, 2026',
-        leadName: 'Bharath (Executive)',
-        entries: [
-          { id: 1, date: 'Fri, Aug 28, 2026', task: 'Enterprise architecture review', user: 'Bharath', duration: '08:00:00', billable: true },
-          { id: 2, date: 'Thu, Aug 27, 2026', task: 'Client performance metrics audit', user: 'balaji', duration: '07:30:00', billable: true },
-          { id: 3, date: 'Wed, Aug 26, 2026', task: 'Infrastructure scaling and optimization', user: 'Ariharasudhan', duration: '08:15:00', billable: true },
-        ]
-      };
-    } else {
-      // Default: Selva Chit App / Custom Report
-      return {
-        id: 'sr-2',
-        title: 'Selva Chit App - Milestone 1 Deliverables',
-        client: 'Selva FinTech',
-        projectName: 'Selva Chit App',
-        projectColor: '#0d9488',
-        period: 'This week (Aug 31 - Sep 6, 2026)',
-        totalHours: '88:30:00',
-        totalBillable: '88:30:00',
-        billableRate: '$85 / hr',
-        totalAmount: '$7,522.50',
-        createdDate: 'August 28, 2026',
-        leadName: 'DigiPlus FinTech Team',
-        entries: [
-          { id: 1, date: 'Wed, Sep 2, 2026', task: 'Detailed chit customer report section and print layout', user: 'abirami', duration: '02:20:00', billable: true },
-          { id: 2, date: 'Wed, Sep 2, 2026', task: 'Customer receipt print format and styling', user: 'Aishwarya', duration: '01:30:00', billable: true },
-          { id: 3, date: 'Tue, Sep 1, 2026', task: 'Daily collection transaction sync API', user: 'Ariharasudhan', duration: '05:40:00', billable: true },
-          { id: 4, date: 'Tue, Sep 1, 2026', task: 'Auction ledger automation & balance sheet', user: 'Karthick Raja', duration: '04:15:00', billable: true },
-          { id: 5, date: 'Mon, Aug 31, 2026', task: 'Mobile app chit group bidding interface', user: 'bavithra', duration: '06:45:00', billable: true },
-        ]
-      };
+    // Determine effective live activities list
+    let effectiveActivities = Array.isArray(activities) && activities.length > 0 ? activities : [];
+    if (effectiveActivities.length === 0) {
+      try {
+        const saved = localStorage.getItem('clockodo_activities_v2');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            effectiveActivities = parsed;
+          }
+        }
+      } catch (e) {}
     }
-  }, [token]);
+
+    // Check if report was configured in saved shared reports
+    let savedReport = null;
+    try {
+      const savedList = localStorage.getItem('clockodo_shared_reports_v2');
+      if (savedList) {
+        const parsed = JSON.parse(savedList);
+        if (Array.isArray(parsed)) {
+          savedReport = parsed.find(r => r.linkToken === token || r.id === token);
+        }
+      }
+    } catch (e) {}
+
+    const sourceEntries = (savedReport && savedReport.entries && savedReport.entries.length > 0) 
+      ? savedReport.entries 
+      : effectiveActivities;
+
+    let totalSec = 0;
+    const mappedEntries = (sourceEntries && sourceEntries.length > 0) ? sourceEntries.map((a, idx) => {
+      const sec = a.durationSeconds || parseTimeToSeconds(a.durationFormatted || a.duration || a.time || '01:00:00');
+      totalSec += sec;
+      const userName = (a.user || a.userName || a.member || currentUser?.name || 'DigiPlus Team').trim();
+      return {
+        id: a.id || idx + 1,
+        date: a.date || a.group || 'Thu, Sep 17, 2026',
+        task: a.task || a.description || a.taskName || 'Live Workspace Deliverable Task',
+        user: userName,
+        duration: a.durationFormatted || a.duration || formatSecondsToHMS(sec),
+        project: a.project || savedReport?.client || 'DigiPlus Logistics Platform',
+        billable: true
+      };
+    }) : [
+      {
+        id: 1,
+        date: 'Thu, Sep 17, 2026',
+        task: 'Live Timesheet and Work Deliverables System Implementation',
+        user: currentUser?.name || 'Mani',
+        duration: '06:35:00',
+        project: 'JRKS Logistics Platform',
+        billable: true
+      }
+    ];
+
+    if (sourceEntries.length === 0) {
+      totalSec = parseTimeToSeconds('06:35:00');
+    }
+
+    const totalHoursStr = formatSecondsToHMS(totalSec);
+    const hourlyRate = 85;
+    const calculatedAmount = ((totalSec / 3600) * hourlyRate).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    const reportTitle = savedReport?.name || 'JRKS Logistics - Milestone Deliverables Report';
+    const clientName = savedReport?.client || 'JRKS Digital India Logistics LLP';
+    const projectName = savedReport?.client || 'Logistics & Dispatch System';
+    const periodStr = savedReport?.period || 'This week (Sep 14 - Sep 20, 2026)';
+    const leadName = 'Punitha (Admin)';
+
+    return {
+      id: savedReport?.id || token,
+      title: reportTitle,
+      client: clientName,
+      projectName: projectName,
+      leadName: leadName,
+      projectColor: '#00cc00',
+      period: periodStr,
+      totalHours: totalHoursStr,
+      totalBillable: totalHoursStr,
+      billableRate: `$${hourlyRate} / hr`,
+      totalAmount: `$${calculatedAmount}`,
+      entries: mappedEntries
+    };
+  }, [token, activities, currentUser]);
 
   // Back to App navigation
   const handleBackClick = () => {
@@ -121,7 +161,7 @@ export default function SharedPublicReportPage({
   const handleProceedAddWork = (e) => {
     e?.preventDefault();
     setRestrictedModalTitle('Access Denied: Cannot Add or Modify Work Details');
-    setRestrictedModalMsg('Do Not Access / Modify This Page: You are viewing a Shared Public Link. Adding or modifying work details is strictly restricted. Only authorized admins and active employees in the main workspace can add work logs.');
+    setRestrictedModalMsg('Do Not Access / Modify This Page: You are viewing a Shared Public Link. Adding or modifying work details is strictly restricted. Only authorized workspace administrators and logged-in employees can manage work logs.');
     setShowRestrictedModal(true);
   };
 
@@ -155,15 +195,15 @@ export default function SharedPublicReportPage({
   };
 
   return (
-    <div className="page-container">
+    <div className="page-container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px 20px' }}>
       {/* Top Banner Toolbar */}
-      <div className="reports-summary-banner" style={{ marginBottom: '20px', borderRadius: '10px' }}>
+      <div className="reports-summary-banner" style={{ marginBottom: '20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             type="button"
             onClick={handleBackClick}
             className="reports-icon-btn"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'auto', padding: '0 12px', height: '32px', fontSize: '12px', fontWeight: 600, color: '#475569' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'auto', padding: '0 14px', height: '34px', fontSize: '12px', fontWeight: 700, color: '#475569', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
             title="Return to workspace"
           >
             <ArrowLeft size={14} />
@@ -177,14 +217,14 @@ export default function SharedPublicReportPage({
             background: 'rgba(0, 204, 0, 0.1)',
             border: '1px solid rgba(0, 204, 0, 0.3)',
             borderRadius: '20px',
-            padding: '4px 10px',
+            padding: '5px 12px',
             fontSize: '11px',
-            color: '#00cc00',
-            fontWeight: 700
+            color: '#008a00',
+            fontWeight: 800
           }}>
             <span style={{
-              width: '6px',
-              height: '6px',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
               backgroundColor: '#00cc00',
               display: 'inline-block'
@@ -198,7 +238,7 @@ export default function SharedPublicReportPage({
             type="button"
             onClick={handleExportCSV}
             className="reports-icon-btn"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'auto', padding: '0 12px', height: '32px', fontSize: '12px', fontWeight: 600 }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'auto', padding: '0 12px', height: '34px', fontSize: '12px', fontWeight: 600, background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
           >
             <Download size={14} />
             <span>Export CSV</span>
@@ -215,7 +255,7 @@ export default function SharedPublicReportPage({
               color: '#ffffff',
               border: 'none',
               borderRadius: '6px',
-              padding: '6px 14px',
+              padding: '7px 16px',
               fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer'
@@ -268,20 +308,20 @@ export default function SharedPublicReportPage({
             </div>
           </div>
 
-          {/* Total Highlight */}
+          {/* Total Tracked Time Highlight */}
           <div style={{
             backgroundColor: '#f0fdf4',
             border: '1.5px solid rgba(0, 204, 0, 0.3)',
             borderRadius: '10px',
-            padding: '14px 20px',
+            padding: '14px 24px',
             textAlign: 'right',
-            minWidth: '180px'
+            minWidth: '200px'
           }}>
             <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               TOTAL TRACKED TIME
             </span>
             <div style={{
-              fontSize: '24px',
+              fontSize: '26px',
               fontWeight: 900,
               color: '#008a00',
               fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
@@ -289,7 +329,7 @@ export default function SharedPublicReportPage({
             }}>
               {reportData.totalHours}
             </div>
-            <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, marginTop: '2px' }}>
               100% Billable Deliverable
             </div>
           </div>
@@ -297,57 +337,64 @@ export default function SharedPublicReportPage({
       </div>
 
       {/* 4 Metric Summary Cards */}
-      <div className="attendance-kpi-grid" style={{ marginBottom: '20px' }}>
-        <div className="attendance-kpi-item">
-          <span className="attendance-kpi-label">Total Hours</span>
-          <div className="attendance-kpi-val" style={{ color: '#00cc00' }}>
+      <div className="attendance-kpi-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '16px',
+        marginBottom: '20px'
+      }}>
+        <div className="attendance-kpi-item" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+          <span className="attendance-kpi-label" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Hours</span>
+          <div className="attendance-kpi-val" style={{ color: '#00cc00', fontSize: '24px', fontWeight: 800, margin: '6px 0 2px 0', fontFamily: 'var(--font-mono)' }}>
             {reportData.totalHours}
           </div>
-          <span className="attendance-kpi-sub">Verified Work Duration</span>
+          <span className="attendance-kpi-sub" style={{ fontSize: '11px', color: '#94a3b8' }}>Verified Work Duration</span>
         </div>
 
-        <div className="attendance-kpi-item">
-          <span className="attendance-kpi-label">Total Tasks</span>
-          <div className="attendance-kpi-val">
+        <div className="attendance-kpi-item" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+          <span className="attendance-kpi-label" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Tasks</span>
+          <div className="attendance-kpi-val" style={{ color: '#0f172a', fontSize: '24px', fontWeight: 800, margin: '6px 0 2px 0' }}>
             {reportData.entries.length} Entries
           </div>
-          <span className="attendance-kpi-sub">Logged across sprint</span>
+          <span className="attendance-kpi-sub" style={{ fontSize: '11px', color: '#94a3b8' }}>Logged across sprint</span>
         </div>
 
-        <div className="attendance-kpi-item">
-          <span className="attendance-kpi-label">Billable Rate</span>
-          <div className="attendance-kpi-val" style={{ color: '#2563eb' }}>
+        <div className="attendance-kpi-item" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+          <span className="attendance-kpi-label" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Billable Rate</span>
+          <div className="attendance-kpi-val" style={{ color: '#2563eb', fontSize: '24px', fontWeight: 800, margin: '6px 0 2px 0' }}>
             {reportData.billableRate}
           </div>
-          <span className="attendance-kpi-sub">Standard agreed rate</span>
+          <span className="attendance-kpi-sub" style={{ fontSize: '11px', color: '#94a3b8' }}>Standard agreed rate</span>
         </div>
 
-        <div className="attendance-kpi-item">
-          <span className="attendance-kpi-label">Total Financial</span>
-          <div className="attendance-kpi-val" style={{ color: '#059669' }}>
+        <div className="attendance-kpi-item" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px 20px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+          <span className="attendance-kpi-label" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Financial</span>
+          <div className="attendance-kpi-val" style={{ color: '#059669', fontSize: '24px', fontWeight: 800, margin: '6px 0 2px 0' }}>
             {reportData.totalAmount}
           </div>
-          <span className="attendance-kpi-sub">Estimated Milestone Invoice</span>
+          <span className="attendance-kpi-sub" style={{ fontSize: '11px', color: '#94a3b8' }}>Estimated Milestone Invoice</span>
         </div>
       </div>
 
       {/* Detailed Work Activities Table with Add Work Entry Button */}
-      <div className="reports-detailed-card">
-        <div className="detailed-header-bar">
-          <div className="detailed-header-title">
+      <div className="reports-detailed-card" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        <div className="detailed-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+          <div className="detailed-header-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
             <Layers size={16} color="#00cc00" />
             <span>Itemized Work & Time Breakdown</span>
-            <span className="detailed-count-badge">{reportData.entries.length} Logs</span>
+            <span className="detailed-count-badge" style={{ background: '#00cc00', color: '#ffffff', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 800 }}>
+              {reportData.entries.length} Logs
+            </span>
           </div>
 
           <button
             type="button"
             onClick={() => setShowAddForm(!showAddForm)}
             className="btn-clockify-apply"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', background: '#00cc00', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}
           >
             <Plus size={14} />
-            <span>{showAddForm ? 'Close Entry Form' : '+ Add Work Entry'}</span>
+            <span>{showAddForm ? 'Close Form' : '+ Add Work Entry'}</span>
           </button>
         </div>
 
@@ -413,7 +460,11 @@ export default function SharedPublicReportPage({
                     padding: '9px 18px',
                     fontSize: '13px',
                     fontWeight: 700,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    background: '#00cc00',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px'
                   }}
                 >
                   <span>Proceed & Add Log</span>
@@ -423,35 +474,41 @@ export default function SharedPublicReportPage({
           </div>
         )}
 
-        <div className="clockodo-detailed-table-wrapper">
-          <table className="clockodo-detailed-table">
+        <div className="clockodo-detailed-table-wrapper" style={{ overflowX: 'auto' }}>
+          <table className="clockodo-detailed-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                <th style={{ width: '140px' }}>DATE</th>
-                <th style={{ width: '180px' }}>TEAM MEMBER</th>
-                <th>WORK DESCRIPTION / DELIVERABLE</th>
-                <th style={{ width: '120px', textAlign: 'right' }}>DURATION</th>
-                <th style={{ width: '120px', textAlign: 'center' }}>STATUS</th>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '11px', textAlign: 'left' }}>
+                <th style={{ width: '150px', padding: '12px 16px', fontWeight: 700 }}>DATE</th>
+                <th style={{ width: '180px', padding: '12px 16px', fontWeight: 700 }}>TEAM MEMBER</th>
+                <th style={{ padding: '12px 16px', fontWeight: 700 }}>WORK DESCRIPTION / DELIVERABLE</th>
+                <th style={{ width: '120px', padding: '12px 16px', fontWeight: 700, textAlign: 'right' }}>DURATION</th>
+                <th style={{ width: '120px', padding: '12px 16px', fontWeight: 700, textAlign: 'center' }}>STATUS</th>
               </tr>
             </thead>
             <tbody>
               {reportData.entries.map((entry) => (
-                <tr key={entry.id}>
-                  <td className="detailed-date-cell">{entry.date}</td>
-                  <td>
-                    <div className="detailed-user-cell">
-                      <div className="detailed-user-avatar" style={{ background: '#00cc00', color: '#ffffff' }}>
+                <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td className="detailed-date-cell" style={{ padding: '12px 16px', fontSize: '13px', color: '#334155' }}>
+                    {entry.date}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <div className="detailed-user-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="detailed-user-avatar" style={{ background: '#00cc00', color: '#ffffff', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
                         {entry.user.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="detailed-user-name">{entry.user}</span>
+                      <span className="detailed-user-name" style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
+                        {entry.user}
+                      </span>
                     </div>
                   </td>
-                  <td className="detailed-desc-cell">{entry.task}</td>
-                  <td className="detailed-duration-cell" style={{ textAlign: 'right' }}>
+                  <td className="detailed-desc-cell" style={{ padding: '12px 16px', fontSize: '13px', color: '#334155' }}>
+                    {entry.task}
+                  </td>
+                  <td className="detailed-duration-cell" style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#008a00', fontSize: '13px' }}>
                     {entry.duration}
                   </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span className="detailed-billable-badge">
+                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                    <span className="detailed-billable-badge" style={{ background: 'rgba(0, 204, 0, 0.1)', color: '#008a00', border: '1px solid rgba(0, 204, 0, 0.3)', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
                       ✓ Billable
                     </span>
                   </td>
@@ -462,7 +519,7 @@ export default function SharedPublicReportPage({
         </div>
       </div>
 
-      {/* ACCESS DENIED POPUP MODAL */}
+      {/* ACCESS RESTRICTION MODAL */}
       {showRestrictedModal && (
         <div style={{
           position: 'fixed',
@@ -479,126 +536,82 @@ export default function SharedPublicReportPage({
           padding: '20px'
         }}>
           <div style={{
-            background: '#ffffff',
+            backgroundColor: '#ffffff',
             borderRadius: '12px',
+            maxWidth: '480px',
             width: '100%',
-            maxWidth: '520px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
-            border: '1px solid #fecaca',
-            overflow: 'hidden'
+            padding: '28px 24px',
+            textAlign: 'center',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+            border: '1.5px solid #fee2e2'
           }}>
-            {/* Modal Top Red Alert Bar */}
             <div style={{
-              padding: '18px 24px',
-              backgroundColor: '#18181b',
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: '#fee2e2',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: '2px solid #ef4444'
+              justifyContent: 'center',
+              margin: '0 auto 16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                  border: '1.5px solid #ef4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <ShieldAlert size={20} color="#ef4444" />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>
-                    {restrictedModalTitle}
-                  </h3>
-                  <span style={{ fontSize: '11px', color: '#f87171', fontWeight: 600 }}>
-                    🚫 Access Restricted to Authorized Staff Only
-                  </span>
-                </div>
-              </div>
+              <ShieldAlert size={30} color="#dc2626" />
+            </div>
+
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 800, color: '#991b1b' }}>
+              {restrictedModalTitle}
+            </h3>
+
+            <p style={{ margin: '0 0 24px 0', fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>
+              {restrictedModalMsg}
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 type="button"
                 onClick={() => setShowRestrictedModal(false)}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#334155',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
               >
-                <X size={18} />
+                Understood / Close
               </button>
-            </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '24px' }}>
-              <div style={{
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fee2e2',
-                borderRadius: '8px',
-                padding: '14px 16px',
-                display: 'flex',
-                gap: '12px',
-                marginBottom: '20px'
-              }}>
-                <Ban size={22} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '13px', color: '#991b1b', lineHeight: 1.5 }}>
-                  <strong>Do Not Access / Modify This Page:</strong>
-                  <div style={{ marginTop: '4px' }}>
-                    {restrictedModalMsg}
-                  </div>
-                </div>
-              </div>
-
-              <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, margin: '0 0 22px 0' }}>
-                This is a secure company workspace. If you are an authorized developer, lead, or admin, please log in with your company credentials in the main workspace to add and manage tasks.
-              </p>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowRestrictedModal(false)}
-                  style={{
-                    padding: '9px 18px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    color: '#475569',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Dismiss & Stay on Read-Only
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRestrictedModal(false);
-                    if (onGoToLogin) {
-                      onGoToLogin();
-                    } else if (onBackToApp) {
-                      onBackToApp();
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '9px 20px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: '#ef4444',
-                    color: '#ffffff',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)'
-                  }}
-                >
-                  <LogIn size={15} />
-                  <span>Sign In as Admin / Staff</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRestrictedModal(false);
+                  if (onGoToLogin) {
+                    onGoToLogin();
+                  } else {
+                    window.location.hash = '';
+                    window.location.pathname = '/';
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#00cc00',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <LogIn size={15} />
+                <span>Go to Workspace Login</span>
+              </button>
             </div>
           </div>
         </div>

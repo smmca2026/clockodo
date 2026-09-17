@@ -1206,6 +1206,9 @@ try {
             <SharedPublicReportPage
               token={sharedToken}
               currentUser={effectiveUser}
+              activities={activities}
+              projects={projects}
+              timesheetRows={timesheetRows}
               onBackToApp={() => {
                 window.location.hash = '';
                 setSharedToken(null);
