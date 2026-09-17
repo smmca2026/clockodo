@@ -42,7 +42,22 @@ function formatSecondsToHMS(sec) {
 function getActivityDate(act) {
   if (!act) return '';
   const raw = act.date || act.group || act.createdAt || act.timestamp || '';
-  if (!raw) return '2026-09-08';
+  
+  // Dynamic Today / Yesterday resolution
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const todayISO = `${y}-${m}-${d}`;
+
+  const yest = new Date(now);
+  yest.setDate(yest.getDate() - 1);
+  const yy = yest.getFullYear();
+  const ym = String(yest.getMonth() + 1).padStart(2, '0');
+  const yd = String(yest.getDate()).padStart(2, '0');
+  const yestISO = `${yy}-${ym}-${yd}`;
+
+  if (!raw) return todayISO;
   
   if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) {
     return raw.trim();
@@ -54,8 +69,8 @@ function getActivityDate(act) {
 
   const str = String(raw).trim().toLowerCase();
 
-  if (str.includes('today')) return '2026-09-08';
-  if (str.includes('yesterday')) return '2026-09-07';
+  if (str.includes('today')) return todayISO;
+  if (str.includes('yesterday')) return yestISO;
 
   const monthMap = {
     jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
@@ -64,18 +79,18 @@ function getActivityDate(act) {
 
   const monthDayMatch = str.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:[,\s]+(\d{4}))?/i);
   if (monthDayMatch) {
-    const m = monthMap[monthDayMatch[1].toLowerCase().slice(0, 3)];
-    const d = String(monthDayMatch[2]).padStart(2, '0');
-    const y = monthDayMatch[3] || '2026';
-    return y + '-' + m + '-' + d;
+    const mm = monthMap[monthDayMatch[1].toLowerCase().slice(0, 3)];
+    const dd = String(monthDayMatch[2]).padStart(2, '0');
+    const yr = monthDayMatch[3] || '2026';
+    return yr + '-' + mm + '-' + dd;
   }
 
   const dayMonthMatch = str.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[,\s]+(\d{4}))?/i);
   if (dayMonthMatch) {
-    const d = String(dayMonthMatch[1]).padStart(2, '0');
-    const m = monthMap[dayMonthMatch[2].toLowerCase().slice(0, 3)];
-    const y = dayMonthMatch[3] || '2026';
-    return y + '-' + m + '-' + d;
+    const dd = String(dayMonthMatch[1]).padStart(2, '0');
+    const mm = monthMap[dayMonthMatch[2].toLowerCase().slice(0, 3)];
+    const yr = dayMonthMatch[3] || '2026';
+    return yr + '-' + mm + '-' + dd;
   }
 
   try {
@@ -88,7 +103,7 @@ function getActivityDate(act) {
     }
   } catch (e) {}
 
-  return '2026-09-08';
+  return todayISO;
 }
 
 function formatRelativeTime(dateStr) {
@@ -220,10 +235,14 @@ export default function DashboardPage({
 
   // 2. Filter by Date Period Range (start to end inclusive)
   const periodFilteredActivities = useMemo(() => {
+    const s = dateRange.start;
+    const e = dateRange.end || dateRange.start;
+    if (!s) return memberActivities;
+
     return memberActivities.filter(act => {
       const actDate = getActivityDate(act);
       if (!actDate) return false;
-      return actDate >= dateRange.start && actDate <= dateRange.end;
+      return actDate >= s && actDate <= e;
     });
   }, [memberActivities, dateRange]);
 
@@ -434,17 +453,14 @@ export default function DashboardPage({
 
   // Single Date Bar Data with all stacked project segments for wide display
   const singleDayData = useMemo(() => {
-    const activeDayWithTime = dailyBarData.find(d => d.totalSec > 0);
-    const activeIso = (dateRange.start === dateRange.end && dateRange.start) 
-      ? dateRange.start 
-      : (activeDayWithTime?.iso || dateRange.start || '2026-09-17');
-
+    const activeIso = dateRange.start || '2026-09-17';
     let daySec = 0;
     const dayProjMap = {};
 
+    // Ingest activities matching this active date
     filteredActivities.forEach(a => {
       const aDate = getActivityDate(a);
-      if (aDate === activeIso || (!dateRange.start && aDate === '2026-09-17')) {
+      if (aDate === activeIso || (!dateRange.start && aDate === '2026-09-17') || (dateRange.start === dateRange.end && aDate === dateRange.start)) {
         const sec = a.durationSeconds || parseTimeToSeconds(a.durationFormatted || a.duration);
         if (sec > 0) {
           daySec += sec;
@@ -478,7 +494,7 @@ export default function DashboardPage({
       hours: daySec / 3600,
       projectSegments
     };
-  }, [dateRange.start, dateRange.end, dailyBarData, filteredActivities, projects]);
+  }, [dateRange.start, dateRange.end, filteredActivities, projects]);
 
   const topProjectObj = liveProjectBreakdown.list[0];
   const topProject = topProjectObj?.project || (filteredActivities.length > 0 ? (filteredActivities[0].project || filteredActivities[0].projectName) : 'None');
@@ -597,7 +613,9 @@ export default function DashboardPage({
       : memberActivities.filter(act => {
           const actDate = getActivityDate(act);
           if (!actDate) return false;
-          return actDate >= dateRange.start && actDate <= dateRange.end;
+          const s = dateRange.start;
+          const e = dateRange.end || dateRange.start;
+          return actDate >= s && actDate <= e;
         });
 
     activitiesToUse.forEach(act => {
@@ -793,8 +811,10 @@ export default function DashboardPage({
     const clickedISO = dayObj.iso;
 
     if (!dateRange.start || (dateRange.start && dateRange.end)) {
-      setDateRange({ start: clickedISO, end: '' });
+      // First click: select this single date for both start and end
+      setDateRange({ start: clickedISO, end: clickedISO });
     } else {
+      // Second click: select range
       if (clickedISO < dateRange.start) {
         setDateRange({ start: clickedISO, end: dateRange.start });
       } else {
