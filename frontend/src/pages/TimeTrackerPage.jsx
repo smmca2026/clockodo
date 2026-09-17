@@ -11,10 +11,13 @@ import {
   Trash2, 
   Copy, 
   CheckCircle2,
-  Edit3
+  Edit3,
+  Search,
+  Star,
+  Check
 } from 'lucide-react';
 import TimeTracker from '../components/TimeTracker';
-import ProjectPickerDropdown from '../components/ProjectPickerDropdown';
+import { INITIAL_PROJECTS } from '../data/mockData';
 
 // Reusable Inline Date Picker Popover Component
 function RowDatePickerPopover({
@@ -24,7 +27,6 @@ function RowDatePickerPopover({
 }) {
   const popoverRef = useRef(null);
   
-  // Parse initial year/month from currentIsoDate (YYYY-MM-DD) or default to today
   const initDate = (() => {
     if (currentIsoDate && /^\d{4}-\d{2}-\d{2}$/.test(currentIsoDate)) {
       const [y, m, d] = currentIsoDate.split('-').map(Number);
@@ -41,7 +43,6 @@ function RowDatePickerPopover({
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target)) {
@@ -116,7 +117,6 @@ function RowDatePickerPopover({
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {/* Quick date shortcuts */}
       <div className="calendar-quick-actions">
         <button 
           type="button" 
@@ -134,7 +134,6 @@ function RowDatePickerPopover({
         </button>
       </div>
 
-      {/* Month & Year navigation */}
       <div className="calendar-month-nav">
         <button type="button" className="cal-nav-btn" onClick={handlePrevMonth}>
           <ChevronLeft size={15} />
@@ -147,7 +146,6 @@ function RowDatePickerPopover({
         </button>
       </div>
 
-      {/* Weekday Headers */}
       <div className="calendar-weekdays-grid">
         <span>Su</span>
         <span>Mo</span>
@@ -158,7 +156,6 @@ function RowDatePickerPopover({
         <span>Sa</span>
       </div>
 
-      {/* Days Grid */}
       <div className="calendar-days-grid">
         {Array.from({ length: firstDayOfMonth }).map((_, i) => (
           <span key={`empty-${i}`} className="cal-day-empty" />
@@ -189,6 +186,158 @@ function RowDatePickerPopover({
   );
 }
 
+// Reusable Clean Row Project Dropdown Popover (No '+' Button)
+function RowProjectPicker({
+  projects = [],
+  currentProjectName = '',
+  currentProjectColor = '#00cc00',
+  isOpen = false,
+  onToggle,
+  onSelectProject
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const popoverRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  const allProjects = (Array.isArray(projects) && projects.length > 0) ? projects : INITIAL_PROJECTS;
+
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        onToggle(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onToggle]);
+
+  const filtered = allProjects.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (p.name && p.name.toLowerCase().includes(q)) ||
+      (p.client && p.client.toLowerCase().includes(q))
+    );
+  });
+
+  const clientGroups = filtered.reduce((acc, proj) => {
+    const clientName = proj.client || 'General / Internal';
+    if (!acc[clientName]) acc[clientName] = [];
+    acc[clientName].push(proj);
+    return acc;
+  }, {});
+
+  const displayTitle = currentProjectName && currentProjectName !== 'No Project' 
+    ? currentProjectName 
+    : 'Select Project';
+
+  return (
+    <div className="clockify-row-project-container" ref={popoverRef}>
+      {/* Clean Trigger Button: Dot + Project Name with Hover Underline (No '+' button!) */}
+      <button
+        type="button"
+        className={`clockify-row-proj-btn ${isOpen ? 'active' : ''}`}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle(!isOpen);
+        }}
+        title="Click to select or change project"
+      >
+        <span 
+          className="clockify-row-proj-bullet" 
+          style={{ backgroundColor: currentProjectColor || '#00cc00' }} 
+        />
+        <span className="clockify-row-proj-name">{displayTitle}</span>
+      </button>
+
+      {/* Floating Searchable Project Dropdown Popover */}
+      {isOpen && (
+        <div 
+          className="project-picker-popover clockify-row-proj-popover"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="project-search-box">
+            <Search size={15} className="project-search-icon" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="project-search-input"
+              placeholder="Search Project or Client..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="project-picker-list">
+            {Object.keys(clientGroups).length === 0 ? (
+              <div className="project-picker-empty">
+                No projects matching "{searchQuery}"
+              </div>
+            ) : (
+              Object.entries(clientGroups).map(([client, projs]) => (
+                <div key={client} className="project-client-group">
+                  <div className="project-client-header">
+                    <span className="client-header-title">{client}</span>
+                    <span className="client-header-count">{projs.length}</span>
+                  </div>
+
+                  <div className="project-items-list">
+                    {projs.map((proj) => {
+                      const isSelected = 
+                        currentProjectName && 
+                        proj.name.toLowerCase() === currentProjectName.toLowerCase();
+                      return (
+                        <div
+                          key={proj.id}
+                          className={`project-picker-item ${isSelected ? 'selected' : ''}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onSelectProject(proj);
+                            onToggle(false);
+                          }}
+                        >
+                          <div className="project-item-left">
+                            <span 
+                              className="project-item-bullet" 
+                              style={{ backgroundColor: proj.color || '#00cc00' }}
+                            />
+                            <span className="project-item-name">{proj.name}</span>
+                          </div>
+
+                          <div className="project-item-right">
+                            {isSelected && (
+                              <Check size={14} className="project-item-check" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TimeTrackerPage({
   projects = [],
   activities = [],
@@ -204,25 +353,14 @@ export default function TimeTrackerPage({
   onUpdateActivity = () => {},
   currentUser = null
 }) {
-  // State for active 3-dots dropdown menu
   const [activeMenuId, setActiveMenuId] = useState(null);
-
-  // State for expanded project cluster rows
   const [expandedTasks, setExpandedTasks] = useState({});
-
-  // State for collapsed day groups
   const [collapsedGroups, setCollapsedGroups] = useState({});
-
-  // State for in-app toast feedback
   const [toastMessage, setToastMessage] = useState(null);
 
-  // State for active date picker popover
   const [activeDatePickerKey, setActiveDatePickerKey] = useState(null);
-
-  // State for active project picker dropdown popover
   const [activeProjectPickerKey, setActiveProjectPickerKey] = useState(null);
 
-  // State for seamless inline description editing: key and draft text
   const [editingItemKey, setEditingItemKey] = useState(null);
   const [editingDescText, setEditingDescText] = useState('');
 
@@ -233,7 +371,6 @@ export default function TimeTrackerPage({
     }, 2500);
   };
 
-  // Close menus when clicking outside
   useEffect(() => {
     const handleDocumentClick = () => {
       setActiveMenuId(null);
@@ -258,7 +395,6 @@ export default function TimeTrackerPage({
     }));
   };
 
-  // Helper to parse start time into minutes for chronological sorting
   const parseStartMinutes = (t) => {
     if (!t) return 0;
     const clean = t.trim().toUpperCase();
@@ -277,7 +413,6 @@ export default function TimeTrackerPage({
     return h * 60 + (parts[1] || 0);
   };
 
-  // Helper to format any time string into clean standard "hh:mm AM/PM"
   const formatTimeWithAmPm = (timeStr) => {
     if (!timeStr || typeof timeStr !== 'string') return '';
     const trimmed = timeStr.trim();
@@ -303,7 +438,6 @@ export default function TimeTrackerPage({
     return trimmed;
   };
 
-  // Helper to parse "HH:MM:SS" into seconds
   const parseTimeToSeconds = (str) => {
     if (!str || typeof str !== 'string') return 0;
     const parts = str.split(':').map(Number);
@@ -320,7 +454,6 @@ export default function TimeTrackerPage({
     return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // Dynamic helpers for Real-Life Today & Yesterday
   const getTodayISO = () => {
     const d = new Date();
     const yr = d.getFullYear();
@@ -338,7 +471,6 @@ export default function TimeTrackerPage({
     return `${yr}-${mo}-${da}`;
   };
 
-  // Canonical helper to get normalized ISO Date (YYYY-MM-DD) for any activity
   const normalizeActivityDate = (act) => {
     const todayISO = getTodayISO();
     const yestISO = getYesterdayISO();
@@ -362,7 +494,6 @@ export default function TimeTrackerPage({
     return todayISO;
   };
 
-  // Helper to get formatted display label for a canonical ISO Date
   const getDisplayLabelForDate = (isoDate) => {
     const todayISO = getTodayISO();
     const yestISO = getYesterdayISO();
@@ -382,7 +513,6 @@ export default function TimeTrackerPage({
     return `${dayOfWeek}, ${monthStr} ${dayStr}`;
   };
 
-  // Filter activities by searchQuery
   const filteredActivities = activities.filter(act => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -390,7 +520,6 @@ export default function TimeTrackerPage({
            (act.project && act.project.toLowerCase().includes(q));
   });
 
-  // Group activities strictly by unique canonical ISO date (YYYY-MM-DD)
   const groupedByDate = filteredActivities.reduce((acc, act) => {
     const isoDate = normalizeActivityDate(act);
     if (!acc[isoDate]) acc[isoDate] = [];
@@ -398,17 +527,14 @@ export default function TimeTrackerPage({
     return acc;
   }, {});
 
-  // Sort dates strictly in descending chronological order (Newest date at top!)
   const sortedDateKeys = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
 
-  // Calculate overall total
   let overallSec = 0;
   filteredActivities.forEach(act => {
     overallSec += parseTimeToSeconds(act.durationFormatted);
   });
   const weekTotalFormatted = formatSecondsToTime(overallSec);
 
-  // Check if an item is currently running
   const isItemRunning = (item) => {
     return !!activeTimer?.isRunning && (
       (activeTimer.taskId && activeTimer.taskId === item.id) ||
@@ -416,7 +542,6 @@ export default function TimeTrackerPage({
     );
   };
 
-  // Direct toggle play / pause from the row
   const handleTogglePlayEntry = (item) => {
     if (isItemRunning(item)) {
       onStopTimer();
@@ -458,44 +583,42 @@ export default function TimeTrackerPage({
   // Save seamless inline description
   const handleSaveDescription = (itemOrCluster, newText) => {
     const cleanText = newText.trim() || 'Working session';
+    const updates = { description: cleanText };
+
     if (itemOrCluster.sessions && Array.isArray(itemOrCluster.sessions)) {
-      // Cluster parent row: update all sessions in this cluster
       itemOrCluster.sessions.forEach(s => {
-        onUpdateActivity(s.id, { description: cleanText });
+        onUpdateActivity(s.id, updates);
       });
-    } else {
-      // Individual session
-      onUpdateActivity(itemOrCluster.id, { description: cleanText });
+    } else if (itemOrCluster.id) {
+      onUpdateActivity(itemOrCluster.id, updates);
+    } else if (itemOrCluster.representativeItem?.id) {
+      onUpdateActivity(itemOrCluster.representativeItem.id, updates);
     }
+
     setEditingItemKey(null);
     showToast(`✓ Description saved: "${cleanText}"`);
   };
 
-  // Handle row project selection from dropdown
-  const handleRowSelectProject = (itemOrCluster, projId) => {
-    let projName = 'No Project';
-    let projColor = '#94a3b8';
+  // Handle project selection from row dropdown
+  const handleRowSelectProject = (itemOrCluster, projObj) => {
+    const projName = projObj?.name || 'No Project';
+    const projColor = projObj?.color || '#00cc00';
+    const projId = projObj?.id || `proj-${Date.now()}`;
 
-    if (projId) {
-      const found = (projects || []).find(p => 
-        String(p.id).toLowerCase() === String(projId).toLowerCase() || 
-        (p.name && p.name.toLowerCase() === String(projId).toLowerCase())
-      );
-      if (found) {
-        projName = found.name;
-        projColor = found.color || '#00cc00';
-      } else {
-        projName = projId;
-        projColor = '#00cc00';
-      }
-    }
+    const updates = { 
+      project: projName, 
+      projectColor: projColor,
+      projectId: projId 
+    };
 
     if (itemOrCluster.sessions && Array.isArray(itemOrCluster.sessions)) {
       itemOrCluster.sessions.forEach(s => {
-        onUpdateActivity(s.id, { project: projName, projectColor: projColor });
+        onUpdateActivity(s.id, updates);
       });
-    } else {
-      onUpdateActivity(itemOrCluster.id, { project: projName, projectColor: projColor });
+    } else if (itemOrCluster.id) {
+      onUpdateActivity(itemOrCluster.id, updates);
+    } else if (itemOrCluster.representativeItem?.id) {
+      onUpdateActivity(itemOrCluster.representativeItem.id, updates);
     }
 
     setActiveProjectPickerKey(null);
@@ -510,9 +633,12 @@ export default function TimeTrackerPage({
         onUpdateActivityDate(s.id, newIsoDate, newGroupLabel);
         onUpdateActivity(s.id, { date: newIsoDate, group: newGroupLabel });
       });
-    } else {
+    } else if (itemOrCluster.id) {
       onUpdateActivityDate(itemOrCluster.id, newIsoDate, newGroupLabel);
       onUpdateActivity(itemOrCluster.id, { date: newIsoDate, group: newGroupLabel });
+    } else if (itemOrCluster.representativeItem?.id) {
+      onUpdateActivityDate(itemOrCluster.representativeItem.id, newIsoDate, newGroupLabel);
+      onUpdateActivity(itemOrCluster.representativeItem.id, { date: newIsoDate, group: newGroupLabel });
     }
     setActiveDatePickerKey(null);
     showToast(`✓ Entry moved to ${newGroupLabel}`);
@@ -551,12 +677,10 @@ export default function TimeTrackerPage({
             const groupLabel = getDisplayLabelForDate(isoDate);
             const isCollapsed = !!collapsedGroups[isoDate];
 
-            // Sort items inside group with latest start time at top
             const groupItems = [...rawItems].sort((a, b) => {
               return parseStartMinutes(b.startTime) - parseStartMinutes(a.startTime);
             });
 
-            // Calculate total time for this day
             let daySec = 0;
             rawItems.forEach(item => {
               daySec += parseTimeToSeconds(item.durationFormatted);
@@ -566,7 +690,7 @@ export default function TimeTrackerPage({
 
             return (
               <div key={isoDate} className={`clockify-day-card ${isCollapsed ? 'is-collapsed' : ''}`}>
-                {/* Day Header Row (Collapsible) */}
+                {/* Day Header Row */}
                 <div 
                   className="clockify-day-header"
                   onClick={() => toggleGroupCollapse(isoDate)}
@@ -598,11 +722,10 @@ export default function TimeTrackerPage({
                   </div>
                 </div>
 
-                {/* Day Entry Rows - Inline Expandable Row-by-Row Tasks */}
+                {/* Day Entry Rows */}
                 {!isCollapsed && (
                   <div className="clockify-entries-list">
                     {(() => {
-                      // 1. Group tasks inside this day by PROJECT
                       const clustersMap = {};
                       const clustersOrder = [];
 
@@ -628,7 +751,6 @@ export default function TimeTrackerPage({
                         clustersMap[clusterKey].totalSec += parseTimeToSeconds(item.durationFormatted);
                       });
 
-                      // 2. Sort sessions inside each cluster in descending chronological order (Latest session first!)
                       clustersOrder.forEach((key) => {
                         clustersMap[key].sessions.sort((a, b) => {
                           return parseStartMinutes(b.startTime) - parseStartMinutes(a.startTime);
@@ -646,13 +768,11 @@ export default function TimeTrackerPage({
                         const isLastInGroup = cIdx === clustersOrder.length - 1;
                         const shouldOpenUpwards = isLastGroup || isLastInGroup;
 
-                        // Keys for parent row controls
                         const parentRowKey = `parent_${isoDate}_${clusterKey}`;
                         const isEditingDesc = editingItemKey === parentRowKey;
                         const isDatePickerOpen = activeDatePickerKey === parentRowKey;
                         const isProjPickerOpen = activeProjectPickerKey === parentRowKey;
 
-                        // Calculate overall time span (Earliest start to latest end)
                         let earliestMin = 99999;
                         let earliestStartStr = cluster.sessions[0].startTime;
                         let latestMin = -1;
@@ -697,7 +817,7 @@ export default function TimeTrackerPage({
                                 position: 'relative'
                               }}
                             >
-                              {/* Description & Project */}
+                              {/* Description & Clean Project Picker (NO '+' BUTTON!) */}
                               <div className="clockify-entry-left">
                                 {isMultiSession ? (
                                   <button 
@@ -752,23 +872,15 @@ export default function TimeTrackerPage({
                                   )}
                                 </div>
                                 
-                                {/* Interactive Project Picker Trigger on Row */}
-                                <div 
-                                  className="clockify-row-project-wrapper"
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{ position: 'relative' }}
-                                >
-                                  <ProjectPickerDropdown
-                                    projects={projects}
-                                    selectedProjectId={cluster.representativeItem?.projectId || cluster.project}
-                                    selectedProjectName={cluster.project}
-                                    isOpen={isProjPickerOpen}
-                                    onOpenChange={(isOpen) => setActiveProjectPickerKey(isOpen ? parentRowKey : null)}
-                                    onSelectProject={(projId) => handleRowSelectProject(cluster, projId)}
-                                    onCreateProject={onCreateProject}
-                                    currentUser={currentUser}
-                                  />
-                                </div>
+                                {/* Clean Project Selector: Dot + Project Name with Hover Underline (NO '+' sign!) */}
+                                <RowProjectPicker
+                                  projects={projects}
+                                  currentProjectName={cluster.project}
+                                  currentProjectColor={cluster.projectColor}
+                                  isOpen={isProjPickerOpen}
+                                  onToggle={(isOpen) => setActiveProjectPickerKey(isOpen ? parentRowKey : null)}
+                                  onSelectProject={(projObj) => handleRowSelectProject(cluster, projObj)}
+                                />
                               </div>
 
                               {/* Meta Icon: Billable Rupee */}
@@ -780,7 +892,7 @@ export default function TimeTrackerPage({
                                 />
                               </div>
 
-                              {/* Interval: Span from earliest start to latest end */}
+                              {/* Interval: Earliest start to latest end */}
                               <div className="clockify-entry-window">
                                 <span>{formatTimeWithAmPm(earliestStartStr)}</span>
                                 <span className="window-sep">-</span>
@@ -921,7 +1033,7 @@ export default function TimeTrackerPage({
                                         position: 'relative' 
                                       }}
                                     >
-                                      {/* Description & Project */}
+                                      {/* Description & Clean Project Picker (NO '+' BUTTON!) */}
                                       <div className="clockify-entry-left">
                                         <span className="sub-session-indent-spacer" />
                                         
@@ -957,23 +1069,15 @@ export default function TimeTrackerPage({
                                           )}
                                         </div>
 
-                                        {/* Sub-Session Interactive Project Picker Dropdown */}
-                                        <div 
-                                          className="clockify-row-project-wrapper"
-                                          onClick={(e) => e.stopPropagation()}
-                                          style={{ position: 'relative' }}
-                                        >
-                                          <ProjectPickerDropdown
-                                            projects={projects}
-                                            selectedProjectId={session.projectId || session.project}
-                                            selectedProjectName={session.project}
-                                            isOpen={isSubProjPickerOpen}
-                                            onOpenChange={(isOpen) => setActiveProjectPickerKey(isOpen ? subRowKey : null)}
-                                            onSelectProject={(projId) => handleRowSelectProject(session, projId)}
-                                            onCreateProject={onCreateProject}
-                                            currentUser={currentUser}
-                                          />
-                                        </div>
+                                        {/* Sub-Session Clean Project Picker */}
+                                        <RowProjectPicker
+                                          projects={projects}
+                                          currentProjectName={session.project}
+                                          currentProjectColor={session.projectColor}
+                                          isOpen={isSubProjPickerOpen}
+                                          onToggle={(isOpen) => setActiveProjectPickerKey(isOpen ? subRowKey : null)}
+                                          onSelectProject={(projObj) => handleRowSelectProject(session, projObj)}
+                                        />
                                       </div>
 
                                       {/* Meta Icon: Billable Rupee */}

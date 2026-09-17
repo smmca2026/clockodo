@@ -10645,3 +10645,64 @@ html, body, #root, .tracko-app, .main-wrapper {
 .clockify-row-project-wrapper .project-trigger-chevron {
   display: none;
 }
+
+
+/* ==========================================================================
+   Clockify Time Tracker: Clean Row Project Selector (NO '+' BUTTON!)
+   ========================================================================== */
+.clockify-row-project-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.clockify-row-proj-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 3px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.clockify-row-proj-btn:hover,
+.clockify-row-proj-btn.active {
+  background: #f1f5f9;
+}
+
+.clockify-row-proj-bullet {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.clockify-row-proj-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f172a;
+  transition: all 0.15s ease;
+}
+
+.clockify-row-proj-btn:hover .clockify-row-proj-name {
+  text-decoration: underline;
+  color: #008a00;
+}
+
+.clockify-row-proj-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  padding: 10px;
+  z-index: 99999;
+  width: 270px;
+  animation: fadeInDown 0.15s ease-out;
+}

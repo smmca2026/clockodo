@@ -770,33 +770,37 @@ try {
   };
 
   const handleUpdateActivity = (actId, updates) => {
-    if (isGuestSession || !currentUser || currentUser.role === 'guest') {
+    if (isGuestSession && (!effectiveUser || effectiveUser.role === 'guest')) {
       setGuestDeniedModal({
         title: 'Action Restricted: Sign In Required',
         subtitle: 'Read-Only Guest Mode Active',
-        message: 'You are currently viewing in Read-Only Guest Mode. Adding new time entries, creating projects, starting timers, and making workspace changes are restricted to authorized accounts. Please sign in as an Admin or Staff member.'
+        message: 'You are currently viewing in Read-Only Guest Mode. Adding new time entries, creating projects, starting timers, and making workspace changes are restricted to authorized accounts.'
       });
       return;
     }
     if (!actId || !updates) return;
 
-    setActivities((prev) =>
-      prev.map((a) => {
-        if (a.id === actId) {
+    setActivities((prev) => {
+      const updated = (prev || []).map((a) => {
+        if (String(a.id) === String(actId)) {
           return {
             ...a,
             ...updates,
           };
         }
         return a;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('clockodo_activities_v2', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
     api.updateActivity(actId, updates).catch((e) => console.warn('Backend sync failed for updateActivity:', e));
   };
 
   const handleUpdateActivityDate = (actId, newISODate, newGroupLabel) => {
-    if (isGuestSession || !currentUser || currentUser.role === 'guest') {
+    if (isGuestSession && (!effectiveUser || effectiveUser.role === 'guest')) {
       setGuestDeniedModal({
         title: 'Action Restricted: Sign In Required',
         subtitle: 'Read-Only Guest Mode Active',
@@ -806,9 +810,9 @@ try {
     }
     if (!actId) return;
 
-    setActivities((prev) =>
-      prev.map((a) => {
-        if (a.id === actId) {
+    setActivities((prev) => {
+      const updated = (prev || []).map((a) => {
+        if (String(a.id) === String(actId)) {
           return {
             ...a,
             date: newISODate,
@@ -816,8 +820,12 @@ try {
           };
         }
         return a;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('clockodo_activities_v2', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
     api.updateActivity(actId, { date: newISODate, group: newGroupLabel }).catch(e => console.warn('Backend sync failed:', e));
   };
