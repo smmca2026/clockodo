@@ -160,6 +160,8 @@ export default function DashboardPage({
   const userRole = (currentUser?.role || currentUser?.roleName || '').toLowerCase();
   const isAdmin = userRole === 'admin' || userRole === 'owner' || !userRole || currentUser?.email === 'admin@clockodo.com';
   const isOnlyMe = userFilter === 'Only me' || !isAdmin;
+  // Admin in 'Show all' sees Huge Multi-Color Wide Bar; Employees (and Admin in 'Only me') see Classic Green 7-Day Bars
+  const showAdminWideStackedBar = isAdmin && (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone');
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [pinnedTeamCard, setPinnedTeamCard] = useState(true);
   
@@ -1112,37 +1114,37 @@ export default function DashboardPage({
           </div>
         </div>
 
-                        {/* 1. Full-Width Activity Overview: HUGE WIDE BAR FOR ADMIN 'SHOW ALL' / DATE-WISE 7-DAY GRID FOR 'ONLY ME' (Admin & Employees) */}
+                        {/* 1. Full-Width Activity Overview: ADMIN 'SHOW ALL' = MULTI-COLOR WIDE BAR | EMPLOYEE & ADMIN 'ONLY ME' = CLASSIC GREEN 7-DAY BARS */}
         <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '26px 32px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
           {/* Header Row: Title, Filter Mode & Peak */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                {!isOnlyMe 
+                {showAdminWideStackedBar 
                   ? (`Activity Overview • ${singleDayData.day} (Workspace Overall)`) 
-                  : (`Weekly Activity Overview • Date-Wise (${currentUser?.name || 'My Activities'})`)}
+                  : (`Weekly Activity Overview • ${currentUser?.name || 'My Activities'}`)}
               </span>
               <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', padding: '2px 9px', borderRadius: '12px', fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                Total: {!isOnlyMe ? singleDayData.time : liveTotalTime}
+                Total: {showAdminWideStackedBar ? singleDayData.time : liveTotalTime}
               </span>
             </div>
 
             {/* Right Header Status / Peak Indicator */}
             <div>
-              {isOnlyMe && peakDay.hours > 0 ? (
+              {!showAdminWideStackedBar && peakDay.hours > 0 ? (
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#008a00' }}>
                   Peak: {peakDay.day} ({peakDay.hours.toFixed(2)}h)
                 </span>
               ) : (
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px' }}>
-                  {isAdmin ? '👑 Admin (Show All View)' : '👤 Employee View'}
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#008a00', background: '#f0fdf4', border: '1px solid rgba(0,204,0,0.25)', padding: '3px 8px', borderRadius: '6px' }}>
+                  👑 Admin (Workspace Multi-Color Bar)
                 </span>
               )}
             </div>
           </div>
 
-          {/* Project Color Legend matching Pie Chart */}
-          {liveProjectBreakdown.list.length > 0 && (
+          {/* Project Color Legend (Only for Admin Show All multi-colored mode) */}
+          {showAdminWideStackedBar && liveProjectBreakdown.list.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', alignItems: 'center', marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
               {liveProjectBreakdown.list.map((item, idx) => (
                 <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#334155', fontWeight: 600 }}>
@@ -1154,11 +1156,8 @@ export default function DashboardPage({
             </div>
           )}
 
-          {/* VIEW CONDITIONAL: ADMIN 'SHOW ALL' = HUGE WIDE STACKED BAR | 'ONLY ME' (Admin / Employee) = DATE-WISE 7-DAY GRID */}
-          {!isOnlyMe ? (
-            /* ============================================================== */
-            /* 1. ADMIN 'SHOW ALL' MODE: HUGE WIDE STACKED BAR (REFERENCE 1) */
-            /* ============================================================== */
+          {/* VIEW 1: ADMIN 'SHOW ALL' = HUGE MULTI-COLOR WIDE STACKED BAR */}
+          {showAdminWideStackedBar ? (
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0 16px' }}>
               {/* Top Total Duration Label */}
               <div style={{ marginBottom: '14px', textAlign: 'center' }}>
@@ -1239,9 +1238,7 @@ export default function DashboardPage({
               </div>
             </div>
           ) : (
-            /* ========================================================================= */
-            /* 2. 'ONLY ME' MODE (ADMIN & EMPLOYEES): DATE-WISE 7-DAY MULTI-COLUMN GRID */
-            /* ========================================================================= */
+            /* VIEW 2: CLASSIC SIGNATURE GREEN 7-DAY BARS (EMPLOYEES & ADMIN 'ONLY ME') */
             <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
               <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px', height: '300px', alignItems: 'flex-end', paddingBottom: '16px' }}>
                 {dailyBarData.map((d, idx) => (
@@ -1250,14 +1247,14 @@ export default function DashboardPage({
                     className="reports-bar-item" 
                     onClick={() => { setDateRange({ start: d.iso, end: d.iso }); }}
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px', cursor: 'pointer' }}
-                    title={'Click to filter by ' + d.day}
+                    title={'Click to view ' + d.day}
                   >
                     {/* Top Duration Label */}
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
                       {d.time}
                     </span>
 
-                    {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
+                    {/* Classic Signature Green Bar Fill */}
                     <div 
                       className="reports-bar-fill" 
                       style={{ 
@@ -1266,36 +1263,15 @@ export default function DashboardPage({
                         height: d.heightPercent + '%',
                         minHeight: d.hours > 0 ? '16px' : '4px',
                         borderRadius: '6px 6px 0 0',
-                        display: 'flex',
-                        flexDirection: 'column-reverse',
                         overflow: 'hidden',
-                        background: d.hours > 0 ? 'transparent' : '#e2e8f0',
-                        boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 0, 0, 0.12)' : 'none',
+                        background: d.hours > 0 ? '#00cc00' : '#e2e8f0',
+                        boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 204, 0, 0.25)' : 'none',
                         transition: 'all 0.35s ease',
                         position: 'relative'
                       }}
+                      title={d.day + ': ' + d.time}
                     >
-                      {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
-                        d.projectSegments.map((seg, sIdx) => {
-                          const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
-                          return (
-                            <div
-                              key={sIdx}
-                              style={{
-                                width: '100%',
-                                height: segPercent + '%',
-                                minHeight: '3px',
-                                backgroundColor: seg.color || '#00cc00',
-                                transition: 'height 0.2s ease',
-                                position: 'relative'
-                              }}
-                              title={seg.project + ': ' + formatSecondsToHMS(seg.sec) + ' (' + segPercent.toFixed(1) + '%)'}
-                            />
-                          );
-                        })
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
-                      )}
+                      <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
                     </div>
 
                     {/* Day Label Beneath Baseline */}
