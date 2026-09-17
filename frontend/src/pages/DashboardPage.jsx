@@ -265,18 +265,31 @@ export default function DashboardPage({
     return days;
   }, [dateRange.start]);
 
-  // Compute Daily Bar Data (Mon-Sun) dynamically matching selected week
+  // Compute Daily Bar Data (Mon-Sun) dynamically matching selected week with multi-colored project segments
   const dailyBarData = useMemo(() => {
     let highestSec = 0;
     const bars = daysMeta.map(({ iso, label, dayName, dayKeyIndex }) => {
       let daySec = 0;
+      const dayProjMap = {};
 
       // Ingest from filtered activities matching this specific day's ISO date
       filteredActivities.forEach(a => {
         const aDate = getActivityDate(a);
         if (aDate === iso) {
           const sec = a.durationSeconds || parseTimeToSeconds(a.durationFormatted || a.duration);
-          daySec += sec;
+          if (sec > 0) {
+            daySec += sec;
+            const pName = a.project || a.projectName || 'General Task';
+            if (!dayProjMap[pName]) {
+              const projObj = projects.find(p => p.name.toLowerCase() === pName.toLowerCase());
+              dayProjMap[pName] = {
+                project: pName,
+                color: a.projectColor || projObj?.color || a.color || '#00cc00',
+                sec: 0
+              };
+            }
+            dayProjMap[pName].sec += sec;
+          }
         }
       });
 
@@ -289,13 +302,25 @@ export default function DashboardPage({
             const hoursObj = row.hours || row.days;
             if (hoursObj && hoursObj[dayKey]) {
               const sec = parseTimeToSeconds(hoursObj[dayKey]);
-              if (filteredActivities.length === 0) {
+              if (sec > 0 && filteredActivities.length === 0) {
                 daySec += sec;
+                const pName = row.project || row.projectName || 'General Task';
+                if (!dayProjMap[pName]) {
+                  const projObj = projects.find(p => p.name.toLowerCase() === pName.toLowerCase());
+                  dayProjMap[pName] = {
+                    project: pName,
+                    color: row.color || projObj?.color || '#00cc00',
+                    sec: 0
+                  };
+                }
+                dayProjMap[pName].sec += sec;
               }
             }
           });
         }
       }
+
+      const projectSegments = Object.values(dayProjMap).sort((a, b) => b.sec - a.sec);
 
       if (daySec > highestSec) highestSec = daySec;
 
@@ -306,7 +331,8 @@ export default function DashboardPage({
         dayName,
         totalSec: daySec,
         time: formatSecondsToHMS(daySec),
-        hours: daySec / 3600
+        hours: daySec / 3600,
+        projectSegments
       };
     });
 
@@ -316,7 +342,7 @@ export default function DashboardPage({
       ...b,
       heightPercent: maxSec > 0 ? Math.min(100, Math.max(4, (b.totalSec / maxSec) * 100)) : 4
     }));
-  }, [daysMeta, filteredActivities, timesheetRows, userFilter]);
+  }, [daysMeta, filteredActivities, timesheetRows, userFilter, projects]);
 
   // Dynamic Total Time synced with 7-day daily bars
   const dynamicTotalSec = useMemo(() => {
@@ -984,23 +1010,38 @@ export default function DashboardPage({
 
                         {/* 1. Full-Width Large Size Bar Chart Matching Clockify Model */}
         <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '28px 36px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Weekly Activity Overview</span>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Weekly Activity Overview</span>
+              </div>
+              <span style={{ fontSize: '13px', color: '#00cc00', fontWeight: 800, letterSpacing: '0.2px' }}>
+                {(() => {
+                  let peakDay = dailyBarData[0]?.day || 'Selected Week';
+                  let peakHours = 0;
+                  dailyBarData.forEach(d => {
+                    if (d.hours > peakHours) {
+                      peakHours = d.hours;
+                      peakDay = d.day;
+                    }
+                  });
+                  return peakHours > 0 ? `Peak: ${peakDay} (${peakHours.toFixed(2)}h)` : 'No entries logged yet';
+                })()}
+              </span>
             </div>
-            <span style={{ fontSize: '13px', color: '#00cc00', fontWeight: 800, letterSpacing: '0.2px' }}>
-              {(() => {
-                let peakDay = dailyBarData[0]?.day || 'Selected Week';
-                let peakHours = 0;
-                dailyBarData.forEach(d => {
-                  if (d.hours > peakHours) {
-                    peakHours = d.hours;
-                    peakDay = d.day;
-                  }
-                });
-                return peakHours > 0 ? `Peak: ${peakDay} (${peakHours.toFixed(2)}h)` : 'No entries logged yet';
-              })()}
-            </span>
+
+            {/* Project Color Legend matching Pie Chart */}
+            {liveProjectBreakdown.list.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                {liveProjectBreakdown.list.map((item, idx) => (
+                  <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', fontWeight: 600 }}>
+                    <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
+                    <span>{item.project}</span>
+                    <span style={{ color: '#64748b', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>({item.time})</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
@@ -1012,7 +1053,7 @@ export default function DashboardPage({
                     {d.time}
                   </span>
 
-                  {/* Large Solid Green Bar Fill */}
+                  {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
                   <div 
                     className="reports-bar-fill" 
                     style={{ 
@@ -1020,14 +1061,40 @@ export default function DashboardPage({
                       maxWidth: '110px',
                       height: `${d.heightPercent}%`,
                       minHeight: d.hours > 0 ? '16px' : '4px',
-                      background: d.hours > 0 ? '#00cc00' : '#e2e8f0',
-                      borderRadius: '4px 4px 0 0',
-                      boxShadow: d.hours > 0 ? '0 4px 10px rgba(0, 204, 0, 0.3)' : 'none',
-                      transition: 'height 0.35s ease, background 0.2s ease',
+                      borderRadius: '6px 6px 0 0',
+                      display: 'flex',
+                      flexDirection: 'column-reverse',
+                      overflow: 'hidden',
+                      background: d.hours > 0 ? 'transparent' : '#e2e8f0',
+                      boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 0, 0, 0.12)' : 'none',
+                      transition: 'height 0.35s ease',
+                      position: 'relative',
                       cursor: 'pointer'
                     }}
-                    title={`${d.day}: ${d.time}`}
-                  />
+                    title={`${d.day}: ${d.time}${d.projectSegments && d.projectSegments.length > 0 ? '\n' + d.projectSegments.map(s => `${s.project}: ${formatSecondsToHMS(s.sec)}`).join('\n') : ''}`}
+                  >
+                    {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
+                      d.projectSegments.map((seg, sIdx) => {
+                        const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
+                        return (
+                          <div
+                            key={sIdx}
+                            style={{
+                              width: '100%',
+                              height: `${segPercent}%`,
+                              minHeight: '3px',
+                              backgroundColor: seg.color || '#00cc00',
+                              transition: 'height 0.2s ease',
+                              position: 'relative'
+                            }}
+                            title={`${seg.project}: ${formatSecondsToHMS(seg.sec)} (${segPercent.toFixed(1)}%)`}
+                          />
+                        );
+                      })
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
+                    )}
+                  </div>
 
                   {/* Day Label Beneath Baseline */}
                   <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
