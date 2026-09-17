@@ -1663,34 +1663,7 @@ export default function ReportsPage({
   };
 
   // Shared Reports State & Handlers with LocalStorage Persistence
-  const INITIAL_SHARED_REPORTS = [
-    {
-      id: 'shared-live-1',
-      name: 'JRKS Logistics - Milestone 1 Deliverables',
-      client: 'JRKS Digital India Logistics LLP',
-      period: 'This week (Sep 14 - Sep 20, 2026)',
-      totalHours: '06:35:00',
-      isPublic: true,
-      showAmounts: true,
-      viewsCount: 5,
-      linkToken: 'rpt_nl98_492i',
-      link: typeof window !== 'undefined' ? `${window.location.origin}/#/shared/rpt_nl98_492i` : '',
-      createdDate: 'Sep 17, 2026'
-    },
-    {
-      id: 'shared-live-2',
-      name: 'DigiPlus Workspace Live Summary Report',
-      client: 'All Projects',
-      period: 'This week (Sep 14 - Sep 20, 2026)',
-      totalHours: '06:35:00',
-      isPublic: true,
-      showAmounts: true,
-      viewsCount: 2,
-      linkToken: 'rpt_live_workspace',
-      link: typeof window !== 'undefined' ? `${window.location.origin}/#/shared/rpt_live_workspace` : '',
-      createdDate: 'Sep 17, 2026'
-    }
-  ];
+  const INITIAL_SHARED_REPORTS = [];
 
   const [sharedReportsList, setSharedReportsList] = useState(() => {
     try {
