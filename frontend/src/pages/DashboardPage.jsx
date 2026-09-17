@@ -414,6 +414,22 @@ export default function DashboardPage({
     return false;
   }, [chartViewMode, dateRange, dailyBarData, liveProjectBreakdown.grandTotalSec]);
 
+  // Compute vertical project bars for single-day large vertical bar chart
+  const singleDayProjectBars = useMemo(() => {
+    const list = liveProjectBreakdown.list;
+    if (!list || list.length === 0) return [];
+
+    const maxSec = Math.max(...list.map(p => p.totalSec), 3600 * 2);
+
+    return list.map(item => {
+      const heightPercent = maxSec > 0 ? Math.min(100, Math.max(12, (item.totalSec / maxSec) * 100)) : 12;
+      return {
+        ...item,
+        heightPercent
+      };
+    });
+  }, [liveProjectBreakdown.list]);
+
     const topProjectObj = liveProjectBreakdown.list[0];
   const topProject = topProjectObj?.project || (filteredActivities.length > 0 ? (filteredActivities[0].project || filteredActivities[0].projectName) : 'None');
   const topProjectTime = topProjectObj?.time || '00:00:00';
@@ -1021,20 +1037,20 @@ export default function DashboardPage({
           </div>
         </div>
 
-                        {/* 1. Full-Width Dynamic Activity Overview (Big Full-Width Single Day View OR 7-Day Week View) */}
-        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '24px 32px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
+                        {/* 1. Full-Width Large Vertical Bar Chart (Projects as Vertical Bars on Single Day / 7-Day Grid on Week View) */}
+        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '26px 34px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
           {/* Header & View Switcher Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                {isSingleDayView ? 'Activity Overview • Today / Single Day' : 'Weekly Activity Overview • 7-Day Grid'}
+                {isSingleDayView ? 'Activity Overview • Project Bar Chart' : 'Weekly Activity Overview • 7-Day Grid'}
               </span>
               <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', padding: '2px 9px', borderRadius: '12px', fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                {liveTotalTime}
+                Total: {liveTotalTime}
               </span>
             </div>
 
-            {/* View Mode Switcher (Day Overview vs 7-Day Week) */}
+            {/* View Mode Switcher */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
               <button
                 type="button"
@@ -1052,7 +1068,7 @@ export default function DashboardPage({
                   transition: 'all 0.15s ease'
                 }}
               >
-                📊 Day Overview (Full-Width)
+                📊 Single Day (By Project)
               </button>
               <button
                 type="button"
@@ -1077,7 +1093,7 @@ export default function DashboardPage({
 
           {/* Project Color Legend matching Pie Chart */}
           {liveProjectBreakdown.list.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', alignItems: 'center', marginBottom: '22px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
               {liveProjectBreakdown.list.map((item, idx) => (
                 <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', fontWeight: 600 }}>
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
@@ -1088,107 +1104,84 @@ export default function DashboardPage({
             </div>
           )}
 
-          {/* VIEW 1: BIG FULL-WIDTH SINGLE-DAY VIEW (Spans full width beautifully) */}
+          {/* VIEW 1: BIG VERTICAL BAR CHART BY PROJECT (Spans full width with large, tall vertical bars) */}
           {isSingleDayView ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Massive Full-Width Stacked Multi-Color Progress Bar */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#475569' }}>
-                    Project Time Distribution Across Workspace
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#008a00' }}>
-                    100% Tracked ({liveProjectBreakdown.list.length} Projects)
-                  </span>
+            <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
+              {singleDayProjectBars.length === 0 ? (
+                <div style={{ height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  No activities logged for this selection yet
                 </div>
+              ) : (
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: singleDayProjectBars.length <= 4 ? 'space-around' : 'flex-start',
+                    alignItems: 'flex-end', 
+                    gap: '24px', 
+                    height: '310px', 
+                    paddingBottom: '20px',
+                    minWidth: `${Math.max(500, singleDayProjectBars.length * 130)}px`
+                  }}
+                >
+                  {singleDayProjectBars.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        height: '100%', 
+                        justifyContent: 'flex-end', 
+                        gap: '10px',
+                        flex: singleDayProjectBars.length <= 5 ? 1 : '0 0 130px',
+                        maxWidth: '160px'
+                      }}
+                    >
+                      {/* Top Duration & Percentage Label */}
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#0f172a', fontWeight: 800, display: 'block' }}>
+                          {item.time}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                          {item.percentage}%
+                        </span>
+                      </div>
 
-                <div style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  overflow: 'hidden',
-                  background: '#f1f5f9',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05)',
-                  border: '1px solid #e2e8f0'
-                }}>
-                  {liveProjectBreakdown.list.map((item, idx) => {
-                    const pct = item.percentage;
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          width: `${pct}%`,
-                          height: '100%',
+                      {/* Large Vertical Project Bar Fill with Project Color */}
+                      <div 
+                        style={{ 
+                          width: '100%',
+                          maxWidth: '120px',
+                          height: `${item.heightPercent}%`,
+                          minHeight: '24px',
+                          borderRadius: '8px 8px 0 0',
                           backgroundColor: item.color || '#00cc00',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#ffffff',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          padding: '0 6px',
-                          transition: 'width 0.3s ease',
+                          boxShadow: `0 6px 16px ${item.color}40`,
+                          transition: 'height 0.35s ease, transform 0.15s ease',
                           cursor: 'pointer'
                         }}
-                        title={`${item.project}: ${item.time} (${pct}%)`}
-                      >
-                        {pct >= 12 ? `${item.project} (${item.time})` : (pct >= 6 ? `${pct}%` : '')}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scaleY(1.03)';
+                          e.currentTarget.style.filter = 'brightness(1.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scaleY(1)';
+                          e.currentTarget.style.filter = 'none';
+                        }}
+                        title={`${item.project}: ${item.time} (${item.percentage}%)`}
+                      />
 
-              {/* Full-Width Project Breakdown Progress Grid (Fills Whole Card Width) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
-                {liveProjectBreakdown.list.map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {/* Bottom Project Name Label */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '100%', marginTop: '6px', textAlign: 'center', justifyContent: 'center' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
+                        <span style={{ fontSize: '12.5px', color: '#0f172a', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.project}>
                           {item.project}
                         </span>
                       </div>
-                      <span style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#0f172a' }}>
-                        {item.time}
-                      </span>
                     </div>
-
-                    <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${item.percentage}%`,
-                          height: '100%',
-                          backgroundColor: item.color || '#00cc00',
-                          borderRadius: '4px'
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                      <span>{item.client || 'DigiPlus Corp'}</span>
-                      <span>{item.percentage}% of total</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             /* VIEW 2: 7-DAY WEEKLY MULTI-COLUMN GRID */
