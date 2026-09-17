@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, 
   Search, 
@@ -12,12 +12,12 @@ import {
   Unlock, 
   CheckCircle2, 
   XCircle, 
-  AlertTriangle,
-  Clock,
-  UserCheck,
-  Edit2,
-  Building2,
-  Sparkles
+  AlertTriangle, 
+  Clock, 
+  UserCheck, 
+  Edit2, 
+  Building2, 
+  Sparkles 
 } from 'lucide-react';
 
 const DEFAULT_DEPARTMENTS = [
@@ -32,7 +32,8 @@ const DEFAULT_DEPARTMENTS = [
   'Accounts & Finance',
   'HR & Operations',
   'Project Management',
-  'Customer Support'
+  'Customer Support',
+  'Management / Executive'
 ];
 
 export default function TeamPage({ 
@@ -54,10 +55,23 @@ export default function TeamPage({
   const [addDepartment, setAddDepartment] = useState('Full Stack');
   const [addRole, setAddRole] = useState('employee');
   const [addPassword, setAddPassword] = useState('Digi@2024');
+  const [isDeptDropdownOpen, setIsDeptDropdownOpen] = useState(false);
+  const deptDropdownRef = useRef(null);
 
   // Inline table department edit state
   const [editingDeptUserId, setEditingDeptUserId] = useState(null);
   const [editingDeptValue, setEditingDeptValue] = useState('');
+
+  // Close department dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (deptDropdownRef.current && !deptDropdownRef.current.contains(event.target)) {
+        setIsDeptDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -73,6 +87,11 @@ export default function TeamPage({
       ...DEFAULT_DEPARTMENTS,
       ...usersList.map(u => u.department || u.group).filter(Boolean)
     ])
+  );
+
+  // Filter department suggestions based on input
+  const filteredSuggestions = availableDepartments.filter(d => 
+    d.toLowerCase().includes(addDepartment.trim().toLowerCase())
   );
 
   // Filter members by Search Query AND Subtab (ALL | ACTIVE | PENDING)
@@ -117,6 +136,7 @@ export default function TeamPage({
       setAddEmail('');
       setAddDepartment('Full Stack');
       setAddPassword('Digi@2024');
+      setIsDeptDropdownOpen(false);
       setShowAddModal(false);
     }
   };
@@ -344,7 +364,6 @@ export default function TeamPage({
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <input
                             type="text"
-                            list="table-dept-datalist"
                             value={editingDeptValue}
                             onChange={(e) => setEditingDeptValue(e.target.value)}
                             onKeyDown={(e) => {
@@ -356,7 +375,7 @@ export default function TeamPage({
                               }
                             }}
                             autoFocus
-                            placeholder="Type or pick dept..."
+                            placeholder="Type department..."
                             style={{
                               padding: '4px 8px',
                               fontSize: '12px',
@@ -369,11 +388,6 @@ export default function TeamPage({
                               fontWeight: 600
                             }}
                           />
-                          <datalist id="table-dept-datalist">
-                            {availableDepartments.map((d) => (
-                              <option key={d} value={d} />
-                            ))}
-                          </datalist>
                           <button
                             type="button"
                             onClick={() => handleSaveDept(memberIdKey, member.name)}
@@ -549,18 +563,21 @@ export default function TeamPage({
             background: '#ffffff',
             borderRadius: '12px',
             width: '100%',
-            maxWidth: '500px',
-            overflow: 'hidden',
+            maxWidth: '460px',
+            overflow: 'visible',
             boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
           }}>
-            <div style={{ padding: '18px 22px', backgroundColor: '#1e293b', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '18px 22px', backgroundColor: '#1e293b', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '12px 12px 0 0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <UserPlus size={18} color="#00cc00" />
                 <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>Add Team Member</h3>
               </div>
               <button
                 type="button"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setIsDeptDropdownOpen(false);
+                }}
                 style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '18px' }}
               >
                 ✕
@@ -596,102 +613,133 @@ export default function TeamPage({
                 />
               </div>
 
-              {/* Editable Department / Group */}
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-                    DEPARTMENT / GROUP (EDITABLE)
-                  </label>
-                  <span style={{ fontSize: '11px', color: '#008a00', fontWeight: 600 }}>
-                    Custom or Preset
-                  </span>
-                </div>
+              {/* Clean Single Searchable & Editable Department Input (Dropdown Opens Downwards) */}
+              <div style={{ marginBottom: '16px', position: 'relative' }} ref={deptDropdownRef}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
+                  DEPARTMENT / GROUP
+                </label>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <input
-                      type="text"
-                      list="modal-dept-presets"
-                      placeholder="Type custom department or pick preset..."
-                      value={addDepartment}
-                      onChange={(e) => setAddDepartment(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1.5px solid #00cc00',
-                        fontSize: '13px',
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                        background: '#ffffff',
-                        fontWeight: 600,
-                        color: '#1e293b'
-                      }}
-                      required
-                    />
-                    <datalist id="modal-dept-presets">
-                      {availableDepartments.map((dept) => (
-                        <option key={dept} value={dept} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  <select
-                    value={availableDepartments.includes(addDepartment) ? addDepartment : ''}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="Type or select department..."
+                    value={addDepartment}
                     onChange={(e) => {
-                      if (e.target.value) {
-                        setAddDepartment(e.target.value);
-                      }
+                      setAddDepartment(e.target.value);
+                      setIsDeptDropdownOpen(true);
                     }}
+                    onFocus={() => setIsDeptDropdownOpen(true)}
                     style={{
-                      width: '130px',
-                      padding: '9px 8px',
+                      width: '100%',
+                      padding: '9px 34px 9px 12px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '12px',
-                      background: '#f8fafc',
-                      color: '#475569',
-                      cursor: 'pointer'
+                      border: isDeptDropdownOpen ? '1.5px solid #00cc00' : '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      background: '#ffffff',
+                      fontWeight: 600,
+                      color: '#1e293b'
+                    }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsDeptDropdownOpen(prev => !prev)}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '4px'
                     }}
                   >
-                    <option value="" disabled>Presets...</option>
-                    {availableDepartments.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
+                    <ChevronDown size={15} style={{ transform: isDeptDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
                 </div>
 
-                {/* Quick Select Preset Pills */}
-                <div style={{ marginTop: '8px' }}>
-                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                    💡 Quick select or type any custom department name above:
-                  </span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {DEFAULT_DEPARTMENTS.slice(0, 8).map((dept) => {
-                      const isSelected = addDepartment === dept;
+                {/* Custom Downwards Floating Dropdown Menu */}
+                {isDeptDropdownOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    zIndex: 999999,
+                    padding: '4px'
+                  }}>
+                    {/* If user types a custom department not in presets */}
+                    {addDepartment.trim() && !availableDepartments.some(d => d.toLowerCase() === addDepartment.trim().toLowerCase()) && (
+                      <div
+                        onClick={() => {
+                          setIsDeptDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#008a00',
+                          background: '#f0fdf4',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          marginBottom: '3px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Sparkles size={13} color="#00cc00" />
+                        <span>Use custom: <strong>"{addDepartment.trim()}"</strong></span>
+                      </div>
+                    )}
+
+                    {/* Department Suggestions List */}
+                    {(filteredSuggestions.length > 0 ? filteredSuggestions : availableDepartments).map((dept) => {
+                      const isSelected = addDepartment.trim().toLowerCase() === dept.toLowerCase();
                       return (
-                        <button
+                        <div
                           key={dept}
-                          type="button"
-                          onClick={() => setAddDepartment(dept)}
+                          onClick={() => {
+                            setAddDepartment(dept);
+                            setIsDeptDropdownOpen(false);
+                          }}
                           style={{
-                            fontSize: '11px',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            border: isSelected ? '1px solid #00cc00' : '1px solid #e2e8f0',
-                            background: isSelected ? 'rgba(0, 204, 0, 0.12)' : '#f8fafc',
-                            color: isSelected ? '#008a00' : '#475569',
-                            cursor: 'pointer',
+                            padding: '7px 10px',
+                            fontSize: '12.5px',
+                            color: isSelected ? '#008a00' : '#334155',
                             fontWeight: isSelected ? 700 : 500,
-                            transition: 'all 0.12s ease'
+                            backgroundColor: isSelected ? 'rgba(0, 204, 0, 0.08)' : 'transparent',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            transition: 'background 0.12s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) e.currentTarget.style.backgroundColor = '#f1f5f9';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          {dept}
-                        </button>
+                          <span>{dept}</span>
+                          {isSelected && <Check size={13} color="#00cc00" />}
+                        </div>
                       );
                     })}
                   </div>
-                </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '14px' }}>
@@ -714,7 +762,10 @@ export default function TeamPage({
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setIsDeptDropdownOpen(false);
+                  }}
                   style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
