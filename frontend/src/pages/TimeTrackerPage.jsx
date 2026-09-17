@@ -11,11 +11,10 @@ import {
   Trash2, 
   Copy, 
   CheckCircle2,
-  Edit3,
-  Check,
-  X
+  Edit3
 } from 'lucide-react';
 import TimeTracker from '../components/TimeTracker';
+import ProjectPickerDropdown from '../components/ProjectPickerDropdown';
 
 // Reusable Inline Date Picker Popover Component
 function RowDatePickerPopover({
@@ -217,10 +216,13 @@ export default function TimeTrackerPage({
   // State for in-app toast feedback
   const [toastMessage, setToastMessage] = useState(null);
 
-  // State for active date picker popover: string key or null (e.g. 'parent_web design', 'sub_act-123')
+  // State for active date picker popover
   const [activeDatePickerKey, setActiveDatePickerKey] = useState(null);
 
-  // State for inline description editing: string key or null, and text draft
+  // State for active project picker dropdown popover
+  const [activeProjectPickerKey, setActiveProjectPickerKey] = useState(null);
+
+  // State for seamless inline description editing: key and draft text
   const [editingItemKey, setEditingItemKey] = useState(null);
   const [editingDescText, setEditingDescText] = useState('');
 
@@ -228,7 +230,7 @@ export default function TimeTrackerPage({
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
-    }, 2800);
+    }, 2500);
   };
 
   // Close menus when clicking outside
@@ -418,7 +420,7 @@ export default function TimeTrackerPage({
   const handleTogglePlayEntry = (item) => {
     if (isItemRunning(item)) {
       onStopTimer();
-      showToast(`✓ Paused / Stopped timer for "${item.project}"`);
+      showToast(`✓ Paused timer for "${item.project}"`);
     } else {
       onStartTimer({
         taskId: item.id,
@@ -443,18 +445,17 @@ export default function TimeTrackerPage({
     showToast(`✓ Deleted time entry`);
   };
 
-  // Start editing description
+  // Start seamless inline description editing
   const startEditingDescription = (itemKey, currentText, e) => {
     if (e) {
       e.stopPropagation();
-      e.preventDefault();
     }
     setEditingItemKey(itemKey);
     setEditingDescText(currentText || '');
     setActiveMenuId(null);
   };
 
-  // Save edited description
+  // Save seamless inline description
   const handleSaveDescription = (itemOrCluster, newText) => {
     const cleanText = newText.trim() || 'Working session';
     if (itemOrCluster.sessions && Array.isArray(itemOrCluster.sessions)) {
@@ -467,7 +468,38 @@ export default function TimeTrackerPage({
       onUpdateActivity(itemOrCluster.id, { description: cleanText });
     }
     setEditingItemKey(null);
-    showToast(`✓ Description updated: "${cleanText}"`);
+    showToast(`✓ Description saved: "${cleanText}"`);
+  };
+
+  // Handle row project selection from dropdown
+  const handleRowSelectProject = (itemOrCluster, projId) => {
+    let projName = 'No Project';
+    let projColor = '#94a3b8';
+
+    if (projId) {
+      const found = (projects || []).find(p => 
+        String(p.id).toLowerCase() === String(projId).toLowerCase() || 
+        (p.name && p.name.toLowerCase() === String(projId).toLowerCase())
+      );
+      if (found) {
+        projName = found.name;
+        projColor = found.color || '#00cc00';
+      } else {
+        projName = projId;
+        projColor = '#00cc00';
+      }
+    }
+
+    if (itemOrCluster.sessions && Array.isArray(itemOrCluster.sessions)) {
+      itemOrCluster.sessions.forEach(s => {
+        onUpdateActivity(s.id, { project: projName, projectColor: projColor });
+      });
+    } else {
+      onUpdateActivity(itemOrCluster.id, { project: projName, projectColor: projColor });
+    }
+
+    setActiveProjectPickerKey(null);
+    showToast(`✓ Project changed to "${projName}"`);
   };
 
   // Handle date change from Date Picker Popover
@@ -575,14 +607,14 @@ export default function TimeTrackerPage({
                       const clustersOrder = [];
 
                       groupItems.forEach((item) => {
-                        const projKey = (item.project || 'General Task').trim().toLowerCase();
+                        const projKey = (item.project || 'No Project').trim().toLowerCase();
                         const clusterKey = projKey;
 
                         if (!clustersMap[clusterKey]) {
                           clustersMap[clusterKey] = {
                             key: clusterKey,
                             description: item.description,
-                            project: item.project || 'General Task',
+                            project: item.project || 'No Project',
                             projectColor: item.projectColor || '#00cc00',
                             billable: item.billable !== false,
                             sessions: [],
@@ -618,6 +650,7 @@ export default function TimeTrackerPage({
                         const parentRowKey = `parent_${isoDate}_${clusterKey}`;
                         const isEditingDesc = editingItemKey === parentRowKey;
                         const isDatePickerOpen = activeDatePickerKey === parentRowKey;
+                        const isProjPickerOpen = activeProjectPickerKey === parentRowKey;
 
                         // Calculate overall time span (Earliest start to latest end)
                         let earliestMin = 99999;
@@ -646,13 +679,16 @@ export default function TimeTrackerPage({
                           <div 
                             key={clusterKey} 
                             className={`clockify-entry-cluster ${isExpanded ? 'is-cluster-expanded' : ''}`}
-                            style={{ position: 'relative', zIndex: (isDatePickerOpen || activeMenuId === parentRowKey) ? 9999 : (isExpanded ? 10 : 1) }}
+                            style={{ 
+                              position: 'relative', 
+                              zIndex: (isDatePickerOpen || isProjPickerOpen || activeMenuId === parentRowKey) ? 9999 : (isExpanded ? 10 : 1) 
+                            }}
                           >
                             {/* Main Task Row */}
                             <div 
                               className={`clockify-entry-row ${running ? 'is-row-running' : ''} ${isMultiSession ? 'is-multi-session' : ''}`}
                               onClick={() => {
-                                if (isMultiSession && !isEditingDesc) {
+                                if (isMultiSession && !isEditingDesc && !isProjPickerOpen) {
                                   toggleTaskExpand(taskExpandedKey);
                                 }
                               }}
@@ -679,70 +715,59 @@ export default function TimeTrackerPage({
                                   <span className="cluster-single-indent" />
                                 )}
 
-                                {/* Editable Description Box */}
-                                {isEditingDesc ? (
-                                  <div className="clockify-desc-edit-wrapper" onClick={(e) => e.stopPropagation()}>
+                                {/* Seamless Inline Editable Description */}
+                                <div className="clockify-desc-cell-wrapper" onClick={(e) => e.stopPropagation()}>
+                                  {isEditingDesc ? (
                                     <input
                                       type="text"
-                                      className="clockify-desc-inline-input"
+                                      className="clockify-desc-seamless-input"
                                       value={editingDescText}
                                       onChange={(e) => setEditingDescText(e.target.value)}
+                                      onBlur={() => handleSaveDescription(cluster, editingDescText)}
                                       onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveDescription(cluster, editingDescText);
-                                        if (e.key === 'Escape') setEditingItemKey(null);
+                                        if (e.key === 'Enter') {
+                                          handleSaveDescription(cluster, editingDescText);
+                                          e.target.blur();
+                                        }
+                                        if (e.key === 'Escape') {
+                                          setEditingItemKey(null);
+                                        }
                                       }}
                                       autoFocus
-                                      placeholder="Task description..."
+                                      placeholder="What did you work on?"
                                     />
-                                    <button
-                                      type="button"
-                                      className="clockify-desc-btn-save"
-                                      onClick={() => handleSaveDescription(cluster, editingDescText)}
-                                      title="Save Description (Enter)"
-                                    >
-                                      <Check size={13} color="#00cc00" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="clockify-desc-btn-cancel"
-                                      onClick={() => setEditingItemKey(null)}
-                                      title="Cancel (Esc)"
-                                    >
-                                      <X size={13} color="#94a3b8" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="clockify-desc-display-wrap" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                  ) : (
                                     <span 
-                                      className="clockify-entry-desc is-editable"
+                                      className="clockify-entry-desc-clean"
                                       onClick={(e) => startEditingDescription(parentRowKey, displayDesc, e)}
                                       title="Click to edit task description"
                                     >
-                                      {displayDesc}
+                                      {displayDesc || 'Add description...'}
                                       {isMultiSession && (
                                         <span className="sub-session-count-tag" style={{ marginLeft: '6px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                                          (+{cluster.sessions.length - 1} sessions)
+                                          (+{cluster.sessions.length - 1})
                                         </span>
                                       )}
                                     </span>
-                                    <button
-                                      type="button"
-                                      className="clockify-desc-quick-edit-btn"
-                                      onClick={(e) => startEditingDescription(parentRowKey, displayDesc, e)}
-                                      title="Edit description"
-                                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
-                                    >
-                                      <Edit3 size={12} />
-                                    </button>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                                 
-                                <div className="clockify-entry-project">
-                                  <span 
-                                    className="clockify-proj-dot" 
-                                    style={{ backgroundColor: cluster.projectColor || '#00cc00' }}
+                                {/* Interactive Project Picker Trigger on Row */}
+                                <div 
+                                  className="clockify-row-project-wrapper"
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ position: 'relative' }}
+                                >
+                                  <ProjectPickerDropdown
+                                    projects={projects}
+                                    selectedProjectId={cluster.representativeItem?.projectId || cluster.project}
+                                    selectedProjectName={cluster.project}
+                                    isOpen={isProjPickerOpen}
+                                    onOpenChange={(isOpen) => setActiveProjectPickerKey(isOpen ? parentRowKey : null)}
+                                    onSelectProject={(projId) => handleRowSelectProject(cluster, projId)}
+                                    onCreateProject={onCreateProject}
+                                    currentUser={currentUser}
                                   />
-                                  <span className="clockify-proj-name">{cluster.project}</span>
                                 </div>
                               </div>
 
@@ -885,76 +910,69 @@ export default function TimeTrackerPage({
                                   const subRowKey = `sub_${session.id || sIdx}`;
                                   const isSubEditingDesc = editingItemKey === subRowKey;
                                   const isSubDatePickerOpen = activeDatePickerKey === subRowKey;
+                                  const isSubProjPickerOpen = activeProjectPickerKey === subRowKey;
 
                                   return (
                                     <div 
                                       key={session.id || sIdx} 
                                       className={`clockify-entry-row clockify-sub-session-row ${sessionRunning ? 'is-row-running' : ''}`}
-                                      style={{ zIndex: (isSubDatePickerOpen || activeMenuId === subRowKey) ? 9999 : 2, position: 'relative' }}
+                                      style={{ 
+                                        zIndex: (isSubDatePickerOpen || isSubProjPickerOpen || activeMenuId === subRowKey) ? 9999 : 2, 
+                                        position: 'relative' 
+                                      }}
                                     >
                                       {/* Description & Project */}
                                       <div className="clockify-entry-left">
                                         <span className="sub-session-indent-spacer" />
                                         
-                                        {/* Sub-Session Editable Description */}
-                                        {isSubEditingDesc ? (
-                                          <div className="clockify-desc-edit-wrapper" onClick={(e) => e.stopPropagation()}>
+                                        {/* Sub-Session Seamless Editable Description */}
+                                        <div className="clockify-desc-cell-wrapper" onClick={(e) => e.stopPropagation()}>
+                                          {isSubEditingDesc ? (
                                             <input
                                               type="text"
-                                              className="clockify-desc-inline-input"
+                                              className="clockify-desc-seamless-input"
                                               value={editingDescText}
                                               onChange={(e) => setEditingDescText(e.target.value)}
+                                              onBlur={() => handleSaveDescription(session, editingDescText)}
                                               onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleSaveDescription(session, editingDescText);
-                                                if (e.key === 'Escape') setEditingItemKey(null);
+                                                if (e.key === 'Enter') {
+                                                  handleSaveDescription(session, editingDescText);
+                                                  e.target.blur();
+                                                }
+                                                if (e.key === 'Escape') {
+                                                  setEditingItemKey(null);
+                                                }
                                               }}
                                               autoFocus
                                               placeholder="Session description..."
                                             />
-                                            <button
-                                              type="button"
-                                              className="clockify-desc-btn-save"
-                                              onClick={() => handleSaveDescription(session, editingDescText)}
-                                              title="Save Description (Enter)"
-                                            >
-                                              <Check size={13} color="#00cc00" />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              className="clockify-desc-btn-cancel"
-                                              onClick={() => setEditingItemKey(null)}
-                                              title="Cancel (Esc)"
-                                            >
-                                              <X size={13} color="#94a3b8" />
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <div className="clockify-desc-display-wrap" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                          ) : (
                                             <span 
-                                              className="clockify-entry-desc is-editable"
+                                              className="clockify-entry-desc-clean"
                                               onClick={(e) => startEditingDescription(subRowKey, session.description, e)}
                                               title="Click to edit session description"
                                             >
                                               {session.description || 'Session details'}
                                             </span>
-                                            <button
-                                              type="button"
-                                              className="clockify-desc-quick-edit-btn"
-                                              onClick={(e) => startEditingDescription(subRowKey, session.description, e)}
-                                              title="Edit description"
-                                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
-                                            >
-                                              <Edit3 size={12} />
-                                            </button>
-                                          </div>
-                                        )}
+                                          )}
+                                        </div>
 
-                                        <div className="clockify-entry-project">
-                                          <span 
-                                            className="clockify-proj-dot" 
-                                            style={{ backgroundColor: session.projectColor || cluster.projectColor || '#00cc00' }}
+                                        {/* Sub-Session Interactive Project Picker Dropdown */}
+                                        <div 
+                                          className="clockify-row-project-wrapper"
+                                          onClick={(e) => e.stopPropagation()}
+                                          style={{ position: 'relative' }}
+                                        >
+                                          <ProjectPickerDropdown
+                                            projects={projects}
+                                            selectedProjectId={session.projectId || session.project}
+                                            selectedProjectName={session.project}
+                                            isOpen={isSubProjPickerOpen}
+                                            onOpenChange={(isOpen) => setActiveProjectPickerKey(isOpen ? subRowKey : null)}
+                                            onSelectProject={(projId) => handleRowSelectProject(session, projId)}
+                                            onCreateProject={onCreateProject}
+                                            currentUser={currentUser}
                                           />
-                                          <span className="clockify-proj-name">{session.project}</span>
                                         </div>
                                       </div>
 

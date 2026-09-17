@@ -10566,3 +10566,82 @@ html, body, #root, .tracko-app, .main-wrapper {
   color: #00cc00;
   background: rgba(0, 204, 0, 0.12);
 }
+
+
+/* ==========================================================================
+   Clockify Time Tracker: Seamless Inline Edit & Row Project Dropdown
+   ========================================================================== */
+.clockify-desc-cell-wrapper {
+  display: inline-flex;
+  align-items: center;
+  flex: 1;
+  min-width: 160px;
+  max-width: 440px;
+}
+
+.clockify-entry-desc-clean {
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid transparent;
+}
+
+.clockify-entry-desc-clean:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #008a00;
+}
+
+.clockify-desc-seamless-input {
+  background: #ffffff;
+  border: 1.5px solid #00cc00;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #0f172a;
+  outline: none;
+  width: 100%;
+  box-shadow: 0 0 0 2px rgba(0, 204, 0, 0.12);
+}
+
+.clockify-row-project-wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.clockify-row-project-wrapper .project-picker-trigger {
+  padding: 2px 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.clockify-row-project-wrapper .project-picker-trigger:hover {
+  background: #f1f5f9;
+}
+
+.clockify-row-project-wrapper .project-picker-trigger:hover .project-trigger-name {
+  text-decoration: underline;
+  color: #008a00;
+}
+
+.clockify-row-project-wrapper .project-trigger-clear {
+  display: none !important;
+}
+
+.clockify-row-project-wrapper .project-trigger-chevron {
+  display: none;
+}

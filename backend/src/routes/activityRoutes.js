@@ -114,11 +114,6 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ success: false, message: 'Error updating activity', error: err.message });
   }
 });
-  } catch (err) {
-    console.error('Update activity error:', err);
-    res.status(500).json({ success: false, message: 'Error updating activity', error: err.message });
-  }
-});
 
 // DELETE /api/activities/:id
 router.delete('/:id', async (req, res) => {
