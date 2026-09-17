@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
-  Search, 
+  Search,
+  ChevronLeft,
+  ChevronRight, 
   Plus, 
   Star, 
   Globe, 
@@ -79,8 +81,34 @@ export default function ProjectsPage({
   const [appliedClients, setAppliedClients] = useState([]);
   const [appliedAccess, setAppliedAccess] = useState([]);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    try {
+      const saved = localStorage.getItem('clockodo_projects_per_page');
+      if (saved) return Number(saved);
+    } catch (e) {}
+    return 50;
+  });
+
   // Toast feedback
   const [toastMessage, setToastMessage] = useState('');
+
+    // Reset page when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedStatus, appliedClients, appliedAccess, localSearchQuery, searchQuery]);
+
+  const totalFilteredCount = computedFilteredProjects.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / itemsPerPage));
+
+  const startIndex = totalFilteredCount === 0 ? 0 : (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalFilteredCount);
+  const displayedRange = totalFilteredCount === 0 ? '0-0 of 0' : `${startIndex + 1}-${endIndex} of ${totalFilteredCount}`;
+
+  const paginatedProjects = useMemo(() => {
+    return computedFilteredProjects.slice(startIndex, endIndex);
+  }, [computedFilteredProjects, startIndex, endIndex]);
 
   const isAdmin = currentUser?.role === 'admin' || 
                   currentUser?.role === 'owner' || 
@@ -617,10 +645,119 @@ export default function ProjectsPage({
           </div>
         </div>
 
-        {/* Active Filter Summary Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '14px 4px 10px', fontSize: '12px', color: '#64748b' }}>
-          <div>
-            Showing <strong style={{ color: '#0f172a' }}>{computedFilteredProjects.length}</strong> of <strong style={{ color: '#0f172a' }}>{projects.length}</strong> Projects
+        {/* Active Filter Summary Bar & Top Pagination */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '16px 4px 12px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ fontSize: '13px', color: '#64748b' }}>
+            Showing <strong style={{ color: '#0f172a' }}>{totalFilteredCount === 0 ? 0 : startIndex + 1}-{endIndex}</strong> of <strong style={{ color: '#0f172a' }}>{totalFilteredCount}</strong> Projects {totalFilteredCount !== projects.length && <span style={{ color: '#94a3b8' }}>(filtered from {projects.length})</span>}
+          </div>
+
+          {/* Clockify-Style Pagination Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            {/* < 1-50 of 460 > */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              height: '32px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+            }}>
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                style={{
+                  width: '32px',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: currentPage <= 1 ? '#f8fafc' : '#ffffff',
+                  border: 'none',
+                  borderRight: '1px solid #cbd5e1',
+                  cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                  color: currentPage <= 1 ? '#cbd5e1' : '#334155'
+                }}
+                title="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              <div style={{
+                padding: '0 12px',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                color: '#1e293b',
+                minWidth: '100px',
+                textAlign: 'center',
+                userSelect: 'none'
+              }}>
+                {displayedRange}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                style={{
+                  width: '32px',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: currentPage >= totalPages ? '#f8fafc' : '#ffffff',
+                  border: 'none',
+                  borderLeft: '1px solid #cbd5e1',
+                  cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                  color: currentPage >= totalPages ? '#cbd5e1' : '#334155'
+                }}
+                title="Next page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Items Per Page Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setItemsPerPage(val);
+                    setCurrentPage(1);
+                    try {
+                      localStorage.setItem('clockodo_projects_per_page', val);
+                    } catch (err) {}
+                  }}
+                  style={{
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    padding: '4px 26px 4px 10px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    color: '#1e293b',
+                    height: '32px',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                </select>
+                <ChevronDown size={13} color="#64748b" style={{ position: 'absolute', right: '7px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Items per page</span>
+            </div>
           </div>
         </div>
 
@@ -664,7 +801,7 @@ export default function ProjectsPage({
                   </td>
                 </tr>
               ) : (
-                computedFilteredProjects.map((proj) => {
+                paginatedProjects.map((proj) => {
                   const isFav = favoriteIds[proj.id] !== undefined ? favoriteIds[proj.id] : proj.isFavorite;
                   const pct = proj.progressPercent;
                   const isHighProgress = pct >= 80;
@@ -736,6 +873,127 @@ export default function ProjectsPage({
             </tbody>
           </table>
         </div>
+
+        {/* Bottom Pagination Bar */}
+        {totalFilteredCount > itemsPerPage && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', padding: '10px 4px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ fontSize: '12.5px', color: '#64748b' }}>
+              Showing <strong>{startIndex + 1}-{endIndex}</strong> of <strong>{totalFilteredCount}</strong> Projects
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                overflow: 'hidden',
+                height: '32px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              }}>
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => {
+                    setCurrentPage(p => Math.max(1, p - 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{
+                    width: '32px',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: currentPage <= 1 ? '#f8fafc' : '#ffffff',
+                    border: 'none',
+                    borderRight: '1px solid #cbd5e1',
+                    cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                    color: currentPage <= 1 ? '#cbd5e1' : '#334155'
+                  }}
+                  title="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                
+                <div style={{
+                  padding: '0 12px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  minWidth: '100px',
+                  textAlign: 'center',
+                  userSelect: 'none'
+                }}>
+                  {displayedRange}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => {
+                    setCurrentPage(p => Math.min(totalPages, p + 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{
+                    width: '32px',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: currentPage >= totalPages ? '#f8fafc' : '#ffffff',
+                    border: 'none',
+                    borderLeft: '1px solid #cbd5e1',
+                    cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                    color: currentPage >= totalPages ? '#cbd5e1' : '#334155'
+                  }}
+                  title="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setItemsPerPage(val);
+                      setCurrentPage(1);
+                      try {
+                        localStorage.setItem('clockodo_projects_per_page', val);
+                      } catch (err) {}
+                    }}
+                    style={{
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '4px 26px 4px 10px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                      height: '32px',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                    }}
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={200}>200</option>
+                  </select>
+                  <ChevronDown size={13} color="#64748b" style={{ position: 'absolute', right: '7px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                </div>
+                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>Items per page</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Create Project Modal */}
