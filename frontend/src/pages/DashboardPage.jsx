@@ -144,8 +144,7 @@ export default function DashboardPage({
   const [userFilter, setUserFilter] = useState('all');
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [pinnedTeamCard, setPinnedTeamCard] = useState(true);
-  const [chartViewMode, setChartViewMode] = useState('auto'); // 'auto' | 'day' | 'week'
-
+  
   // Date Range State: defaults to the active tracking week (Aug 31 - Sep 8, 2026)
   const [dateRange, setDateRange] = useState({
     start: '2026-08-31',
@@ -402,35 +401,18 @@ export default function DashboardPage({
     return { list, grandTotalSec };
   }, [filteredActivities, projects]);
 
-  // Check if viewing a single day (e.g. today/yesterday or single date selected) or full week
-  const isSingleDayView = useMemo(() => {
-    if (chartViewMode === 'day') return true;
-    if (chartViewMode === 'week') return false;
-    // auto mode: if date range is empty end or start === end, it is single day
-    if (!dateRange.end || dateRange.start === dateRange.end) return true;
-    // Or if only 1 day has tracked activities in the current week
-    const activeDaysCount = dailyBarData.filter(d => d.totalSec > 0).length;
-    if (activeDaysCount <= 1 && liveProjectBreakdown.grandTotalSec > 0) return true;
-    return false;
-  }, [chartViewMode, dateRange, dailyBarData, liveProjectBreakdown.grandTotalSec]);
-
-  // Compute vertical project bars for single-day large vertical bar chart
-  const singleDayProjectBars = useMemo(() => {
-    const list = liveProjectBreakdown.list;
-    if (!list || list.length === 0) return [];
-
-    const maxSec = Math.max(...list.map(p => p.totalSec), 3600 * 2);
-
-    return list.map(item => {
-      const heightPercent = maxSec > 0 ? Math.min(100, Math.max(12, (item.totalSec / maxSec) * 100)) : 12;
-      return {
-        ...item,
-        heightPercent
-      };
+  // Dynamic Peak Day calculation for Weekly Overview header
+  const peakDay = useMemo(() => {
+    let max = { day: 'Thu, Sep 17', hours: 0 };
+    dailyBarData.forEach(d => {
+      if (d.hours > max.hours) {
+        max = { day: d.day, hours: d.hours };
+      }
     });
-  }, [liveProjectBreakdown.list]);
+    return max;
+  }, [dailyBarData]);
 
-    const topProjectObj = liveProjectBreakdown.list[0];
+  const topProjectObj = liveProjectBreakdown.list[0];
   const topProject = topProjectObj?.project || (filteredActivities.length > 0 ? (filteredActivities[0].project || filteredActivities[0].projectName) : 'None');
   const topProjectTime = topProjectObj?.time || '00:00:00';
   const topProjectPercent = topProjectObj?.percentage || 0;
@@ -1037,246 +1019,95 @@ export default function DashboardPage({
           </div>
         </div>
 
-                        {/* 1. Full-Width Large Vertical Bar Chart (Projects as Vertical Bars on Single Day / 7-Day Grid on Week View) */}
-        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '26px 34px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
-          {/* Header & View Switcher Toggle */}
+                        {/* 1. Full-Width 7-Day Weekly Activity Overview (Vertical Stacked Multi-Color Bar Chart) */}
+        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '24px 30px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          {/* Header Row: Title & Peak */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                {isSingleDayView ? 'Activity Overview • Project Bar Chart' : 'Weekly Activity Overview • 7-Day Grid'}
-              </span>
-              <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', padding: '2px 9px', borderRadius: '12px', fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                Total: {liveTotalTime}
-              </span>
-            </div>
+            <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+              Weekly Activity Overview
+            </span>
 
-            {/* View Mode Switcher */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setChartViewMode('day')}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: isSingleDayView ? '#ffffff' : 'transparent',
-                  color: isSingleDayView ? '#0f172a' : '#64748b',
-                  boxShadow: isSingleDayView ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                📊 Single Day (By Project)
-              </button>
-              <button
-                type="button"
-                onClick={() => setChartViewMode('week')}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: !isSingleDayView ? '#ffffff' : 'transparent',
-                  color: !isSingleDayView ? '#0f172a' : '#64748b',
-                  boxShadow: !isSingleDayView ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                📅 7-Day Week View
-              </button>
-            </div>
+            {peakDay.hours > 0 && (
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#008a00' }}>
+                Peak: {peakDay.day} ({peakDay.hours.toFixed(2)}h)
+              </span>
+            )}
           </div>
 
           {/* Project Color Legend matching Pie Chart */}
           {liveProjectBreakdown.list.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', alignItems: 'center', marginBottom: '22px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', alignItems: 'center', marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
               {liveProjectBreakdown.list.map((item, idx) => (
-                <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', fontWeight: 600 }}>
+                <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#334155', fontWeight: 600 }}>
                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
                   <span>{item.project}</span>
-                  <span style={{ color: '#64748b', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>({item.time})</span>
+                  <span style={{ color: '#64748b', fontSize: '11.5px', fontFamily: 'var(--font-mono)' }}>({item.time})</span>
                 </div>
               ))}
             </div>
           )}
 
-          {/* VIEW 1: BIG VERTICAL BAR CHART BY PROJECT (Spans full width with large, tall vertical bars) */}
-          {isSingleDayView ? (
-            <div style={{ width: '100%', padding: '4px 0' }}>
-              {singleDayProjectBars.length === 0 ? (
-                <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                  No activities logged for this selection yet
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-                  {/* Top Stacked Composite Bar for Total Day Overview */}
-                  <div style={{ marginBottom: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>
-                        TOTAL WORKSPACE TIME DISTRIBUTION
-                      </span>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#008a00' }}>
-                        100% Tracked ({singleDayProjectBars.length} Projects)
-                      </span>
-                    </div>
-                    <div style={{
+          {/* 7-DAY WEEKLY MULTI-COLUMN VERTICAL STACKED BAR GRID */}
+          <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
+            <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px', height: '300px', alignItems: 'flex-end', paddingBottom: '16px' }}>
+              {dailyBarData.map((d, idx) => (
+                <div key={idx} className="reports-bar-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px' }}>
+                  {/* Top Duration Label */}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                    {d.time}
+                  </span>
+
+                  {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
+                  <div 
+                    className="reports-bar-fill" 
+                    style={{ 
                       width: '100%',
-                      height: '20px',
-                      borderRadius: '6px',
+                      maxWidth: '110px',
+                      height: `${d.heightPercent}%`,
+                      minHeight: d.hours > 0 ? '16px' : '4px',
+                      borderRadius: '6px 6px 0 0',
                       display: 'flex',
+                      flexDirection: 'column-reverse',
                       overflow: 'hidden',
-                      background: '#f1f5f9',
-                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
-                      border: '1px solid #e2e8f0'
-                    }}>
-                      {singleDayProjectBars.map((item, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            width: `${item.percentage}%`,
-                            height: '100%',
-                            backgroundColor: item.color || '#00cc00',
-                            transition: 'width 0.3s ease'
-                          }}
-                          title={`${item.project}: ${item.time} (${item.percentage}%)`}
-                        />
-                      ))}
-                    </div>
+                      background: d.hours > 0 ? 'transparent' : '#e2e8f0',
+                      boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 0, 0, 0.12)' : 'none',
+                      transition: 'height 0.35s ease',
+                      position: 'relative',
+                      cursor: 'pointer'
+                    }}
+                    title={`${d.day}: ${d.time}${d.projectSegments && d.projectSegments.length > 0 ? '\n' + d.projectSegments.map(s => `${s.project}: ${formatSecondsToHMS(s.sec)}`).join('\n') : ''}`}
+                  >
+                    {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
+                      d.projectSegments.map((seg, sIdx) => {
+                        const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
+                        return (
+                          <div
+                            key={sIdx}
+                            style={{
+                              width: '100%',
+                              height: `${segPercent}%`,
+                              minHeight: '3px',
+                              backgroundColor: seg.color || '#00cc00',
+                              transition: 'height 0.2s ease',
+                              position: 'relative'
+                            }}
+                            title={`${seg.project}: ${formatSecondsToHMS(seg.sec)} (${segPercent.toFixed(1)}%)`}
+                          />
+                        );
+                      })
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
+                    )}
                   </div>
 
-                  {/* Horizontal Project Progress Bars (Spanning Full Width) */}
-                  {singleDayProjectBars.map((item, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '10px',
-                        padding: '14px 18px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '9px',
-                        transition: 'all 0.15s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = '#cbd5e1';
-                        e.currentTarget.style.background = '#ffffff';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = '#e2e8f0';
-                        e.currentTarget.style.background = '#f8fafc';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
-                    >
-                      {/* Top Row: Project Info + Duration */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
-                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.project}
-                          </span>
-                          <span style={{ fontSize: '11px', color: '#64748b', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                            {item.client || 'DigiPlus Clients'}
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                          <span style={{ fontSize: '14px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#0f172a' }}>
-                            {item.time}
-                          </span>
-                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: item.color || '#008a00', background: `${item.color}18` || 'rgba(0,204,0,0.1)', padding: '2px 7px', borderRadius: '6px' }}>
-                            {item.percentage}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Wide Horizontal Progress Bar */}
-                      <div style={{ width: '100%', height: '16px', background: '#e2e8f0', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
-                        <div
-                          style={{
-                            width: `${Math.max(3, item.percentage)}%`,
-                            height: '100%',
-                            backgroundColor: item.color || '#00cc00',
-                            borderRadius: '8px',
-                            boxShadow: `0 2px 6px ${item.color}50`,
-                            transition: 'width 0.4s ease'
-                          }}
-                          title={`${item.project}: ${item.time} (${item.percentage}%)`}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                  {/* Day Label Beneath Baseline */}
+                  <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
+                    {d.day}
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
-          ) : (
-            /* VIEW 2: 7-DAY WEEKLY MULTI-COLUMN GRID */
-            <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
-              <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '20px', height: '310px', alignItems: 'flex-end', paddingBottom: '20px' }}>
-                {dailyBarData.map((d, idx) => (
-                  <div key={idx} className="reports-bar-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px' }}>
-                    {/* Top Duration Label */}
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                      {d.time}
-                    </span>
-
-                    {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
-                    <div 
-                      className="reports-bar-fill" 
-                      style={{ 
-                        width: '100%',
-                        maxWidth: '110px',
-                        height: `${d.heightPercent}%`,
-                        minHeight: d.hours > 0 ? '16px' : '4px',
-                        borderRadius: '6px 6px 0 0',
-                        display: 'flex',
-                        flexDirection: 'column-reverse',
-                        overflow: 'hidden',
-                        background: d.hours > 0 ? 'transparent' : '#e2e8f0',
-                        boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 0, 0, 0.12)' : 'none',
-                        transition: 'height 0.35s ease',
-                        position: 'relative',
-                        cursor: 'pointer'
-                      }}
-                      title={`${d.day}: ${d.time}${d.projectSegments && d.projectSegments.length > 0 ? '\n' + d.projectSegments.map(s => `${s.project}: ${formatSecondsToHMS(s.sec)}`).join('\n') : ''}`}
-                    >
-                      {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
-                        d.projectSegments.map((seg, sIdx) => {
-                          const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
-                          return (
-                            <div
-                              key={sIdx}
-                              style={{
-                                width: '100%',
-                                height: `${segPercent}%`,
-                                minHeight: '3px',
-                                backgroundColor: seg.color || '#00cc00',
-                                transition: 'height 0.2s ease',
-                                position: 'relative'
-                              }}
-                              title={`${seg.project}: ${formatSecondsToHMS(seg.sec)} (${segPercent.toFixed(1)}%)`}
-                            />
-                          );
-                        })
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
-                      )}
-                    </div>
-
-                    {/* Day Label Beneath Baseline */}
-                    <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
-                      {d.day}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* 2. Middle Row: Donut Breakdown (Left) + Most Tracked Activities (Right) Column-Wise Arranged */}
