@@ -1198,6 +1198,8 @@ try {
               onDeleteActivity={handleDeleteActivity}
               onDuplicateActivity={handleDuplicateActivity}
               onUpdateActivityDate={handleUpdateActivityDate}
+              onUpdateActivity={handleUpdateActivity}
+              currentUser={effectiveUser}
             />
           )}
 
