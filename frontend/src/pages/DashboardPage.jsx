@@ -412,6 +412,55 @@ export default function DashboardPage({
     return max;
   }, [dailyBarData]);
 
+  // Check if viewing a single date (e.g. Today, Yesterday, or single selected date)
+  const isSingleDate = useMemo(() => {
+    if (!dateRange.end || dateRange.start === dateRange.end) return true;
+    return false;
+  }, [dateRange]);
+
+  // Single Date Bar Data with all stacked project segments for wide display
+  const singleDayData = useMemo(() => {
+    const activeIso = dateRange.start || '2026-09-17';
+    let daySec = 0;
+    const dayProjMap = {};
+
+    filteredActivities.forEach(a => {
+      const aDate = getActivityDate(a);
+      if (aDate === activeIso) {
+        const sec = a.durationSeconds || parseTimeToSeconds(a.durationFormatted || a.duration);
+        if (sec > 0) {
+          daySec += sec;
+          const pName = a.project || a.projectName || 'General Task';
+          if (!dayProjMap[pName]) {
+            const projObj = projects.find(p => p.name.toLowerCase() === pName.toLowerCase());
+            dayProjMap[pName] = {
+              project: pName,
+              color: a.projectColor || projObj?.color || a.color || '#00cc00',
+              sec: 0
+            };
+          }
+          dayProjMap[pName].sec += sec;
+        }
+      }
+    });
+
+    const projectSegments = Object.values(dayProjMap).sort((a, b) => b.sec - a.sec);
+    const [yr, mo, da] = activeIso.split('-').map(Number);
+    const dObj = new Date(yr, mo - 1, da);
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dayLabel = dayNames[dObj.getDay()] + ', ' + monthNames[dObj.getMonth()] + ' ' + dObj.getDate();
+
+    return {
+      iso: activeIso,
+      day: dayLabel,
+      totalSec: daySec,
+      time: formatSecondsToHMS(daySec),
+      hours: daySec / 3600,
+      projectSegments
+    };
+  }, [dateRange.start, filteredActivities, projects]);
+
   const topProjectObj = liveProjectBreakdown.list[0];
   const topProject = topProjectObj?.project || (filteredActivities.length > 0 ? (filteredActivities[0].project || filteredActivities[0].projectName) : 'None');
   const topProjectTime = topProjectObj?.time || '00:00:00';
@@ -616,15 +665,17 @@ export default function DashboardPage({
   };
 
   const handleQuickRange = (preset) => {
-    const today = new Date('2026-09-08');
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     let s = new Date(today);
     let e = new Date(today);
 
     if (preset === 'today') {
-      // today
+      s = new Date(today);
+      e = new Date(today);
     } else if (preset === 'yesterday') {
       s.setDate(today.getDate() - 1);
-      e.setDate(today.getDate() - 1);
+      e = new Date(s);
     } else if (preset === 'thisWeek') {
       const day = today.getDay();
       const diff = today.getDate() - day + (day === 0 ? -6 : 1);
@@ -648,11 +699,11 @@ export default function DashboardPage({
       e = new Date(today.getFullYear(), 11, 31);
     }
 
-    const fmt = (d) => {
-      const yr = d.getFullYear();
-      const mo = String(d.getMonth() + 1).padStart(2, '0');
-      const da = String(d.getDate()).padStart(2, '0');
-      return `${yr}-${mo}-${da}`;
+    const fmt = (dObj) => {
+      const yr = dObj.getFullYear();
+      const mo = String(dObj.getMonth() + 1).padStart(2, '0');
+      const da = String(dObj.getDate()).padStart(2, '0');
+      return yr + '-' + mo + '-' + da;
     };
 
     setDateRange({ start: fmt(s), end: fmt(e) });
