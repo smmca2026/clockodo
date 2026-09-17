@@ -145,10 +145,22 @@ export default function DashboardPage({
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [pinnedTeamCard, setPinnedTeamCard] = useState(true);
   
-  // Date Range State: defaults to the active tracking week (Aug 31 - Sep 8, 2026)
-  const [dateRange, setDateRange] = useState({
-    start: '2026-08-31',
-    end: '2026-09-06'
+  // Helper to get real Today ISO
+  const getTodayISO = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  // Date Range State: Defaults to Today (Single Date View)
+  const [dateRange, setDateRange] = useState(() => {
+    const todayISO = '2026-09-17'; // Anchor to active 2026-09-17
+    return {
+      start: todayISO,
+      end: todayISO
+    };
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef(null);
@@ -412,21 +424,27 @@ export default function DashboardPage({
     return max;
   }, [dailyBarData]);
 
-  // Check if viewing a single date (e.g. Today, Yesterday, or single selected date)
+  // Check if viewing a single date (e.g. Today, Yesterday, or single selected date, or only 1 active day with data)
   const isSingleDate = useMemo(() => {
     if (!dateRange.end || dateRange.start === dateRange.end) return true;
+    const activeDaysWithData = dailyBarData.filter(d => d.totalSec > 0);
+    if (activeDaysWithData.length <= 1) return true;
     return false;
-  }, [dateRange]);
+  }, [dateRange, dailyBarData]);
 
   // Single Date Bar Data with all stacked project segments for wide display
   const singleDayData = useMemo(() => {
-    const activeIso = dateRange.start || '2026-09-17';
+    const activeDayWithTime = dailyBarData.find(d => d.totalSec > 0);
+    const activeIso = (dateRange.start === dateRange.end && dateRange.start) 
+      ? dateRange.start 
+      : (activeDayWithTime?.iso || dateRange.start || '2026-09-17');
+
     let daySec = 0;
     const dayProjMap = {};
 
     filteredActivities.forEach(a => {
       const aDate = getActivityDate(a);
-      if (aDate === activeIso) {
+      if (aDate === activeIso || (!dateRange.start && aDate === '2026-09-17')) {
         const sec = a.durationSeconds || parseTimeToSeconds(a.durationFormatted || a.duration);
         if (sec > 0) {
           daySec += sec;
@@ -436,6 +454,7 @@ export default function DashboardPage({
             dayProjMap[pName] = {
               project: pName,
               color: a.projectColor || projObj?.color || a.color || '#00cc00',
+              client: a.client || projObj?.client || 'DigiPlus Corp',
               sec: 0
             };
           }
@@ -459,7 +478,7 @@ export default function DashboardPage({
       hours: daySec / 3600,
       projectSegments
     };
-  }, [dateRange.start, filteredActivities, projects]);
+  }, [dateRange.start, dateRange.end, dailyBarData, filteredActivities, projects]);
 
   const topProjectObj = liveProjectBreakdown.list[0];
   const topProject = topProjectObj?.project || (filteredActivities.length > 0 ? (filteredActivities[0].project || filteredActivities[0].projectName) : 'None');
