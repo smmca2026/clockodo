@@ -51,6 +51,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
 });
 
+
+const path = require('path');
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+if (require('fs').existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 initDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`Clockodo MySQL REST API Backend Server is RUNNING on port ${PORT}`);

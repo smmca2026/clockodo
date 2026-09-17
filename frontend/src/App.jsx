@@ -118,7 +118,7 @@ try {
 
     // 2. Live Activities with strict deduplication
     api.getActivities().then(res => {
-      if (res && res.success && Array.isArray(res.data)) {
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
         const seen = new Set();
         const unique = [];
         res.data.forEach(a => {
@@ -197,7 +197,16 @@ try {
     return INITIAL_PROJECTS;
   });
 
-  const [activities, setActivities] = useState([]);
+  const [activities, setActivities] = useState(() => {
+    try {
+      const saved = localStorage.getItem('clockodo_activities_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return INITIAL_RECENT_ACTIVITIES;
+  });
 
   const [timesheetRows, setTimesheetRows] = useState(() => {
     try {
@@ -241,7 +250,9 @@ try {
 
   useEffect(() => {
     try {
-      localStorage.setItem('clockodo_activities_v2', JSON.stringify(activities));
+      if (Array.isArray(activities) && activities.length > 0) {
+        localStorage.setItem('clockodo_activities_v2', JSON.stringify(activities));
+      }
     } catch (e) {}
   }, [activities]);
 
