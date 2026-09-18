@@ -127,6 +127,42 @@ try {
     ? { id: 'guest-1', name: 'Shared Guest', role: 'guest', email: 'guest@client.com', avatarInitials: 'SG' }
     : (currentUser || { name: 'Bharath (Owner)', role: 'admin', email: 'bharath.owner@digiplusagency.com', avatarInitials: 'BO' });
 
+  // Global Active Timer State
+  const [activeTimer, setActiveTimer] = useState({
+    isRunning: false,
+    isPaused: false,
+    elapsedSeconds: 0,
+    projectId: '',
+    projectName: '',
+    projectColor: '#10b981',
+    taskDescription: '',
+    isBillable: true,
+    startedAt: null,
+  });
+
+  // State for Projects with catalog merge
+  const [projects, setProjects] = useState(() => {
+    try {
+      const saved = localStorage.getItem('clockodo_projects');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const seen = new Set();
+          const merged = [];
+          [...parsed, ...INITIAL_PROJECTS].forEach(p => {
+            const k = (p.name || '').trim().toLowerCase();
+            if (k && !seen.has(k)) {
+              seen.add(k);
+              merged.push(p);
+            }
+          });
+          return merged;
+        }
+      }
+    } catch (e) {}
+    return INITIAL_PROJECTS;
+  });
+
   const [usersList, setUsersList] = useState(() => {
     try {
       const saved = localStorage.getItem('clockodo_registered_users_v4');
