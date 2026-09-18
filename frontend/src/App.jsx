@@ -108,6 +108,25 @@ try {
     } catch (e) {}
   }, []);
 
+  // Current Logged-in User (Persistent session across all reloads & browser restarts)
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('clockodo_session_user') || localStorage.getItem('clockodo_auth_user_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.id || parsed.email || parsed.name)) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  // Dynamically compute effective user based on guest session
+  const effectiveUser = isGuestSession 
+    ? { id: 'guest-1', name: 'Shared Guest', role: 'guest', email: 'guest@client.com', avatarInitials: 'SG' }
+    : (currentUser || { name: 'Bharath (Owner)', role: 'admin', email: 'bharath.owner@digiplusagency.com', avatarInitials: 'BO' });
+
   const [usersList, setUsersList] = useState(() => {
     try {
       const saved = localStorage.getItem('clockodo_registered_users_v4');
@@ -1164,7 +1183,7 @@ try {
 
           {!sharedToken && activePage === 'calendar' && (
             <CalendarPage
-              currentUser={currentUser}
+              currentUser={effectiveUser}
               calendarSchedule={calendarSchedule}
               onUpdateCalendarSchedule={setCalendarSchedule}
               activeTimer={activeTimer}
