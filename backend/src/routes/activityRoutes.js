@@ -139,4 +139,14 @@ router.delete('/project/:projectName', async (req, res) => {
   }
 });
 
+// DELETE /api/activities/all-clean (Wipe all test activities from MySQL)
+router.delete('/all-clean', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM activities');
+    res.json({ success: true, message: 'All activities deleted from database.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

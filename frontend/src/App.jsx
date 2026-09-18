@@ -96,9 +96,21 @@ try {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Registered users state with localStorage persistence
+  // Clean legacy test storage on startup so existing browsers start 100% fresh
+  useEffect(() => {
+    try {
+      localStorage.removeItem('clockodo_activities_v2');
+      localStorage.removeItem('clockodo_activities');
+      localStorage.removeItem('clockodo_timesheet_rows_v2');
+      localStorage.removeItem('clockodo_registered_users_v2');
+      localStorage.removeItem('clockodo_registered_users_v3');
+      localStorage.removeItem('clockodo_shared_reports_v2');
+    } catch (e) {}
+  }, []);
+
   const [usersList, setUsersList] = useState(() => {
     try {
-      const saved = localStorage.getItem('clockodo_registered_users_v3');
+      const saved = localStorage.getItem('clockodo_registered_users_v4');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -107,113 +119,9 @@ try {
     return INITIAL_USERS;
   });
 
-  // Fetch live workspace data from MySQL backend on startup
-  useEffect(() => {
-    // 1. Live Users
-    api.getUsers().then(res => {
-      if (res && res.success && Array.isArray(res.data)) {
-        setUsersList(res.data);
-      }
-    }).catch(err => console.warn('Could not fetch MySQL users on start:', err));
-
-    // 2. Live Activities with strict deduplication
-    api.getActivities().then(res => {
-      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const seen = new Set();
-        const unique = [];
-        res.data.forEach(a => {
-          const key = `${(a.project || '').trim().toLowerCase()}__${(a.date || '').trim()}__${(a.userEmail || a.user || '').trim().toLowerCase()}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            unique.push(a);
-          }
-        });
-        setActivities(unique);
-      }
-    }).catch(err => console.warn('Could not fetch MySQL activities on start:', err));
-
-    // 3. Live Timesheets
-    api.getTimesheets().then(res => {
-      if (res && res.success && Array.isArray(res.data)) {
-        setTimesheetRows(res.data);
-      }
-    }).catch(err => console.warn('Could not fetch MySQL timesheets on start:', err));
-
-    // 4. Live Projects with deduplication
-    api.getProjects().then(res => {
-      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const seen = new Set();
-        const unique = [];
-        [...res.data, ...INITIAL_PROJECTS].forEach(p => {
-          const nameKey = (p.name || '').trim().toLowerCase();
-          if (nameKey && !seen.has(nameKey)) {
-            seen.add(nameKey);
-            unique.push(p);
-          }
-        });
-        setProjects(unique);
-      }
-    }).catch(err => console.warn('Could not fetch MySQL projects on start:', err));
-  }, []);
-
-  // Current Logged-in User (Persistent session across all reloads & browser restarts)
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('clockodo_session_user') || localStorage.getItem('clockodo_auth_user_v3');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && (parsed.id || parsed.email || parsed.name)) {
-          return parsed;
-        }
-      }
-    } catch (e) {}
-    return null;
-  });
-
-  // Dynamically compute effective user based on guest session
-  const effectiveUser = isGuestSession 
-    ? { id: 'guest-1', name: 'Shared Guest', role: 'guest', email: 'guest@client.com', avatarInitials: 'SG' }
-    : (currentUser || { name: 'Bharath (Owner)', role: 'admin', email: 'bharath.owner@digiplusagency.com', avatarInitials: 'BO' });
-
-  // Global Active Timer State
-  const [activeTimer, setActiveTimer] = useState({
-    isRunning: false,
-    isPaused: false,
-    elapsedSeconds: 0,
-    projectId: '',
-    projectName: '',
-    projectColor: '#10b981',
-    taskDescription: '',
-    isBillable: true,
-    startedAt: null,
-  });
-
-  // State for Projects with catalog merge
-  const [projects, setProjects] = useState(() => {
-    try {
-      const saved = localStorage.getItem('clockodo_projects');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const seen = new Set();
-          const merged = [];
-          [...parsed, ...INITIAL_PROJECTS].forEach(p => {
-            const k = (p.name || '').trim().toLowerCase();
-            if (k && !seen.has(k)) {
-              seen.add(k);
-              merged.push(p);
-            }
-          });
-          return merged;
-        }
-      }
-    } catch (e) {}
-    return INITIAL_PROJECTS;
-  });
-
   const [activities, setActivities] = useState(() => {
     try {
-      const saved = localStorage.getItem('clockodo_activities_v2');
+      const saved = localStorage.getItem('clockodo_activities_v4');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -224,7 +132,7 @@ try {
 
   const [timesheetRows, setTimesheetRows] = useState(() => {
     try {
-      const saved = localStorage.getItem('clockodo_timesheet_rows_v2');
+      const saved = localStorage.getItem('clockodo_timesheet_rows_v4');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -239,7 +147,7 @@ try {
   // Persist registered users and auth state
   useEffect(() => {
     try {
-      localStorage.setItem('clockodo_registered_users_v2', JSON.stringify(usersList));
+      localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(usersList));
     } catch (e) {}
   }, [usersList]);
 
@@ -265,14 +173,14 @@ try {
   useEffect(() => {
     try {
       if (Array.isArray(activities) && activities.length > 0) {
-        localStorage.setItem('clockodo_activities_v2', JSON.stringify(activities));
+        localStorage.setItem('clockodo_activities_v4', JSON.stringify(activities));
       }
     } catch (e) {}
   }, [activities]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('clockodo_timesheet_rows_v2', JSON.stringify(timesheetRows));
+      localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timesheetRows));
     } catch (e) {}
   }, [timesheetRows]);
 
