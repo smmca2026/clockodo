@@ -37,10 +37,11 @@ export default function TimeTracker({
   const [activeTimePicker, setActiveTimePicker] = useState(null);
 
   // Date States
+  const now = new Date();
   const [selectedDateLabel, setSelectedDateLabel] = useState('Today');
-  const [selectedDateObj, setSelectedDateObj] = useState(new Date()); // Sep 8, 2026 (Today) // Sep 1, 2026 (Today)
-  const [viewMonth, setViewMonth] = useState(8); // 0-indexed, 8 = September
-  const [viewYear, setViewYear] = useState(2026);
+  const [selectedDateObj, setSelectedDateObj] = useState(now);
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [viewYear, setViewYear] = useState(now.getFullYear());
   const [showDatePopover, setShowDatePopover] = useState(false);
 
   const datePopoverRef = useRef(null);
@@ -163,7 +164,7 @@ export default function TimeTracker({
 
   const handleAddClick = (e) => {
     e.preventDefault();
-    const d = selectedDateObj || new Date(2026, 8, 8);
+    const d = selectedDateObj || new Date();
     const yr = d.getFullYear();
     const mo = String(d.getMonth() + 1).padStart(2, '0');
     const da = String(d.getDate()).padStart(2, '0');

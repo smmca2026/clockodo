@@ -108,41 +108,35 @@ function getActivityDate(act) {
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return 'Recently';
-  if (dateStr.includes('Today') || dateStr === '2026-09-08') return 'an hour ago';
-  if (dateStr.includes('Yesterday') || dateStr === '2026-09-07') return 'a day ago';
-  if (dateStr === '2026-09-04' || dateStr.includes('Sep 04') || dateStr.includes('Sep 4')) return '4 days ago';
-  if (dateStr === '2026-09-03' || dateStr.includes('Sep 03')) return '5 days ago';
-  if (dateStr === '2026-09-02' || dateStr.includes('Sep 02')) return '6 days ago';
-  if (dateStr === '2026-09-01' || dateStr.includes('Sep 01')) return 'a week ago';
-  if (dateStr.includes('Aug 31')) return '8 days ago';
+  const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.trim();
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  if (cleanDate === todayISO || dateStr.toLowerCase().includes('today')) return 'Today';
+
+  const yest = new Date(now);
+  yest.setDate(yest.getDate() - 1);
+  const yestISO = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+  if (cleanDate === yestISO || dateStr.toLowerCase().includes('yesterday')) return 'Yesterday';
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) {
+    const [y, m, d] = cleanDate.split('-').map(Number);
+    const itemDate = new Date(y, m - 1, d);
+    const diffDays = Math.round((now - itemDate) / (1000 * 60 * 60 * 24));
+    if (diffDays > 0 && diffDays <= 7) return `${diffDays} days ago`;
+    if (diffDays > 7 && diffDays <= 14) return 'a week ago';
+  }
   return dateStr;
 }
 
-const WEEK_DAYS_META = [
-  { key: 'mon', label: 'Mon, Aug 31', dayNum: 31 },
-  { key: 'tue', label: 'Tue, Sep 1', dayNum: 1 },
-  { key: 'wed', label: 'Wed, Sep 2', dayNum: 2 },
-  { key: 'thu', label: 'Thu, Sep 3', dayNum: 3 },
-  { key: 'fri', label: 'Fri, Sep 4', dayNum: 4 },
-  { key: 'sat', label: 'Sat, Sep 5', dayNum: 5 },
-  { key: 'sun', label: 'Sun, Sep 6', dayNum: 6 },
-];
-
 function getActivityDayKey(act) {
   if (!act) return 'mon';
-  const dStr = (act.date || act.group || '').toLowerCase();
-  if (dStr.includes('2026-09-08') || dStr.includes('tue') || dStr.includes('today') || dStr.includes('sep 1') || dStr.includes('sep 8')) return 'tue';
-  if (dStr.includes('2026-09-07') || dStr.includes('mon') || dStr.includes('yesterday') || dStr.includes('aug 31') || dStr.includes('sep 7')) return 'mon';
-  if (dStr.includes('wed') || dStr.includes('sep 2')) return 'wed';
-  if (dStr.includes('thu') || dStr.includes('sep 3')) return 'thu';
-  if (dStr.includes('fri') || dStr.includes('sep 4')) return 'fri';
-  if (dStr.includes('sat') || dStr.includes('sep 5')) return 'sat';
-  if (dStr.includes('sun') || dStr.includes('sep 6')) return 'sun';
-  
-  if (act.date && /^\d{4}-\d{2}-\d{2}$/.test(act.date)) {
-    const d = new Date(act.date);
+  const actDate = getActivityDate(act);
+  if (actDate && /^\d{4}-\d{2}-\d{2}$/.test(actDate)) {
+    const [y, m, d] = actDate.split('-').map(Number);
+    const dObj = new Date(y, m - 1, d);
     const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    return days[d.getDay()] || 'mon';
+    return days[dObj.getDay()] || 'mon';
   }
   return 'mon';
 }
@@ -178,7 +172,7 @@ export default function DashboardPage({
 
   // Date Range State: Defaults to Today (Single Date View)
   const [dateRange, setDateRange] = useState(() => {
-    const todayISO = '2026-09-17'; // Anchor to active 2026-09-17
+    const todayISO = getTodayISO();
     return {
       start: todayISO,
       end: todayISO
@@ -460,14 +454,15 @@ export default function DashboardPage({
 
   // Single Date Bar Data with all stacked project segments for wide display
   const singleDayData = useMemo(() => {
-    const activeIso = dateRange.start || '2026-09-17';
+    const todayISO = getTodayISO();
+    const activeIso = dateRange.start || todayISO;
     let daySec = 0;
     const dayProjMap = {};
 
     // Ingest activities matching this active date
     filteredActivities.forEach(a => {
       const aDate = getActivityDate(a);
-      if (aDate === activeIso || (!dateRange.start && aDate === '2026-09-17') || (dateRange.start === dateRange.end && aDate === dateRange.start)) {
+      if (aDate === activeIso || (!dateRange.start && aDate === todayISO) || (dateRange.start === dateRange.end && aDate === dateRange.start)) {
         const sec = a.durationSeconds || parseTimeToSeconds(a.durationFormatted || a.duration);
         if (sec > 0) {
           daySec += sec;

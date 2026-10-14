@@ -177,6 +177,11 @@ async function fallbackQuery(sql, params = []) {
 
   // 3. ACTIVITIES
   if (lowerSql.startsWith('select') && lowerSql.includes('from activities')) {
+    if (lowerSql.includes('where id = ?')) {
+      const targetId = String(params[0] || '');
+      const list = (store.activities || []).filter(a => String(a.id) === targetId);
+      return [list, []];
+    }
     return [store.activities || [], []];
   }
 

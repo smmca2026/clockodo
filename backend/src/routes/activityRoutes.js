@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/activities (Upsert / deduplicate by project, date, and user)
+// POST /api/activities (Insert or Update by ID)
 router.post('/', async (req, res) => {
   try {
     const { project, projectColor, description, group, date, startTime, endTime, durationFormatted, durationSeconds, billable, user } = req.body;
@@ -29,41 +29,43 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Project is required.' });
     }
 
-    const id = req.body.id || `act-${Date.now()}`;
-    const curDate = date || new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    const id = req.body.id || `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+
+    // Resolve dynamic current date (YYYY-MM-DD) if not provided
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const defaultDate = `${y}-${m}-${d}`;
+
+    let curDate = defaultDate;
+    if (date && typeof date === 'string') {
+      curDate = date.includes('T') ? date.split('T')[0] : date.trim();
+    }
+    const curGroup = group || 'Today';
     const userName = user || 'Bharath (Owner)';
 
-    // Check if an entry for the exact same project, date, and user already exists
-    const [existing] = await pool.query(
-      'SELECT id FROM activities WHERE LOWER(TRIM(project)) = LOWER(TRIM(?)) AND TRIM(date) = TRIM(?) AND LOWER(TRIM(user_name)) = LOWER(TRIM(?))',
-      [project, curDate, userName]
-    );
+    // Check if an entry for the exact same ID already exists
+    const [existing] = await pool.query('SELECT id FROM activities WHERE id = ?', [id]);
 
     if (existing.length > 0) {
-      // Update existing record instead of creating duplicate
-      const primaryId = existing[0].id;
+      // Update existing record
       await pool.query(`
         UPDATE activities 
-        SET duration_formatted = ?, duration_seconds = ?, description = ?, project_color = ?, start_time = ?, end_time = ?, billable = ?
+        SET duration_formatted = ?, duration_seconds = ?, description = ?, project = ?, project_color = ?, 
+            start_time = ?, end_time = ?, billable = ?, date = ?, group_name = ?
         WHERE id = ?
       `, [
         durationFormatted || '01:00:00', durationSeconds || 3600, description || 'Working session',
-        projectColor || '#10b981', startTime || '09:00 AM', endTime || '05:00 PM', billable !== undefined ? billable : true,
-        primaryId
+        project, projectColor || '#10b981', startTime || '09:00 AM', endTime || '05:00 PM',
+        billable !== undefined ? billable : true, curDate, curGroup,
+        id
       ]);
-
-      // Remove any extra duplicates if they existed
-      if (existing.length > 1) {
-        const extraIds = existing.slice(1).map(e => e.id);
-        for (const extraId of extraIds) {
-          await pool.query('DELETE FROM activities WHERE id = ?', [extraId]);
-        }
-      }
 
       return res.json({
         success: true,
-        message: 'Activity updated (deduplicated) in MySQL database',
-        data: { id: primaryId, project, projectColor, description, group: group || 'Today', date: curDate, startTime, endTime, durationFormatted, durationSeconds, billable, user: userName }
+        message: 'Activity updated in database',
+        data: { id, project, projectColor, description, group: curGroup, date: curDate, startTime, endTime, durationFormatted, durationSeconds, billable, user: userName }
       });
     }
 
@@ -71,15 +73,15 @@ router.post('/', async (req, res) => {
       INSERT INTO activities (id, project, project_color, description, group_name, date, start_time, end_time, duration_formatted, duration_seconds, billable, user_name)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      id, project, projectColor || '#10b981', description || 'Working session', group || 'Today',
+      id, project, projectColor || '#10b981', description || 'Working session', curGroup,
       curDate, startTime || '09:00 AM', endTime || '05:00 PM', durationFormatted || '01:00:00',
       durationSeconds || 3600, billable !== undefined ? billable : true, userName
     ]);
 
     res.status(201).json({
       success: true,
-      message: 'Activity saved to MySQL database',
-      data: { id, project, projectColor, description, group: group || 'Today', date: curDate, startTime, endTime, durationFormatted, durationSeconds, billable, user: userName }
+      message: 'Activity saved to database',
+      data: { id, project, projectColor, description, group: curGroup, date: curDate, startTime, endTime, durationFormatted, durationSeconds, billable, user: userName }
     });
   } catch (err) {
     console.error('Insert activity error:', err);

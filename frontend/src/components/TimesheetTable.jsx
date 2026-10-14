@@ -73,10 +73,9 @@ export default function TimesheetTable({
   // Derive target ISO date (YYYY-MM-DD) for a given dayKey ('mon'..'sun') and week offset
   const getDayISODate = (dayKey, offset = 0) => {
     const dayIndexMap = { mon: 0, tue: 1, wed: 2, thu: 3, fri: 4, sat: 5, sun: 6 };
-    const targetDayIndex = dayIndexMap[dayKey] !== undefined ? dayIndexMap[dayKey] : 1;
+    const targetDayIndex = dayIndexMap[dayKey] !== undefined ? dayIndexMap[dayKey] : 0;
 
-    // Anchor to active work date: Wednesday, Sep 2, 2026
-    const baseDate = new Date(2026, 8, 8); // Active system anchor date: Tue, Sep 8, 2026 (Today)
+    const baseDate = new Date(); // Real-time live date
     const dayOfWeek = (baseDate.getDay() + 6) % 7; // 0 for Mon ... 6 for Sun
     const monday = new Date(baseDate);
     monday.setDate(baseDate.getDate() - dayOfWeek + (offset * 7));
@@ -92,22 +91,66 @@ export default function TimesheetTable({
 
   const getActivityDate = (act) => {
     if (!act) return '';
-    if (act.date && /^\d{4}-\d{2}-\d{2}$/.test(act.date)) return act.date;
-    const g = (act.group || act.date || '').toLowerCase();
-    if (g.includes('today') || g.includes('sep 8') || g.includes('sep 08') || g.includes('tue')) return '2026-09-08';
-    if (g.includes('yesterday') || g.includes('sep 7') || g.includes('sep 07') || g.includes('mon')) return '2026-09-07';
-    if (g.includes('sep 4') || g.includes('sep 04') || g.includes('fri')) return '2026-09-04';
-    if (g.includes('sep 3') || g.includes('sep 03') || g.includes('thu')) return '2026-09-03';
-    if (g.includes('sep 2') || g.includes('sep 02') || g.includes('wed')) return '2026-09-02';
-    if (g.includes('sep 1') || g.includes('sep 01')) return '2026-09-01';
-    if (g.includes('aug 31') || g.includes('31')) return '2026-08-31';
-    if (/aug(ust)?\s*28|\b28\b/i.test(g)) return '2026-08-28';
-    if (/aug(ust)?\s*27|\b27\b/i.test(g)) return '2026-08-27';
-    if (/aug(ust)?\s*26|\b26\b/i.test(g)) return '2026-08-26';
-    if (/aug(ust)?\s*25|\b25\b/i.test(g)) return '2026-08-25';
-    if (/aug(ust)?\s*24|\b24\b/i.test(g)) return '2026-08-24';
-    if (/aug(ust)?\s*17|\b17\b/i.test(g)) return '2026-08-17';
-    return '2026-09-08';
+    const raw = act.date || act.group || act.createdAt || act.timestamp || '';
+
+    // Dynamic Today / Yesterday resolution
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayISO = `${y}-${m}-${d}`;
+
+    const yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    const yy = yest.getFullYear();
+    const ym = String(yest.getMonth() + 1).padStart(2, '0');
+    const yd = String(yest.getDate()).padStart(2, '0');
+    const yestISO = `${yy}-${ym}-${yd}`;
+
+    if (!raw) return todayISO;
+
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+      if (trimmed.includes('T')) return trimmed.split('T')[0];
+    }
+
+    const str = String(raw).trim().toLowerCase();
+    if (str.includes('today')) return todayISO;
+    if (str.includes('yesterday')) return yestISO;
+
+    const monthMap = {
+      jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+      jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+    };
+
+    const monthDayMatch = str.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:[,\s]+(\d{4}))?/i);
+    if (monthDayMatch) {
+      const mm = monthMap[monthDayMatch[1].toLowerCase().slice(0, 3)];
+      const dd = String(monthDayMatch[2]).padStart(2, '0');
+      const yr = monthDayMatch[3] || String(now.getFullYear());
+      return `${yr}-${mm}-${dd}`;
+    }
+
+    const dayMonthMatch = str.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[,\s]+(\d{4}))?/i);
+    if (dayMonthMatch) {
+      const dd = String(dayMonthMatch[1]).padStart(2, '0');
+      const mm = monthMap[dayMonthMatch[2].toLowerCase().slice(0, 3)];
+      const yr = dayMonthMatch[3] || String(now.getFullYear());
+      return `${yr}-${mm}-${dd}`;
+    }
+
+    try {
+      const parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        const yr = parsed.getFullYear();
+        const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+        const da = String(parsed.getDate()).padStart(2, '0');
+        return `${yr}-${mo}-${da}`;
+      }
+    } catch (e) {}
+
+    return todayISO;
   };
 
   const activityMatchesDay = (act, dayKey, offset = 0) => {
@@ -266,7 +309,7 @@ export default function TimesheetTable({
 
   // Dynamic Week Days Calculation (Real-time live today & dynamic Monday)
   const getWeekDays = (offset = 0) => {
-    const baseDate = new Date(2026, 8, 8); // Active system anchor date: Tue, Sep 8, 2026 (Today)
+    const baseDate = new Date(); // Real-time live date
     const baseMonday = new Date(baseDate);
     const dayOfWeek = (baseMonday.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
     baseMonday.setDate(baseMonday.getDate() - dayOfWeek + offset * 7);
@@ -282,7 +325,7 @@ export default function TimesheetTable({
       const dayName = dayPrefixes[i];
       const month = monthNames[d.getMonth()];
       const dayNum = d.getDate();
-      const isToday = d.toDateString() === baseDate.toDateString();
+      const isToday = d.toDateString() === (new Date()).toDateString();
       return {
         key,
         name: `${dayName}, ${month} ${dayNum}`,

@@ -14,17 +14,66 @@ import { CALENDAR_WEEK_SCHEDULE, INITIAL_PROJECTS } from '../data/mockData';
 
 function getActivityDate(act) {
   if (!act) return '';
-  if (act.date && /^\d{4}-\d{2}-\d{2}$/.test(act.date)) return act.date;
-  const g = (act.group || act.date || '').toLowerCase();
-  if (g.includes('today') || g.includes('sep 1')) return '2026-09-01';
-  if (g.includes('yesterday') || g.includes('aug 31') || g.includes('31')) return '2026-08-31';
-  if (/aug(ust)?\s*28|\b28\b/i.test(g)) return '2026-08-28';
-  if (/aug(ust)?\s*27|\b27\b/i.test(g)) return '2026-08-27';
-  if (/aug(ust)?\s*26|\b26\b/i.test(g)) return '2026-08-26';
-  if (/aug(ust)?\s*25|\b25\b/i.test(g)) return '2026-08-25';
-  if (/aug(ust)?\s*24|\b24\b/i.test(g)) return '2026-08-24';
-  if (/aug(ust)?\s*17|\b17\b/i.test(g)) return '2026-08-17';
-  return '2026-09-01';
+  const raw = act.date || act.group || act.createdAt || act.timestamp || '';
+
+  // Dynamic Today / Yesterday resolution
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const todayISO = `${y}-${m}-${d}`;
+
+  const yest = new Date(now);
+  yest.setDate(yest.getDate() - 1);
+  const yy = yest.getFullYear();
+  const ym = String(yest.getMonth() + 1).padStart(2, '0');
+  const yd = String(yest.getDate()).padStart(2, '0');
+  const yestISO = `${yy}-${ym}-${yd}`;
+
+  if (!raw) return todayISO;
+
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (trimmed.includes('T')) return trimmed.split('T')[0];
+  }
+
+  const str = String(raw).trim().toLowerCase();
+  if (str.includes('today')) return todayISO;
+  if (str.includes('yesterday')) return yestISO;
+
+  const monthMap = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+  };
+
+  const monthDayMatch = str.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:[,\s]+(\d{4}))?/i);
+  if (monthDayMatch) {
+    const mm = monthMap[monthDayMatch[1].toLowerCase().slice(0, 3)];
+    const dd = String(monthDayMatch[2]).padStart(2, '0');
+    const yr = monthDayMatch[3] || String(now.getFullYear());
+    return `${yr}-${mm}-${dd}`;
+  }
+
+  const dayMonthMatch = str.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[,\s]+(\d{4}))?/i);
+  if (dayMonthMatch) {
+    const dd = String(dayMonthMatch[1]).padStart(2, '0');
+    const mm = monthMap[dayMonthMatch[2].toLowerCase().slice(0, 3)];
+    const yr = dayMonthMatch[3] || String(now.getFullYear());
+    return `${yr}-${mm}-${dd}`;
+  }
+
+  try {
+    const parsed = new Date(raw);
+    if (!isNaN(parsed.getTime())) {
+      const yr = parsed.getFullYear();
+      const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+      const da = String(parsed.getDate()).padStart(2, '0');
+      return `${yr}-${mo}-${da}`;
+    }
+  } catch (e) {}
+
+  return todayISO;
 }
 
 function formatTimeWithAmPm(timeStr) {
@@ -335,8 +384,9 @@ export default function Calendar({
   // Open "Add Time Entry" Modal when clicking any time slot
   const handleOpenAddModal = (dayObj, defaultFrom = '10:00', defaultTo = '11:00') => {
     setModalDayNum(dayObj.dayNum);
-    setModalIsoDate(dayObj.isoDate || `2026-09-${String(dayObj.dayNum).padStart(2, '0')}`);
-    setModalDateLabel(dayObj.dateStr || `Sep ${dayObj.dayNum}, 2026`);
+    const fallbackIso = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(dayObj.dayNum || currentDate.getDate()).padStart(2, '0')}`;
+    setModalIsoDate(dayObj.isoDate || fallbackIso);
+    setModalDateLabel(dayObj.dateStr || `${currentDate.toLocaleDateString('en-US', { month: 'short' })} ${dayObj.dayNum || currentDate.getDate()}, ${currentDate.getFullYear()}`);
     setModalFromTime(defaultFrom);
     setModalToTime(defaultTo);
     setModalDescription('');

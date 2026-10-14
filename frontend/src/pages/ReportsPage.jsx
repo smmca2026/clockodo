@@ -371,23 +371,29 @@ export default function ReportsPage({
 }) {
   const [activeSubtab, setActiveSubtab] = useState('Summary');
 
-  // Attendance Date Navigation State (defaults to Today e.g. 2026-09-11)
-  const [attendanceDate, setAttendanceDate] = useState(() => {
-    return '2026-09-11';
-  });
+  const getTodayISO = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  // Attendance Date Navigation State (defaults to Today)
+  const [attendanceDate, setAttendanceDate] = useState(() => getTodayISO());
 
   const formatDisplayDate = (isoStr) => {
-    if (!isoStr) return 'Today (Fri, Sep 11, 2026)';
+    if (!isoStr) return 'Today';
     const parts = isoStr.split('-').map(Number);
     if (parts.length === 3) {
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const dayName = days[d.getDay()] || 'Fri';
-      const monthName = months[d.getMonth()] || 'Sep';
+      const dayName = days[d.getDay()] || 'Day';
+      const monthName = months[d.getMonth()] || '';
       const dayNum = parts[2];
       const year = parts[0];
-      const isToday = isoStr === '2026-09-11';
+      const isToday = isoStr === getTodayISO();
       return `${isToday ? 'Today (' : ''}${dayName}, ${monthName} ${dayNum}, ${year}${isToday ? ')' : ''}`;
     }
     return isoStr;
@@ -416,7 +422,7 @@ export default function ReportsPage({
   };
 
   const handleTodayClick = () => {
-    setAttendanceDate('2026-09-11');
+    setAttendanceDate(getTodayISO());
   };
   const subtabs = ['Summary', 'Detailed', 'Weekly', 'Shared'];
 
@@ -2326,11 +2332,11 @@ export default function ReportsPage({
                   <ChevronRight size={15} />
                 </button>
 
-                {attendanceDate !== '2026-09-11' && (
+                {attendanceDate !== getTodayISO() && (
                   <button
                     type="button"
                     onClick={handleTodayClick}
-                    title="Jump to Today (Sep 11)"
+                    title="Jump to Today"
                     style={{
                       fontSize: '11px',
                       fontWeight: 700,

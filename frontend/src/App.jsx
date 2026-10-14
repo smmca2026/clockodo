@@ -239,6 +239,47 @@ try {
     } catch (e) {}
   }, [timesheetRows]);
 
+  // Initial load from MySQL Backend API on application mount
+  useEffect(() => {
+    let isMounted = true;
+    async function loadBackendData() {
+      try {
+        const [usersRes, actRes, timeRes, projRes] = await Promise.all([
+          api.getUsers().catch(() => null),
+          api.getActivities().catch(() => null),
+          api.getTimesheets().catch(() => null),
+          api.getProjects().catch(() => null)
+        ]);
+
+        if (!isMounted) return;
+
+        if (usersRes && usersRes.success && Array.isArray(usersRes.data) && usersRes.data.length > 0) {
+          setUsersList(usersRes.data);
+          try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(usersRes.data)); } catch (e) {}
+        }
+
+        if (actRes && actRes.success && Array.isArray(actRes.data) && actRes.data.length > 0) {
+          setActivities(actRes.data);
+          try { localStorage.setItem('clockodo_activities_v4', JSON.stringify(actRes.data)); } catch (e) {}
+        }
+
+        if (timeRes && timeRes.success && Array.isArray(timeRes.data) && timeRes.data.length > 0) {
+          setTimesheetRows(timeRes.data);
+          try { localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timeRes.data)); } catch (e) {}
+        }
+
+        if (projRes && projRes.success && Array.isArray(projRes.data) && projRes.data.length > 0) {
+          setProjects(projRes.data);
+          try { localStorage.setItem('clockodo_projects', JSON.stringify(projRes.data)); } catch (e) {}
+        }
+      } catch (err) {
+        console.warn('Initial data load error from API:', err);
+      }
+    }
+    loadBackendData();
+    return () => { isMounted = false; };
+  }, []);
+
   const handlePageChange = (newPage) => {
     setActivePage(newPage);
     setGlobalSearchQuery('');
@@ -572,35 +613,70 @@ try {
 
   const getActivityDate = (act) => {
     if (!act) return '';
-    if (act.date && typeof act.date === 'string') {
-      const trimmed = act.date.trim();
+    const raw = act.date || act.group || act.createdAt || act.timestamp || '';
+
+    // Dynamic Today / Yesterday resolution
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayISO = `${y}-${m}-${d}`;
+
+    const yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    const yy = yest.getFullYear();
+    const ym = String(yest.getMonth() + 1).padStart(2, '0');
+    const yd = String(yest.getDate()).padStart(2, '0');
+    const yestISO = `${yy}-${ym}-${yd}`;
+
+    if (!raw) return todayISO;
+
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
       if (trimmed.includes('T')) return trimmed.split('T')[0];
     }
-    const g = (((act.group || '') + ' ' + (act.date || '')).toLowerCase());
-    if (g.includes('today') || g.includes('sep 8') || g.includes('sep 08') || g.includes('tue')) return '2026-09-08';
-    if (g.includes('yesterday') || g.includes('sep 7') || g.includes('sep 07') || g.includes('mon')) return '2026-09-07';
-    if (g.includes('sep 13')) return '2026-09-13';
-    if (g.includes('sep 12')) return '2026-09-12';
-    if (g.includes('sep 11') || g.includes('fri')) return '2026-09-11';
-    if (g.includes('sep 10') || g.includes('thu')) return '2026-09-10';
-    if (g.includes('sep 9') || g.includes('sep 09') || g.includes('wed')) return '2026-09-09';
-    if (g.includes('sep 4') || g.includes('sep 04')) return '2026-09-04';
-    if (g.includes('sep 3') || g.includes('sep 03')) return '2026-09-03';
-    if (g.includes('sep 2') || g.includes('sep 02')) return '2026-09-02';
-    if (g.includes('sep 1') || g.includes('sep 01')) return '2026-09-01';
-    if (g.includes('aug 31') || g.includes('31')) return '2026-08-31';
-    if (/aug(ust)?\s*28|\b28\b/i.test(g)) return '2026-08-28';
-    if (/aug(ust)?\s*27|\b27\b/i.test(g)) return '2026-08-27';
-    if (/aug(ust)?\s*26|\b26\b/i.test(g)) return '2026-08-26';
-    if (/aug(ust)?\s*25|\b25\b/i.test(g)) return '2026-08-25';
-    if (/aug(ust)?\s*24|\b24\b/i.test(g)) return '2026-08-24';
-    if (/aug(ust)?\s*17|\b17\b/i.test(g)) return '2026-08-17';
-    return '2026-09-08';
+
+    const str = String(raw).trim().toLowerCase();
+    if (str.includes('today')) return todayISO;
+    if (str.includes('yesterday')) return yestISO;
+
+    const monthMap = {
+      jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+      jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+    };
+
+    const monthDayMatch = str.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:[,\s]+(\d{4}))?/i);
+    if (monthDayMatch) {
+      const mm = monthMap[monthDayMatch[1].toLowerCase().slice(0, 3)];
+      const dd = String(monthDayMatch[2]).padStart(2, '0');
+      const yr = monthDayMatch[3] || String(now.getFullYear());
+      return `${yr}-${mm}-${dd}`;
+    }
+
+    const dayMonthMatch = str.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[,\s]+(\d{4}))?/i);
+    if (dayMonthMatch) {
+      const dd = String(dayMonthMatch[1]).padStart(2, '0');
+      const mm = monthMap[dayMonthMatch[2].toLowerCase().slice(0, 3)];
+      const yr = dayMonthMatch[3] || String(now.getFullYear());
+      return `${yr}-${mm}-${dd}`;
+    }
+
+    try {
+      const parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        const yr = parsed.getFullYear();
+        const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+        const da = String(parsed.getDate()).padStart(2, '0');
+        return `${yr}-${mo}-${da}`;
+      }
+    } catch (e) {}
+
+    return todayISO;
   };
 
   const getWeekISODates = (weekOffset = 0) => {
-    const baseDate = new Date(2026, 8, 8); // Active anchor date: Tue, Sep 8, 2026 (Today)
+    const baseDate = new Date(); // Real-time live date
     const dayOfWeek = (baseDate.getDay() + 6) % 7; // 0 for Mon ... 6 for Sun
     const monday = new Date(baseDate);
     monday.setDate(baseDate.getDate() - dayOfWeek + (weekOffset * 7));
@@ -632,7 +708,7 @@ try {
 
     let computedISO = entry.date;
     if (!computedISO || !computedISO.includes('-')) {
-      computedISO = getActivityDate({ group: entry.group, date: entry.date }) || '2026-09-08';
+      computedISO = getActivityDate({ group: entry.group, date: entry.date });
     }
 
     const dayKey = getDayKeyFromGroup(entry.group, computedISO);
@@ -1058,26 +1134,40 @@ try {
   };
 
   const handleDuplicateActivity = (act) => {
+    const now = new Date();
+    const yr = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
+    const da = String(now.getDate()).padStart(2, '0');
+    const todayISO = `${yr}-${mo}-${da}`;
+
     const duplicated = {
       ...act,
-      id: `act-${Date.now()}`,
-      group: 'Today',
+      id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      date: act.date || todayISO,
+      group: act.group || 'Today',
       startTime: getCurrentTimeFormatted(),
       endTime: getCurrentTimeFormatted(),
     };
-    setActivities((prev) => [duplicated, ...prev]);
+    setActivities((prev) => [duplicated, ...(prev || [])]);
+    api.addActivity(duplicated).catch(() => {});
   };
 
   const handleStopTimer = () => {
     const duration = activeTimer.elapsedSeconds;
     if (duration > 0) {
+      const now = new Date();
+      const yr = now.getFullYear();
+      const mo = String(now.getMonth() + 1).padStart(2, '0');
+      const da = String(now.getDate()).padStart(2, '0');
+      const todayISO = `${yr}-${mo}-${da}`;
+
       const formatted = formatSecondsToHMS(duration);
       handleAddManualEntry({
         project: activeTimer.projectName || 'General Task',
         projectColor: activeTimer.projectColor || '#10b981',
         description: activeTimer.taskDescription || 'Working session',
         group: 'Today',
-        date: '2026-09-08',
+        date: todayISO,
         startTime: activeTimer.startedAt || getCurrentTimeFormatted(),
         endTime: getCurrentTimeFormatted(),
         durationFormatted: formatted,
