@@ -294,6 +294,23 @@ function parseReportDateRange(rangeStr) {
   return { start: '2026-08-31', end: '2026-09-06', label: rangeStr, type: 'week', isSingleDay: false };
 }
 
+function getLiveThisWeekRange() {
+  const now = new Date();
+  const dayOfWeek = (now.getDay() + 6) % 7; // 0 for Mon ... 6 for Sun
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - dayOfWeek);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+
+  const m1 = MONTH_NAMES_SHORT[mon.getMonth()];
+  const d1 = mon.getDate();
+  const m2 = MONTH_NAMES_SHORT[sun.getMonth()];
+  const d2 = sun.getDate();
+
+  const rangeLabel = m1 === m2 ? `${m1} ${d1} - ${d2}` : `${m1} ${d1} - ${m2} ${d2}`;
+  return `This week (${rangeLabel})`;
+}
+
 function shiftDateRange(currentRangeStr, direction) {
   const parsed = parseReportDateRange(currentRangeStr);
   const startDt = new Date(parsed.start + 'T00:00:00');
@@ -481,8 +498,8 @@ export default function ReportsPage({
   };
 
   // Date selection state
-  const [selectedRange, setSelectedRange] = useState('This week (Aug 31 - Sep 6)');
-  const [appliedRange, setAppliedRange] = useState('This week (Aug 31 - Sep 6)');
+  const [selectedRange, setSelectedRange] = useState(() => getLiveThisWeekRange());
+  const [appliedRange, setAppliedRange] = useState(() => getLiveThisWeekRange());
   
   // Exact Clockify Filter States (Multi-select arrays):
   // FILTER | Team | Client | Project | Task | Tag | Status | Description | Kiosk
@@ -860,6 +877,9 @@ export default function ReportsPage({
 
   // 2. Filter timesheetRows by all active filters
   const filteredRows = useMemo(() => {
+    if (currentUser?.role !== 'admin') {
+      return []; // Non-admins only see their own activities, never global demo rows!
+    }
     return (timesheetRows || []).filter(r => {
       // 1. Project
       if (appliedProject && appliedProject.length > 0) {
@@ -1350,6 +1370,22 @@ export default function ReportsPage({
       };
     }
 
+    if (currentUser?.role !== 'admin') {
+      return {
+        kpi1Label: 'My Total Tracked',
+        kpi1Val: liveTotalTime,
+        kpi1Color: '#00cc00',
+
+        kpi2Label: 'Assigned Projects',
+        kpi2Val: `${projectBreakdownList.length} Active Projects`,
+        kpi2Color: '#f59e0b',
+
+        kpi3Label: 'Member Status',
+        kpi3Val: 'Active Member',
+        kpi3Color: '#10b981'
+      };
+    }
+
     const uniqueLoggedUsers = Array.from(new Set((activities || []).map(a => a.user || a.userName || a.userEmail).filter(Boolean))).length || 5;
 
     return {
@@ -1365,7 +1401,7 @@ export default function ReportsPage({
       kpi3Val: `${uniqueLoggedUsers} / ${(usersList || []).length || 5} Members`,
       kpi3Color: '#10b981'
     };
-  }, [appliedTeam, liveTotalTime, projectBreakdownList, activities, projects.length, usersList.length]);
+  }, [appliedTeam, liveTotalTime, projectBreakdownList, activities, projects.length, usersList.length, currentUser]);
 
   // Attendance & Shifts computation - Dynamically built for all workspace team members (Daily Date Only)
   const attendanceLogsList = useMemo(() => {
