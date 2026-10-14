@@ -280,6 +280,49 @@ try {
     return () => { isMounted = false; };
   }, []);
 
+  // Scoped activities based on user role:
+  // - Admin (role === 'admin'): sees ALL activities across the entire team
+  // - Employee (role !== 'admin'): sees ONLY their own activities
+  const effectiveActivities = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'admin') return activities;
+
+    const myName = (currentUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+    const myEmail = (currentUser.email || '').trim().toLowerCase();
+    const myId = currentUser.id ? String(currentUser.id) : '';
+
+    return (activities || []).filter((act) => {
+      const actUser = (act.user || act.userName || act.user_name || act.member || act.assignedTo || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+      const actEmail = (act.userEmail || act.email || '').trim().toLowerCase();
+      const actId = (act.userId || act.user_id) ? String(act.userId || act.user_id) : '';
+
+      if (myId && actId && myId === actId) return true;
+      if (myEmail && actEmail && myEmail === actEmail) return true;
+      if (myName && actUser && (actUser === myName || actUser.includes(myName) || myName.includes(actUser))) return true;
+      return false;
+    });
+  }, [activities, currentUser]);
+
+  // Permission helper: Admin can edit/delete anything; Employees can only edit/delete their own entries
+  const canEditActivity = (act) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    if (!act) return false;
+
+    const myName = (currentUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+    const myEmail = (currentUser.email || '').trim().toLowerCase();
+    const myId = currentUser.id ? String(currentUser.id) : '';
+
+    const actUser = (act.user || act.userName || act.user_name || act.member || act.assignedTo || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+    const actEmail = (act.userEmail || act.email || '').trim().toLowerCase();
+    const actId = (act.userId || act.user_id) ? String(act.userId || act.user_id) : '';
+
+    if (myId && actId && myId === actId) return true;
+    if (myEmail && actEmail && myEmail === actEmail) return true;
+    if (myName && actUser && (actUser === myName || actUser.includes(myName) || myName.includes(actUser))) return true;
+    return false;
+  };
+
   const handlePageChange = (newPage) => {
     setActivePage(newPage);
     setGlobalSearchQuery('');
@@ -588,16 +631,25 @@ try {
   };
 
   const getDayKeyFromGroup = (group, dateStr) => {
-    if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      const dayObj = new Date(y, m - 1, d);
-      const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-      return keys[dayObj.getDay()];
+    if (dateStr) {
+      const match = String(dateStr).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (match) {
+        const [, y, m, d] = match;
+        const dayObj = new Date(Number(y), Number(m) - 1, Number(d));
+        const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        return keys[dayObj.getDay()];
+      }
     }
-    if (!group) return 'tue';
-    const g = group.toLowerCase();
-    if (g.includes('today') || g.includes('sep 1')) return 'tue';
-    if (g.includes('yesterday') || g.includes('aug 31')) return 'mon';
+    const now = new Date();
+    const keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    if (!group) return keys[now.getDay()];
+    const g = String(group).toLowerCase().trim();
+    if (g.includes('today')) return keys[now.getDay()];
+    if (g.includes('yesterday')) {
+      const yest = new Date(now);
+      yest.setDate(yest.getDate() - 1);
+      return keys[yest.getDay()];
+    }
     if (g.includes('mon')) return 'mon';
     if (g.includes('tue')) return 'tue';
     if (g.includes('wed')) return 'wed';
@@ -605,7 +657,7 @@ try {
     if (g.includes('fri')) return 'fri';
     if (g.includes('sat')) return 'sat';
     if (g.includes('sun')) return 'sun';
-    return 'tue';
+    return keys[now.getDay()];
   };
 
   // State for Calendar Schedule
@@ -634,7 +686,16 @@ try {
     if (typeof raw === 'string') {
       const trimmed = raw.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-      if (trimmed.includes('T')) return trimmed.split('T')[0];
+      if (trimmed.includes('T')) {
+        const parsed = new Date(trimmed);
+        if (!isNaN(parsed.getTime())) {
+          const yr = parsed.getFullYear();
+          const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+          const da = String(parsed.getDate()).padStart(2, '0');
+          return `${yr}-${mo}-${da}`;
+        }
+        return trimmed.split('T')[0];
+      }
     }
 
     const str = String(raw).trim().toLowerCase();
@@ -675,6 +736,32 @@ try {
     return todayISO;
   };
 
+  const getDisplayLabelForDate = (isoDate) => {
+    if (!isoDate) return 'Today';
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayISO = `${y}-${m}-${d}`;
+
+    const yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    const yestISO = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+
+    if (isoDate === todayISO) return 'Today';
+    if (isoDate === yestISO) return 'Yesterday';
+
+    const parts = isoDate.split('-').map(Number);
+    if (parts.length === 3) {
+      const [yr, mo, da] = parts;
+      const dateObj = new Date(yr, mo - 1, da);
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${dayNames[dateObj.getDay()]}, ${monthNames[mo - 1]} ${String(da).padStart(2, '0')}`;
+    }
+    return isoDate;
+  };
+
   const getWeekISODates = (weekOffset = 0) => {
     const baseDate = new Date(); // Real-time live date
     const dayOfWeek = (baseDate.getDay() + 6) % 7; // 0 for Mon ... 6 for Sun
@@ -712,13 +799,18 @@ try {
     }
 
     const dayKey = getDayKeyFromGroup(entry.group, computedISO);
+    const dynamicGroup = getDisplayLabelForDate(computedISO);
+
+    const userName = currentUser?.name || 'Bharath (Owner)';
+    const userEmail = currentUser?.email || '';
+    const userId = currentUser?.id || '';
 
     const newAct = {
       id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       project: entry.project || 'General Task',
       projectColor: entry.projectColor || '#10b981',
       description: entry.description || 'Tracked session',
-      group: entry.group || 'Today',
+      group: dynamicGroup,
       date: computedISO,
       startTime: entry.startTime || '09:00 AM',
       endTime: entry.endTime || '05:00 PM',
@@ -726,9 +818,12 @@ try {
       durationFormatted: formattedDuration,
       billable: entry.billable !== undefined ? entry.billable : true,
       status: 'Completed',
-      userEmail: currentUser?.email,
-      userName: currentUser?.name || 'Bharath (Owner)',
-      userId: currentUser?.id,
+      user: userName,
+      userName: userName,
+      user_name: userName,
+      userEmail: userEmail,
+      email: userEmail,
+      userId: userId,
     };
 
     // 1. Update Time Tracker Activities & MySQL
@@ -852,6 +947,13 @@ try {
       return;
     }
     if (!actId) return;
+
+    const targetAct = (activities || []).find(a => String(a.id) === String(actId));
+    if (targetAct && !canEditActivity(targetAct)) {
+      alert('Access Restricted: You can only delete your own time entries.');
+      return;
+    }
+
     setActivities((prev) => prev.filter((a) => a.id !== actId));
     api.deleteActivity(actId).catch(e => console.warn('Backend sync failed:', e));
   };
@@ -866,6 +968,12 @@ try {
       return;
     }
     if (!actId || !updates) return;
+
+    const targetAct = (activities || []).find(a => String(a.id) === String(actId));
+    if (targetAct && !canEditActivity(targetAct)) {
+      alert('Access Restricted: You can only edit your own time entries.');
+      return;
+    }
 
     setActivities((prev) => {
       const updated = (prev || []).map((a) => {
@@ -896,6 +1004,12 @@ try {
       return;
     }
     if (!actId) return;
+
+    const targetAct = (activities || []).find(a => String(a.id) === String(actId));
+    if (targetAct && !canEditActivity(targetAct)) {
+      alert('Access Restricted: You can only change dates for your own time entries.');
+      return;
+    }
 
     setActivities((prev) => {
       const updated = (prev || []).map((a) => {
@@ -1017,10 +1131,23 @@ try {
 
     // 1. Update activities state & MySQL backend
     setActivities((prev) => {
+      const targetUser = (userName || currentUser?.name || '').trim().toLowerCase();
+      const targetEmail = (userEmail || currentUser?.email || '').trim().toLowerCase();
+
       const existingActs = prev.filter((a) => {
         const matchProj = (a.project || '').trim().toLowerCase() === projectName.trim().toLowerCase();
         const matchDate = a.date ? a.date === targetISO : false;
-        return matchProj && matchDate;
+        if (!matchProj || !matchDate) return false;
+
+        // If employee (non-admin), or specific user targeted, match user ownership
+        if (currentUser?.role !== 'admin' || targetUser) {
+          const actUser = (a.user || a.userName || a.user_name || '').trim().toLowerCase();
+          const actEmail = (a.userEmail || a.email || '').trim().toLowerCase();
+          if (targetEmail && actEmail && targetEmail === actEmail) return true;
+          if (targetUser && actUser && (targetUser === actUser || actUser.includes(targetUser) || targetUser.includes(actUser))) return true;
+          return false;
+        }
+        return true;
       });
 
       if (isCleared) {
@@ -1065,9 +1192,12 @@ try {
           durationSeconds: durSec,
           billable: true,
           status: 'Completed',
-          userEmail: userEmail || currentUser?.email,
-          userName: userName || currentUser?.name,
-          userId: userId || currentUser?.id,
+          user: userName || currentUser?.name || 'Bharath (Owner)',
+          userName: userName || currentUser?.name || 'Bharath (Owner)',
+          user_name: userName || currentUser?.name || 'Bharath (Owner)',
+          userEmail: userEmail || currentUser?.email || '',
+          email: userEmail || currentUser?.email || '',
+          userId: userId || currentUser?.id || '',
         };
 
         api.addActivity(newAct).catch(() => {});
@@ -1246,7 +1376,7 @@ try {
           }}
           setSettingsTab={setSettingsTab}
           projects={projects}
-          activities={activities}
+          activities={effectiveActivities}
           searchQuery={globalSearchQuery}
           setSearchQuery={setGlobalSearchQuery}
           currentUser={effectiveUser}
@@ -1259,7 +1389,7 @@ try {
             <SharedPublicReportPage
               token={sharedToken}
               currentUser={effectiveUser}
-              activities={activities}
+              activities={effectiveActivities}
               projects={projects}
               timesheetRows={timesheetRows}
               onBackToApp={() => {
@@ -1278,7 +1408,7 @@ try {
               projects={projects}
               onCreateProject={handleCreateProject}
               searchQuery={globalSearchQuery}
-              activities={activities}
+              activities={effectiveActivities}
               onAddManualEntry={handleAddManualEntry}
               onUpdateTimesheetCell={handleUpdateTimesheetCell}
               onDeleteProjectActivities={handleDeleteProjectActivities}
@@ -1292,7 +1422,7 @@ try {
           {!sharedToken && activePage === 'time-tracker' && (
             <TimeTrackerPage
               projects={projects}
-              activities={activities}
+              activities={effectiveActivities}
               onAddManualEntry={handleAddManualEntry}
               onCreateProject={handleCreateProject}
               searchQuery={globalSearchQuery}
@@ -1313,7 +1443,7 @@ try {
               calendarSchedule={calendarSchedule}
               onUpdateCalendarSchedule={setCalendarSchedule}
               activeTimer={activeTimer}
-              activities={activities}
+              activities={effectiveActivities}
               timesheetRows={timesheetRows}
               projects={projects}
               onAddManualEntry={handleAddManualEntry}
@@ -1324,7 +1454,7 @@ try {
           {!sharedToken && activePage === 'dashboard' && (
             <DashboardPage
               timesheetRows={timesheetRows}
-              activities={activities}
+              activities={effectiveActivities}
               projects={projects}
               usersList={usersList}
               currentUser={effectiveUser}
@@ -1334,7 +1464,7 @@ try {
           {!sharedToken && activePage === 'reports' && (
             <ReportsPage
               timesheetRows={timesheetRows}
-              activities={activities}
+              activities={effectiveActivities}
               projects={projects}
               searchQuery={globalSearchQuery}
               currentUser={effectiveUser}
@@ -1348,7 +1478,7 @@ try {
               onCreateProject={handleCreateProject}
               searchQuery={globalSearchQuery}
               currentUser={effectiveUser}
-              activities={activities}
+              activities={effectiveActivities}
               timesheetRows={timesheetRows}
             />
           )}

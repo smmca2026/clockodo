@@ -112,7 +112,16 @@ export default function TimesheetTable({
     if (typeof raw === 'string') {
       const trimmed = raw.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-      if (trimmed.includes('T')) return trimmed.split('T')[0];
+      if (trimmed.includes('T')) {
+        const parsed = new Date(trimmed);
+        if (!isNaN(parsed.getTime())) {
+          const yr = parsed.getFullYear();
+          const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+          const da = String(parsed.getDate()).padStart(2, '0');
+          return `${yr}-${mo}-${da}`;
+        }
+        return trimmed.split('T')[0];
+      }
     }
 
     const str = String(raw).trim().toLowerCase();
@@ -174,7 +183,6 @@ export default function TimesheetTable({
 
         if (curEmail && actEmail && curEmail === actEmail) return true;
         if (curName && actUser && (actUser.includes(curName) || curName.includes(actUser))) return true;
-        if (!actEmail && !actUser) return true;
         return false;
       });
     }
@@ -354,8 +362,8 @@ export default function TimesheetTable({
   }, [weekOffset, allDaysConfig]);
 
   // Calendar month state
-  const [calDate, setCalDate] = useState(new Date(2026, 8, 1)); // September 2026
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 8, 1)); // single date selection
+  const [calDate, setCalDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
 
   // Generate 35 / 42 cells calendar grid
   const calendarGrid = useMemo(() => {
@@ -391,7 +399,7 @@ export default function TimesheetTable({
     }
 
     // Selected week boundary (Monday to Sunday) based on weekOffset
-    const baseDate = new Date(2026, 8, 8); // Anchor date: Tue, Sep 8, 2026 (Today)
+    const baseDate = new Date(); // Real-time live date
     const dayOfWeek = (baseDate.getDay() + 6) % 7;
     const selectedMonday = new Date(baseDate);
     selectedMonday.setDate(baseDate.getDate() - dayOfWeek + weekOffset * 7);
@@ -433,7 +441,7 @@ export default function TimesheetTable({
     clickedMonday.setDate(dayDate.getDate() + diffToMon);
     clickedMonday.setHours(0, 0, 0, 0);
 
-    const baseDate = new Date(2026, 8, 8);
+    const baseDate = new Date();
     const dayOfWeekBase = (baseDate.getDay() + 6) % 7;
     const baseMonday = new Date(baseDate);
     baseMonday.setDate(baseDate.getDate() - dayOfWeekBase);
@@ -446,7 +454,7 @@ export default function TimesheetTable({
   };
 
   const selectedRangeText = useMemo(() => {
-    const baseDate = new Date(2026, 8, 8);
+    const baseDate = new Date();
     const dayOfWeek = (baseDate.getDay() + 6) % 7;
     const mon = new Date(baseDate);
     mon.setDate(baseDate.getDate() - dayOfWeek + weekOffset * 7);

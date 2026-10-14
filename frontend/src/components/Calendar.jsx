@@ -35,7 +35,16 @@ function getActivityDate(act) {
   if (typeof raw === 'string') {
     const trimmed = raw.trim();
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-    if (trimmed.includes('T')) return trimmed.split('T')[0];
+    if (trimmed.includes('T')) {
+      const parsed = new Date(trimmed);
+      if (!isNaN(parsed.getTime())) {
+        const yr = parsed.getFullYear();
+        const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+        const da = String(parsed.getDate()).padStart(2, '0');
+        return `${yr}-${mo}-${da}`;
+      }
+      return trimmed.split('T')[0];
+    }
   }
 
   const str = String(raw).trim().toLowerCase();
@@ -120,9 +129,10 @@ export default function Calendar({
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDayDate, setSelectedDayDate] = useState(() => new Date());
 
-  // Helper to match activities for the currently logged in user (Admin / Employee personal scoping)
+  // Helper to match activities for the currently logged in user (Admin sees all; Employee personal scoping)
   const userFilteredActivities = useMemo(() => {
     if (!currentUser) return activities;
+    if (currentUser.role === 'admin') return activities;
     const myName = (currentUser.name || '').trim().toLowerCase();
     const myEmail = (currentUser.email || '').trim().toLowerCase();
     const myId = currentUser.id ? String(currentUser.id) : '';
@@ -135,7 +145,6 @@ export default function Calendar({
       if (myId && actUserId && myId === actUserId) return true;
       if (myEmail && actEmail && myEmail === actEmail) return true;
       if (myName && actUser && (actUser === myName || actUser.includes(myName) || myName.includes(actUser))) return true;
-      if (!actUser && !actEmail && !actUserId) return true; // legacy local items created in current session
       return false;
     });
   }, [activities, currentUser]);
