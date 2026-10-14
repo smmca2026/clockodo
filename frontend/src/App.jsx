@@ -1,6 +1,6 @@
 import { api } from './services/api';
 import { ShieldAlert, Ban, X as CloseIcon, LogIn } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import './index.css';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
