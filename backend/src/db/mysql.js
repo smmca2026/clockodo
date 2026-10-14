@@ -352,19 +352,36 @@ async function syncStoreWithMysql() {
 
 async function tryConnectMysql() {
   try {
-    const rootConn = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || 'Digi@2024'
-    });
-    await rootConn.query('CREATE DATABASE IF NOT EXISTS clockodo_db');
-    await rootConn.end();
-
+    // 1. Direct connection to the configured database
     mysqlPool = createRealPool();
-    const [test] = await mysqlPool.query('SELECT 1');
+    await mysqlPool.query('SELECT 1');
     isMysqlConnected = true;
-    console.log('✅ MySQL Live Connection Established (clockodo_db)!');
+    console.log(`✅ MySQL Live Connection Established (${process.env.DB_NAME || 'clockodo'})!`);
+  } catch (directErr) {
+    // 2. Fallback: try creating database if permissions allow
+    try {
+      const rootConn = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || 'Digi@2024'
+      });
+      await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME || 'clockodo'}\``);
+      await rootConn.end();
 
+      mysqlPool = createRealPool();
+      await mysqlPool.query('SELECT 1');
+      isMysqlConnected = true;
+      console.log(`✅ MySQL Live Connection Established (${process.env.DB_NAME || 'clockodo'})!`);
+    } catch (err) {
+      console.warn('MySQL Direct Connection failed:', directErr.message);
+      console.warn('MySQL Create DB failed:', err.message);
+      isMysqlConnected = false;
+      console.log('ℹ️  MySQL Service is currently offline. Active in Persistent Dual-Storage Mode (db_store.json).');
+      return;
+    }
+  }
+
+  try {
     await mysqlPool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(50) PRIMARY KEY,
