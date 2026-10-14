@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const { initDatabase } = require('./db/mysql');
 const authRoutes = require('./routes/authRoutes');
@@ -52,7 +54,6 @@ app.use((err, req, res, next) => {
 });
 
 
-const path = require('path');
 const frontendDist = path.join(__dirname, '../../frontend/dist');
 if (require('fs').existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
