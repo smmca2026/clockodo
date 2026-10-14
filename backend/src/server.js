@@ -14,11 +14,12 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+// Default to 3022 matching VPS Nginx reverse proxy configuration
+const PORT = process.env.PORT || 3022;
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -34,7 +35,7 @@ app.get(['/api/health', '/health'], (req, res) => {
   res.json({
     status: 'ok',
     service: 'Clockodo MySQL REST API Backend',
-    database: 'MySQL (clockodo_db)',
+    database: 'MySQL (clockodo)',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
@@ -53,22 +54,24 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
 });
 
+// Prevent server crash from unhandled exceptions
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception in Node process (prevented crash):', err);
+});
 
-const frontendDist = path.join(__dirname, '../../frontend/dist');
-if (require('fs').existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/health')) {
-      return next();
-    }
-    res.sendFile(path.join(frontendDist, 'index.html'));
-  });
-}
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection in Node process (prevented crash):', reason);
+});
 
-initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Clockodo MySQL REST API Backend Server is RUNNING on port ${PORT}`);
-  });
-}).catch(err => {
-  console.error('Fatal: Failed to connect to MySQL database:', err);
+// Start listening immediately on 0.0.0.0 to guarantee Nginx proxy never hits 502 Bad Gateway
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Clockodo REST API Backend is LIVE & LISTENING on 0.0.0.0:${PORT}`);
+});
+
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+
+// Initialize database in background without blocking HTTP server
+initDatabase().catch(err => {
+  console.error('Database initialization warning:', err);
 });
