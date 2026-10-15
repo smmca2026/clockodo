@@ -5526,8 +5526,8 @@ export const INITIAL_PROJECTS = [
 export const INITIAL_USERS = [
   {
     "id": "usr-admin-1",
-    "name": "Bharath (Owner)",
-    "username": "bharath_owner",
+    "name": "Bharath",
+    "username": "bharath",
     "email": "bharath@digiplusagency.com",
     "password": "1234567890",
     "role": "admin",
@@ -5535,7 +5535,7 @@ export const INITIAL_USERS = [
     "department": "Management / Executive",
     "active": true,
     "accessGranted": true,
-    "avatarInitials": "BO",
+    "avatarInitials": "B",
     "avatarColor": "#10b981",
     "workspace": "DigiPlus"
   },

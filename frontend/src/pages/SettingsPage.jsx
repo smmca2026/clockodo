@@ -646,7 +646,7 @@ export default function SettingsPage({
                       <span>Admin Account Security & Password</span>
                     </h3>
                     <p className="settings-section-desc">
-                      Update the login password for the primary workspace Administrator account (<strong>Bharath (Owner)</strong>).
+                      Update the login password for the primary workspace Administrator account (<strong>Bharath</strong>).
                     </p>
                   </div>
                 </div>
@@ -667,11 +667,11 @@ export default function SettingsPage({
                         fontWeight: 800,
                         fontSize: '15px'
                       }}>
-                        {currentUser?.avatarInitials || 'BO'}
+                        {((currentUser?.avatarInitials === 'BO' || currentUser?.avatarInitials === 'B(') ? 'B' : (currentUser?.avatarInitials || 'B'))}
                       </div>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>{currentUser?.name || 'Bharath (Owner)'}</span>
+                          <span>{(currentUser?.name || 'Bharath').replace(/\s*\(Owner\)/gi, '').trim()}</span>
                           <span style={{ fontSize: '10.5px', background: 'rgba(0,204,0,0.12)', color: '#00cc00', border: '1px solid rgba(0,204,0,0.3)', padding: '1px 7px', borderRadius: '4px', fontWeight: 800 }}>
                             👑 Primary Admin
                           </span>

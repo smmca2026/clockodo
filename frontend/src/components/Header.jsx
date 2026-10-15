@@ -111,7 +111,7 @@ export default function Header({
     ).slice(0, 5);
 
     const list = usersList && usersList.length > 0 ? usersList : [
-      { id: 'usr-admin-1', name: 'Bharath (Owner)', role: 'Owner', group: 'Management / Executive' }
+      { id: 'usr-admin-1', name: 'Bharath', role: 'Admin', group: 'Management / Executive' }
     ];
     const matchedTeam = list.filter(m => 
       (m.name && m.name.toLowerCase().includes(q)) || 
@@ -130,13 +130,18 @@ export default function Header({
 
   // Dynamically compute avatar initials from whatever name is configured
   const getInitials = (name) => {
-    if (!name) return 'DA';
-    const words = name.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    if (!name) return 'B';
+    const clean = name.replace(/\s*\(Owner\)/gi, '').trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return 'B';
+    if (words.length === 1) return words[0].substring(0, 1).toUpperCase();
     return (words[0][0] + words[words.length - 1][0]).toUpperCase();
   };
 
-  const userInitials = getInitials(USER_PROFILE.name);
+  const displayName = (currentUser?.name || USER_PROFILE.name || 'Bharath').replace(/\s*\(Owner\)/gi, '').trim();
+  const userInitials = (currentUser?.avatarInitials === 'BO' || currentUser?.avatarInitials === 'B(') 
+    ? 'B' 
+    : (currentUser?.avatarInitials || getInitials(displayName));
 
   const getPageMeta = () => {
     switch (activePage) {
@@ -163,7 +168,7 @@ export default function Header({
       case 'time-tracker':
         return {
           title: 'Time Tracker',
-          subtitle: 'Monitor working sessions, log billable hours, and analyze focus time',
+          subtitle: 'Monitor working sessions, log work hours, and analyze focus time',
         };
       case 'timesheet':
         return {
@@ -677,9 +682,9 @@ export default function Header({
             title="User Profile & Account"
           >
             <div className="user-menu-avatar" style={{ background: (currentUser?.role === 'admin') ? 'var(--grad-primary)' : '#16202c', color: (currentUser?.role === 'admin') ? '#04261b' : '#34d399' }}>
-              {currentUser?.avatarInitials || userInitials}
+              {userInitials}
             </div>
-            <span className="user-menu-name">{currentUser?.name || USER_PROFILE.name}</span>
+            <span className="user-menu-name">{displayName}</span>
             <ChevronDown size={14} color="#64748b" />
           </div>
 
@@ -687,11 +692,11 @@ export default function Header({
             <div className="profile-mini-popover" style={{ width: '280px', padding: '16px' }}>
               <div className="profile-popover-header">
                 <div className="profile-popover-avatar" style={{ background: (currentUser?.role === 'admin') ? 'var(--grad-primary)' : '#16202c', color: (currentUser?.role === 'admin') ? '#04261b' : '#34d399' }}>
-                  {currentUser?.avatarInitials || userInitials}
+                  {userInitials}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div className="profile-popover-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {currentUser?.name || USER_PROFILE.name}
+                    {displayName}
                   </div>
                   <div className="profile-popover-email" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {currentUser?.email || USER_PROFILE.email}

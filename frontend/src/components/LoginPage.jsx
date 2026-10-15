@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Clock, 
-  ShieldCheck, 
-  User, 
-  Lock, 
-  Mail, 
-  ArrowRight, 
-  AlertCircle, 
-  CheckCircle2, 
-  Eye, 
+import {
+  Clock,
+  ShieldCheck,
+  User,
+  Lock,
+  Mail,
+  ArrowRight,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
   EyeOff,
   UserPlus,
   LogIn,
@@ -20,7 +20,7 @@ import { INITIAL_USERS } from '../data/mockData';
 
 export default function LoginPage({ usersList = [], onLogin, onRegister }) {
   const [viewMode, setViewMode] = useState('login'); // 'login' | 'register'
-  
+
   // Login State
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -58,20 +58,20 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
     if (isAdminUser && (isCompanyPass || cleanPass.length > 0)) {
       const adminUser = {
         id: 'usr-admin-1',
-        name: 'Bharath (Owner)',
-        username: 'bharath_owner',
+        name: 'Bharath',
+        username: 'bharath',
         email: 'bharath@digiplusagency.com',
         role: 'admin',
         department: 'Management / Executive',
         active: true,
         accessGranted: true,
-        avatarInitials: 'BO',
+        avatarInitials: 'B',
         avatarColor: '#10b981',
         workspace: 'DigiPlus'
       };
-      try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => {}); } catch (e) {}
+      try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => { }); } catch (e) { }
       setLoading(false);
-      setSuccessMessage('Welcome back, Bharath (Owner)! Logging you in...');
+      setSuccessMessage('Welcome back, Bharath! Logging you in...');
       setTimeout(() => { onLogin(adminUser); }, 150);
       return;
     }
@@ -82,10 +82,10 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
       const parsed1 = JSON.parse(localStorage.getItem('clockodo_registered_users_v3') || '[]');
       const parsed2 = JSON.parse(localStorage.getItem('clockodo_users_list') || '[]');
       localStoredUsers = [...parsed1, ...parsed2];
-    } catch (e) {}
+    } catch (e) { }
 
     const allCombined = [...INITIAL_USERS, ...(usersList || []), ...localStoredUsers];
-    let matchedUser = allCombined.find(u => 
+    let matchedUser = allCombined.find(u =>
       u && (
         (u.email && u.email.toLowerCase() === cleanInput) ||
         (u.username && u.username.toLowerCase() === cleanInput)
@@ -116,7 +116,7 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
         workspace: 'DigiPlus'
       };
 
-      try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => {}); } catch (e) {}
+      try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => { }); } catch (e) { }
 
       setLoading(false);
       setSuccessMessage(`Welcome back, ${employeeUser.name}! Logging you in...`);
@@ -133,7 +133,7 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
         setTimeout(() => { onLogin(res.user); }, 150);
         return;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     setLoading(false);
     setErrorMessage('Incorrect password. Please use company password Digi@2024 or contact Administrator.');

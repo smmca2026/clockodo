@@ -51,8 +51,8 @@ async function fallbackQuery(sql, params = []) {
   if (lowerSql.startsWith('select') && lowerSql.includes('from users')) {
     if (lowerSql.includes('where id = ? or lower(email) = lower(?)') || lowerSql.includes('lower(username) = lower(?)')) {
       const p = String(params[0] || '').toLowerCase();
-      list = list.filter(u => 
-        u.id === params[0] || 
+      list = list.filter(u =>
+        u.id === params[0] ||
         (u.email && u.email.toLowerCase() === p) ||
         (u.username && u.username.toLowerCase() === p) ||
         (u.name && u.name.toLowerCase() === p) ||
@@ -64,14 +64,14 @@ async function fallbackQuery(sql, params = []) {
       list = list.filter(u => u.id === params[0]);
     } else if (lowerSql.includes('where') && (lowerSql.includes('or') || lowerSql.includes('admin') || lowerSql.includes('username'))) {
       const p1 = String(params[0] || '').toLowerCase();
-      list = list.filter(u => 
-        (u.email && u.email.toLowerCase() === p1) || 
+      list = list.filter(u =>
+        (u.email && u.email.toLowerCase() === p1) ||
         (u.username && u.username.toLowerCase() === p1) ||
         (u.role === 'admin' && (
-          p1 === 'admin' || 
-          p1 === 'bharath' || 
-          p1 === 'bharath_owner' ||
-          p1.includes('admin') || 
+          p1 === 'admin' ||
+          p1 === 'bharath' ||
+          p1 === 'bharath' ||
+          p1.includes('admin') ||
           p1.includes('bharath') ||
           p1 === 'admin@digiplusagency.com' ||
           p1 === 'bharath@digiplusagency.com' ||
@@ -166,7 +166,7 @@ async function fallbackQuery(sql, params = []) {
   if (lowerSql.startsWith('insert into projects')) {
     const [id, name, client, color, tracked_hours, budget, hourly_rate, is_billable] = params;
     const newProj = {
-      id, name, client, color, 
+      id, name, client, color,
       tracked_hours: tracked_hours || '00:00',
       budget: budget || '40h',
       hourly_rate: hourly_rate || 85.00,
@@ -197,10 +197,10 @@ async function fallbackQuery(sql, params = []) {
   if (lowerSql.startsWith('insert into activities')) {
     const [id, project, project_color, description, group_name, date, start_time, end_time, duration_formatted, duration_seconds, billable, user_name] = params;
     const newAct = {
-      id, project, project_color, projectColor: project_color, description, 
-      group_name, group: group_name, date, start_time, startTime: start_time, 
-      end_time, endTime: end_time, duration_formatted, durationFormatted: duration_formatted, 
-      duration_seconds, durationSeconds: duration_seconds, billable: Boolean(billable), 
+      id, project, project_color, projectColor: project_color, description,
+      group_name, group: group_name, date, start_time, startTime: start_time,
+      end_time, endTime: end_time, duration_formatted, durationFormatted: duration_formatted,
+      duration_seconds, durationSeconds: duration_seconds, billable: Boolean(billable),
       user_name, userName: user_name
     };
     store.activities = store.activities || [];
@@ -325,7 +325,7 @@ const pool = {
     if (isMysqlConnected && mysqlPool) {
       try {
         const result = await mysqlPool.query(sql, params);
-        fallbackQuery(sql, params).catch(() => {});
+        fallbackQuery(sql, params).catch(() => { });
         return result;
       } catch (err) {
         console.warn('[MySQL Query Warning] Falling back to persistent store:', err.message);
@@ -353,6 +353,9 @@ async function syncStoreWithMysql() {
         );
       }
     }
+    try {
+      await mysqlPool.query("UPDATE users SET name = 'Bharath', avatar_initials = 'B' WHERE id IN ('usr-1', 'usr-admin-1') OR username IN ('bharath', 'bharath_owner') OR name LIKE 'Bharath (Owner)%'");
+    } catch (e) { }
     console.log('🔄 MySQL & persistent storage synchronized successfully!');
   } catch (err) {
     console.warn('Sync error:', err.message);
@@ -511,7 +514,7 @@ function calculateShiftStatus(clockIn, defaultStatus = 'Present (On-Time)') {
   if (defaultStatus && defaultStatus.includes('Active')) {
     return 'Active (Working)';
   }
-  
+
   const match = (clockIn || '').match(/(\d+):(\d+)\s*(AM|PM)?/i);
   if (match) {
     let hours = parseInt(match[1], 10);
@@ -519,10 +522,10 @@ function calculateShiftStatus(clockIn, defaultStatus = 'Present (On-Time)') {
     const meridiem = match[3]?.toUpperCase();
     if (meridiem === 'PM' && hours < 12) hours += 12;
     if (meridiem === 'AM' && hours === 12) hours = 0;
-    
+
     const totalMinutes = hours * 60 + minutes;
     const cutoffMinutes = 9 * 60 + 30; // 09:30 AM Cutoff
-    
+
     if (totalMinutes > cutoffMinutes) {
       const lateMins = totalMinutes - cutoffMinutes;
       return `Late (${lateMins}m)`;

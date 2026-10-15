@@ -16,9 +16,9 @@ import SettingsPage from './pages/SettingsPage';
 import SharedPublicReportPage from './pages/SharedPublicReportPage';
 import { applyTheme } from './utils/theme';
 
-import { 
+import {
   INITIAL_PROJECTS,
-  INITIAL_TIMESHEET_ROWS, 
+  INITIAL_TIMESHEET_ROWS,
   INITIAL_RECENT_ACTIVITIES,
   CALENDAR_WEEK_SCHEDULE,
   USER_PROFILE,
@@ -28,10 +28,10 @@ import {
 
 function App() {
 
-// Clean up only old legacy v1 keys if present, preserving active session and data
-try {
-  ['clockodo_registered_users_v1', 'clockodo_auth_user_v1', 'clockodo_activities_v1', 'clockodo_timesheet_rows_v1'].forEach(k => localStorage.removeItem(k));
-} catch (e) {}
+  // Clean up only old legacy v1 keys if present, preserving active session and data
+  try {
+    ['clockodo_registered_users_v1', 'clockodo_auth_user_v1', 'clockodo_activities_v1', 'clockodo_timesheet_rows_v1'].forEach(k => localStorage.removeItem(k));
+  } catch (e) { }
 
   // Shared Guest Access Denied Modal State
   const [guestDeniedModal, setGuestDeniedModal] = useState(false);
@@ -93,7 +93,7 @@ try {
   // Navigation State: 'time-tracker' | 'timesheet' | 'calendar' | 'dashboard' | 'reports' | 'projects' | 'team' | 'settings'
   const [activePage, setActivePage] = useState('dashboard');
   const [settingsTab, setSettingsTab] = useState('profile');
-  
+
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Initialize and listen to system theme (Default is System Theme)
@@ -122,7 +122,7 @@ try {
       localStorage.removeItem('clockodo_registered_users_v2');
       localStorage.removeItem('clockodo_registered_users_v3');
       localStorage.removeItem('clockodo_shared_reports_v2');
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   // Current Logged-in User (Persistent session across all reloads & browser restarts)
@@ -132,17 +132,26 @@ try {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && (parsed.id || parsed.email || parsed.name)) {
+          if (parsed.name) parsed.name = parsed.name.replace(/\s*\(Owner\)/gi, '').trim();
+          if (parsed.avatarInitials === 'BO' || parsed.avatar_initials === 'BO' || parsed.avatarInitials === 'B(') {
+            parsed.avatarInitials = 'B';
+            parsed.avatar_initials = 'B';
+          }
+          try {
+            localStorage.setItem('clockodo_session_user', JSON.stringify(parsed));
+            localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(parsed));
+          } catch (e) { }
           return parsed;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return null;
   });
 
   // Dynamically compute effective user based on guest session
-  const effectiveUser = isGuestSession 
+  const effectiveUser = isGuestSession
     ? { id: 'guest-1', name: 'Shared Guest', role: 'guest', email: 'guest@client.com', avatarInitials: 'SG' }
-    : (currentUser || { name: 'Bharath (Owner)', role: 'admin', email: 'bharath@digiplusagency.com', avatarInitials: 'BO' });
+    : (currentUser || { name: 'Bharath', role: 'admin', email: 'bharath@digiplusagency.com', avatarInitials: 'B' });
 
   // Global Active Timer State
   const [activeTimer, setActiveTimer] = useState({
@@ -176,7 +185,7 @@ try {
           return merged;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return INITIAL_PROJECTS;
   });
 
@@ -187,7 +196,7 @@ try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) {}
+    } catch (e) { }
     return INITIAL_USERS;
   });
 
@@ -198,7 +207,7 @@ try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) {}
+    } catch (e) { }
     return INITIAL_RECENT_ACTIVITIES;
   });
 
@@ -209,7 +218,7 @@ try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) {}
+    } catch (e) { }
     return INITIAL_TIMESHEET_ROWS;
   });
 
@@ -220,7 +229,7 @@ try {
   useEffect(() => {
     try {
       localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(usersList));
-    } catch (e) {}
+    } catch (e) { }
   }, [usersList]);
 
   useEffect(() => {
@@ -232,14 +241,14 @@ try {
         localStorage.removeItem('clockodo_session_user');
         localStorage.removeItem('clockodo_auth_user_v3');
       }
-    } catch (e) {}
+    } catch (e) { }
   }, [currentUser]);
 
   // Persist to localStorage whenever state changes
   useEffect(() => {
     try {
       localStorage.setItem('clockodo_projects', JSON.stringify(projects));
-    } catch (e) {}
+    } catch (e) { }
   }, [projects]);
 
   useEffect(() => {
@@ -247,13 +256,13 @@ try {
       if (Array.isArray(activities) && activities.length > 0) {
         localStorage.setItem('clockodo_activities_v4', JSON.stringify(activities));
       }
-    } catch (e) {}
+    } catch (e) { }
   }, [activities]);
 
   useEffect(() => {
     try {
       localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timesheetRows));
-    } catch (e) {}
+    } catch (e) { }
   }, [timesheetRows]);
 
   // Initial load from MySQL Backend API on application mount
@@ -271,23 +280,44 @@ try {
         if (!isMounted) return;
 
         if (usersRes && usersRes.success && Array.isArray(usersRes.data) && usersRes.data.length > 0) {
-          setUsersList(usersRes.data);
-          try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(usersRes.data)); } catch (e) {}
+          const cleanUsers = usersRes.data.map(u => ({
+            ...u,
+            name: (u.name || '').replace(/\s*\(Owner\)/gi, '').trim(),
+            avatarInitials: (u.avatarInitials === 'BO' || u.avatar_initials === 'BO' || u.avatarInitials === 'B(') ? 'B' : (u.avatarInitials || u.avatar_initials)
+          }));
+          setUsersList(cleanUsers);
+          try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(cleanUsers)); } catch (e) { }
+
+          // Also ensure currentUser reflects clean name
+          setCurrentUser(prev => {
+            if (!prev) return prev;
+            const cName = (prev.name || '').replace(/\s*\(Owner\)/gi, '').trim();
+            const cInit = (prev.avatarInitials === 'BO' || prev.avatar_initials === 'BO' || prev.avatarInitials === 'B(') ? 'B' : prev.avatarInitials;
+            if (cName !== prev.name || cInit !== prev.avatarInitials) {
+              const u = { ...prev, name: cName, avatarInitials: cInit };
+              try {
+                localStorage.setItem('clockodo_session_user', JSON.stringify(u));
+                localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(u));
+              } catch (e) { }
+              return u;
+            }
+            return prev;
+          });
         }
 
         if (actRes && actRes.success && Array.isArray(actRes.data) && actRes.data.length > 0) {
           setActivities(actRes.data);
-          try { localStorage.setItem('clockodo_activities_v4', JSON.stringify(actRes.data)); } catch (e) {}
+          try { localStorage.setItem('clockodo_activities_v4', JSON.stringify(actRes.data)); } catch (e) { }
         }
 
         if (timeRes && timeRes.success && Array.isArray(timeRes.data) && timeRes.data.length > 0) {
           setTimesheetRows(timeRes.data);
-          try { localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timeRes.data)); } catch (e) {}
+          try { localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timeRes.data)); } catch (e) { }
         }
 
         if (projRes && projRes.success && Array.isArray(projRes.data) && projRes.data.length > 0) {
           setProjects(projRes.data);
-          try { localStorage.setItem('clockodo_projects', JSON.stringify(projRes.data)); } catch (e) {}
+          try { localStorage.setItem('clockodo_projects', JSON.stringify(projRes.data)); } catch (e) { }
         }
       } catch (err) {
         console.warn('Initial data load error from API:', err);
@@ -370,11 +400,16 @@ try {
   const handleLogin = (user) => {
     setIsGuestSession(false);
     sessionStorage.removeItem('clockodo_guest_session');
-    setCurrentUser(user);
+    const cleanUser = user ? {
+      ...user,
+      name: (user.name || '').replace(/\s*\(Owner\)/gi, '').trim(),
+      avatarInitials: (user.avatarInitials === 'BO' || user.avatar_initials === 'BO' || user.avatarInitials === 'B(') ? 'B' : (user.avatarInitials || user.avatar_initials)
+    } : null;
+    setCurrentUser(cleanUser);
     try {
-      localStorage.setItem('clockodo_session_user', JSON.stringify(user));
-      localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(user));
-    } catch (e) {}
+      localStorage.setItem('clockodo_session_user', JSON.stringify(cleanUser));
+      localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(cleanUser));
+    } catch (e) { }
     setActivePage('dashboard');
   };
 
@@ -382,7 +417,7 @@ try {
     setUsersList(prev => [...prev, newUser]);
     try {
       localStorage.setItem('clockodo_registered_users_v3', JSON.stringify([...usersList, newUser]));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleLogout = () => {
@@ -392,18 +427,23 @@ try {
       localStorage.removeItem('clockodo_auth_user_v3');
       localStorage.removeItem('clockodo_auth_user_v2');
       localStorage.removeItem('clockodo_auth_user_v1');
-    } catch (e) {}
+    } catch (e) { }
     setActivePage('dashboard');
   };
 
   const handleUpdateCurrentUser = (updatedUser) => {
     if (!updatedUser) return;
+    const cleanUser = {
+      ...updatedUser,
+      name: (updatedUser.name || '').replace(/\s*\(Owner\)/gi, '').trim(),
+      avatarInitials: (updatedUser.avatarInitials === 'BO' || updatedUser.avatar_initials === 'BO' || updatedUser.avatarInitials === 'B(') ? 'B' : (updatedUser.avatarInitials || updatedUser.avatar_initials)
+    };
     setCurrentUser(prev => {
-      const merged = { ...prev, ...updatedUser };
+      const merged = { ...prev, ...cleanUser };
       try {
         localStorage.setItem('clockodo_session_user', JSON.stringify(merged));
         localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(merged));
-      } catch (e) {}
+      } catch (e) { }
       return merged;
     });
     setUsersList(prev => {
@@ -421,7 +461,7 @@ try {
       try {
         localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(next));
         localStorage.setItem('clockodo_registered_users_v3', JSON.stringify(next));
-      } catch (e) {}
+      } catch (e) { }
       return next;
     });
   };
@@ -469,7 +509,7 @@ try {
       return;
     }
     if (!newMember) return;
-    
+
     const assignedPassword = (newMember.password || 'Digi@2024').trim();
     const memberPayload = {
       ...newMember,
@@ -531,7 +571,7 @@ try {
       });
       try {
         localStorage.setItem('clockodo_registered_users_v2', JSON.stringify(updated));
-      } catch (e) {}
+      } catch (e) { }
       return updated;
     });
 
@@ -544,7 +584,7 @@ try {
         const merged = { ...prev, department: cleanDept };
         try {
           localStorage.setItem('clockodo_session_user', JSON.stringify(merged));
-        } catch (e) {}
+        } catch (e) { }
         return merged;
       });
     }
@@ -605,7 +645,7 @@ try {
               return;
             }
           }
-        } catch (e) {}
+        } catch (e) { }
 
         setActiveTimer((prev) => ({
           ...prev,
@@ -794,7 +834,7 @@ try {
         const da = String(parsed.getDate()).padStart(2, '0');
         return `${yr}-${mo}-${da}`;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     return todayISO;
   };
@@ -891,7 +931,7 @@ try {
 
     // 1. Update Time Tracker Activities & MySQL
     setActivities((prev) => [newAct, ...(prev || [])]);
-    api.addActivity(newAct).catch(() => {});
+    api.addActivity(newAct).catch(() => { });
 
     // 2. Automatically sync to Timesheet Rows
     setTimesheetRows((prevRows) => {
@@ -916,7 +956,7 @@ try {
         });
         row.total = secondsToHMS(totalSec);
         updated[existingIdx] = row;
-        api.syncTimesheets(updated).catch(() => {});
+        api.syncTimesheets(updated).catch(() => { });
         return updated;
       } else {
         const newRow = {
@@ -939,7 +979,7 @@ try {
           billable: newAct.billable,
         };
         const updated = [newRow, ...safePrev];
-        api.syncTimesheets(updated).catch(() => {});
+        api.syncTimesheets(updated).catch(() => { });
         return updated;
       }
     });
@@ -1050,7 +1090,7 @@ try {
       });
       try {
         localStorage.setItem('clockodo_activities_v2', JSON.stringify(updated));
-      } catch (e) {}
+      } catch (e) { }
       return updated;
     });
 
@@ -1087,7 +1127,7 @@ try {
       });
       try {
         localStorage.setItem('clockodo_activities_v2', JSON.stringify(updated));
-      } catch (e) {}
+      } catch (e) { }
       return updated;
     });
 
@@ -1113,7 +1153,7 @@ try {
       });
 
       toDelete.forEach((a) => {
-        if (a.id) api.deleteActivity(a.id).catch(() => {});
+        if (a.id) api.deleteActivity(a.id).catch(() => { });
       });
 
       return prev.filter((a) => !toDelete.some((d) => d.id === a.id));
@@ -1124,12 +1164,12 @@ try {
       const updated = prev.filter(
         (r) => (r.projectName || '').trim().toLowerCase() !== cleanProjName
       );
-      api.syncTimesheets(updated).catch(() => {});
+      api.syncTimesheets(updated).catch(() => { });
       return updated;
     });
 
     // 3. Delete from backend database
-    api.deleteProjectActivities(projectName).catch(() => {});
+    api.deleteProjectActivities(projectName).catch(() => { });
   };
 
   const handleUpdateProjectName = (oldProjectName, newProject, weekOffset = 0) => {
@@ -1151,7 +1191,7 @@ try {
               api.updateActivity(a.id, {
                 project: newProject.name,
                 projectColor: newProject.color || '#10b981',
-              }).catch(() => {});
+              }).catch(() => { });
             }
             return updated;
           }
@@ -1216,7 +1256,7 @@ try {
       if (isCleared) {
         // Delete activities for this project and date
         existingActs.forEach((a) => {
-          if (a.id) api.deleteActivity(a.id).catch(() => {});
+          if (a.id) api.deleteActivity(a.id).catch(() => { });
         });
         return prev.filter((a) => !existingActs.some((e) => e.id === a.id));
       }
@@ -1224,12 +1264,12 @@ try {
       if (existingActs.length > 0) {
         const primaryId = existingActs[0].id;
         const extraIds = existingActs.slice(1).map((e) => e.id);
-        extraIds.forEach((id) => api.deleteActivity(id).catch(() => {}));
+        extraIds.forEach((id) => api.deleteActivity(id).catch(() => { }));
 
         api.updateActivity(primaryId, {
           durationFormatted: formattedDuration,
           durationSeconds: durSec,
-        }).catch(() => {});
+        }).catch(() => { });
 
         return prev.filter((a) => !extraIds.includes(a.id)).map((a) => {
           if (a.id === primaryId) {
@@ -1263,7 +1303,7 @@ try {
           userId: userId || currentUser?.id || '',
         };
 
-        api.addActivity(newAct).catch(() => {});
+        api.addActivity(newAct).catch(() => { });
         return [newAct, ...prev];
       }
     });
@@ -1281,7 +1321,7 @@ try {
         });
         row.total = secondsToHMS(totalSec);
         updated[existingIdx] = row;
-        api.syncTimesheets(updated).catch(() => {});
+        api.syncTimesheets(updated).catch(() => { });
         return updated;
       }
       return prevRows;
@@ -1342,7 +1382,7 @@ try {
       endTime: getCurrentTimeFormatted(),
     };
     setActivities((prev) => [duplicated, ...(prev || [])]);
-    api.addActivity(duplicated).catch(() => {});
+    api.addActivity(duplicated).catch(() => { });
   };
 
   const handleStopTimer = () => {
@@ -1547,7 +1587,7 @@ try {
           )}
 
           {!sharedToken && activePage === 'team' && (
-            <TeamPage 
+            <TeamPage
               searchQuery={globalSearchQuery}
               currentUser={effectiveUser}
               usersList={usersList}
@@ -1558,7 +1598,7 @@ try {
           )}
 
           {!sharedToken && activePage === 'settings' && (
-            <SettingsPage 
+            <SettingsPage
               currentUser={effectiveUser}
               onUpdateCurrentUser={handleUpdateCurrentUser}
               usersList={usersList}
@@ -1724,8 +1764,8 @@ try {
           fontWeight: 600,
         }}>
           <span>{idleAlertToast}</span>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setIdleAlertToast(null)}
             style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
           >

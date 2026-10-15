@@ -2,11 +2,11 @@
   "users": [
     {
       "id": "usr-1",
-      "name": "Bharath (Owner)",
+      "name": "Bharath",
       "email": "bharath@digiplusagency.com",
       "role": "admin",
       "active": true,
-      "avatarInitials": "BO",
+      "avatarInitials": "B",
       "avatarColor": "#10b981",
       "workspace": "DigiPlus"
     },
@@ -258,7 +258,7 @@
       "durationFormatted": "07:40:00",
       "durationSeconds": 27600,
       "billable": true,
-      "user": "Bharath (Owner)"
+      "user": "Bharath"
     }
   ],
   "timesheets": [
@@ -318,8 +318,8 @@
     {
       "id": "att-1",
       "userId": "usr-1",
-      "userName": "Bharath (Owner)",
-      "userRole": "Admin (Owner)",
+      "userName": "Bharath",
+      "userRole": "Admin",
       "date": "Wed, Sep 2, 2026",
       "clockIn": "09:00 AM",
       "clockOut": "05:00 PM",

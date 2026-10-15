@@ -32,14 +32,14 @@ router.post('/login', async (req, res) => {
     if (!user && (cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput.includes('bharath') || cleanInput.includes('admin') || cleanInput === 'bharath@digiplusagency.com' || cleanInput === 'bharath.owner@digiplusagency.com')) {
       user = {
         id: 'usr-admin-1',
-        name: 'Bharath (Owner)',
-        username: 'bharath_owner',
+        name: 'Bharath',
+        username: 'bharath',
         email: 'bharath@digiplusagency.com',
         password: '1234567890',
         role: 'admin',
         department: 'Management / Executive',
         active: 1,
-        avatar_initials: 'BO',
+        avatar_initials: 'B',
         avatar_color: '#10b981',
         workspace: 'DigiPlus'
       };
@@ -49,7 +49,7 @@ router.post('/login', async (req, res) => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE active = 1, role = 'admin'
         `, [user.id, user.name, user.username, user.email, user.password, user.role, user.department, user.active, user.avatar_initials, user.avatar_color, user.workspace]);
-      } catch (e) {}
+      } catch (e) { }
     } else if (!user && (cleanInput === 'punitha' || cleanInput === 'punitha@digipl.us' || cleanInput.includes('punitha'))) {
       user = {
         id: 'usr-admin-2',
@@ -70,7 +70,7 @@ router.post('/login', async (req, res) => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE active = 1, role = 'admin', password = 'punitha@2026'
         `, [user.id, user.name, user.username, user.email, user.password, user.role, user.department, user.active, user.avatar_initials, user.avatar_color, user.workspace]);
-      } catch (e) {}
+      } catch (e) { }
 
     }
 
@@ -83,11 +83,11 @@ router.post('/login', async (req, res) => {
     const isCaseMatch = userPass && userPass.toLowerCase() === lowerPass;
     const isCompanyDefaultPass = lowerPass === 'digi@2024' || lowerPass === 'digiplus@2024' || cleanPass === 'Digi@2024' || cleanPass === 'Digiplus@2024';
     const isAdminPass = user.role === 'admin' && (
-      cleanPass === '1234567890' || 
-      cleanPass === '123456' || 
+      cleanPass === '1234567890' ||
+      cleanPass === '123456' ||
       cleanPass === 'Bharath@Admin2026' ||
       cleanPass === 'punitha@2026' ||
-      lowerPass === 'punitha@2026' || 
+      lowerPass === 'punitha@2026' ||
       lowerPass === 'admin' ||
       lowerPass === 'digi@2026'
     );
