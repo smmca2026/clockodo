@@ -557,11 +557,56 @@ try {
     }
   };
 
-  // Real-time stopwatch ticker
+  // Real-time stopwatch ticker & Idle Auto-Pause Tracker
+  const lastUserActivityRef = useRef(Date.now());
+  const [idleAlertToast, setIdleAlertToast] = useState(null);
+
+  useEffect(() => {
+    const markActive = () => {
+      lastUserActivityRef.current = Date.now();
+    };
+
+    window.addEventListener('mousemove', markActive, { passive: true });
+    window.addEventListener('keydown', markActive, { passive: true });
+    window.addEventListener('mousedown', markActive, { passive: true });
+    window.addEventListener('touchstart', markActive, { passive: true });
+    window.addEventListener('scroll', markActive, { passive: true });
+
+    return () => {
+      window.removeEventListener('mousemove', markActive);
+      window.removeEventListener('keydown', markActive);
+      window.removeEventListener('mousedown', markActive);
+      window.removeEventListener('touchstart', markActive);
+      window.removeEventListener('scroll', markActive);
+    };
+  }, []);
+
   useEffect(() => {
     let interval = null;
     if (activeTimer.isRunning) {
+      lastUserActivityRef.current = Date.now();
+
       interval = setInterval(() => {
+        // Real-time check: Auto-pause on 10 minutes system idle inactivity
+        try {
+          const rawPref = localStorage.getItem('clockodo_preference_toggles');
+          const pref = rawPref ? JSON.parse(rawPref) : { autoPauseOnIdle: true };
+          if (pref.autoPauseOnIdle !== false) {
+            const idleMs = Date.now() - lastUserActivityRef.current;
+            // 10 minutes = 600,000 milliseconds
+            if (idleMs >= 600000) {
+              setActiveTimer((prev) => ({
+                ...prev,
+                isRunning: false,
+                isPaused: true,
+              }));
+              setIdleAlertToast('⏸️ Live timer auto-paused due to 10 minutes of system inactivity.');
+              setTimeout(() => setIdleAlertToast(null), 8000);
+              return;
+            }
+          }
+        } catch (e) {}
+
         setActiveTimer((prev) => ({
           ...prev,
           elapsedSeconds: prev.elapsedSeconds + 1,
@@ -1656,6 +1701,36 @@ try {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Real-time Idle Auto-pause Toast */}
+      {Boolean(idleAlertToast) && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1.5px solid #00cc00',
+          borderRadius: '10px',
+          padding: '14px 20px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '13px',
+          fontWeight: 600,
+        }}>
+          <span>{idleAlertToast}</span>
+          <button 
+            type="button" 
+            onClick={() => setIdleAlertToast(null)}
+            style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+          >
+            <CloseIcon size={16} />
+          </button>
         </div>
       )}
     </div>

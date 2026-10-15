@@ -212,7 +212,89 @@ export default function Header({
   }, [isAdmin, usersList]);
 
   // Notifications exclusively filtered: ONLY Access Requests & Task Completed/Time Uploaded
+  // Notifications dynamically driven by preferences and workspace activity
   const dynamicNotifications = useMemo(() => {
+    // 1. Read real-time notification preference toggles
+    let prefToggles = { dailyReminder: true, weeklyReport: true, overtimeAlert: true };
+    try {
+      const raw = localStorage.getItem('clockodo_preference_toggles');
+      if (raw) prefToggles = { ...prefToggles, ...JSON.parse(raw) };
+    } catch (e) {}
+
+    const preferenceNotifs = [];
+    const now = new Date();
+    const yr = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
+    const da = String(now.getDate()).padStart(2, '0');
+    const todayISO = `${yr}-${mo}-${da}`;
+
+    const myName = (currentUser?.name || '').toLowerCase();
+    const myEmail = (currentUser?.email || '').toLowerCase();
+
+    // Calculate user's logged seconds today
+    const myTodayActs = (activities || []).filter(a => {
+      if (!a || !a.date || a.date !== todayISO) return false;
+      if (isAdmin) return true;
+      const actUser = (a.user || a.userName || '').toLowerCase();
+      const actEmail = (a.userEmail || a.email || '').toLowerCase();
+      return (myEmail && actEmail === myEmail) || (myName && actUser.includes(myName));
+    });
+
+    let todayTotalSec = 0;
+    myTodayActs.forEach(a => {
+      todayTotalSec += (a.durationSeconds || 0);
+    });
+
+    // Real-Time Alert 1: Daily Overtime Alert (exceeding 8 hours)
+    if (prefToggles.overtimeAlert !== false && todayTotalSec > 8 * 3600) {
+      const hoursStr = (todayTotalSec / 3600).toFixed(1) + 'h';
+      preferenceNotifs.push({
+        id: 'pref-overtime-' + todayISO,
+        title: '⚠️ Daily Overtime Alert',
+        message: `You have logged ${hoursStr} today, exceeding the standard 8-hour shift goal.`,
+        time: 'Today',
+        tag: 'Overtime Cap',
+        tagBg: '#fef2f2',
+        tagColor: '#dc2626',
+        targetPage: 'timesheet',
+        unread: !readNotifIds.includes('pref-overtime-' + todayISO)
+      });
+    }
+
+    // Real-Time Alert 2: Daily Timesheet Logging Reminder (past 5:30 PM and under 8h)
+    const isPast530 = now.getHours() > 17 || (now.getHours() === 17 && now.getMinutes() >= 30);
+    if (prefToggles.dailyReminder !== false && isPast530 && todayTotalSec < 8 * 3600) {
+      const loggedStr = (todayTotalSec / 3600).toFixed(1) + 'h';
+      preferenceNotifs.push({
+        id: 'pref-reminder-' + todayISO,
+        title: '⏰ Daily Timesheet Reminder',
+        message: `It is past 5:30 PM. You have logged ${loggedStr} of your 8-hour shift target today.`,
+        time: '5:30 PM',
+        tag: 'Reminder',
+        tagBg: '#eff6ff',
+        tagColor: '#2563eb',
+        targetPage: 'timesheet',
+        unread: !readNotifIds.includes('pref-reminder-' + todayISO)
+      });
+    }
+
+    // Real-Time Alert 3: Weekly Timesheet Digest Report
+    if (prefToggles.weeklyReport !== false) {
+      const weeklySec = (activities || []).reduce((acc, a) => acc + (a.durationSeconds || 0), 0);
+      const weeklyHours = (weeklySec / 3600).toFixed(1) + 'h';
+      preferenceNotifs.push({
+        id: 'pref-weekly-digest',
+        title: '📊 Weekly Timesheet Digest',
+        message: `Weekly activity digest: Total ${weeklyHours} recorded across active workspace projects.`,
+        time: 'Weekly Digest',
+        tag: 'Summary',
+        tagBg: '#ecfdf5',
+        tagColor: '#047857',
+        targetPage: 'reports',
+        unread: !readNotifIds.includes('pref-weekly-digest')
+      });
+    }
+
     if (isAdmin) {
       // 1. Access Request Notifications (Pending Approvals)
       const pendingNotifs = pendingUsers.map(u => ({
@@ -233,7 +315,6 @@ export default function Header({
         .filter(act => {
           if (!act) return false;
           const u = (act.user || act.userName || act.userEmail || '').toLowerCase();
-          // Exclude Admin/Owner's own time logs so popover only shows employees' uploads
           if (u.includes('bharath') || u.includes('owner') || u.includes('admin') || (currentUser?.name && u.includes(currentUser.name.toLowerCase()))) {
             return false;
           }
@@ -299,11 +380,10 @@ export default function Header({
 
       const taskUploadNotifs = liveUploadNotifs.length > 0 ? liveUploadNotifs : fallbackUploads;
 
-      // Strictly return ONLY Access Requests & Task Completed Time Uploads (All Budget & Target Alerts Removed)
-      return [...pendingNotifs, ...taskUploadNotifs];
+      return [...preferenceNotifs, ...pendingNotifs, ...taskUploadNotifs];
     } else {
-      // Employee notifications
-      return [
+      // Employee notifications + real-time alerts
+      const employeeDefaultNotifs = [
         {
           id: 'emp-notif-1',
           title: 'Timesheet Approved ✓',
@@ -327,6 +407,8 @@ export default function Header({
           unread: !readNotifIds.includes('emp-notif-2')
         }
       ];
+
+      return [...preferenceNotifs, ...employeeDefaultNotifs];
     }
   }, [isAdmin, pendingUsers, activities, readNotifIds, currentUser]);
 
