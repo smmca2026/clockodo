@@ -49,10 +49,17 @@ async function fallbackQuery(sql, params = []) {
 
   // 1. USERS
   if (lowerSql.startsWith('select') && lowerSql.includes('from users')) {
-    let list = [...(store.users || [])];
-    if (lowerSql.includes('where id = ? or lower(email) = lower(?)')) {
+    if (lowerSql.includes('where id = ? or lower(email) = lower(?)') || lowerSql.includes('lower(username) = lower(?)')) {
       const p = String(params[0] || '').toLowerCase();
-      list = list.filter(u => u.id === params[0] || (u.email && u.email.toLowerCase() === p));
+      list = list.filter(u => 
+        u.id === params[0] || 
+        (u.email && u.email.toLowerCase() === p) ||
+        (u.username && u.username.toLowerCase() === p) ||
+        (u.name && u.name.toLowerCase() === p) ||
+        (p === 'usr-admin-1' && u.role === 'admin')
+      );
+    } else if (lowerSql.includes('where role = \'admin\'')) {
+      list = list.filter(u => u.role === 'admin');
     } else if (lowerSql.includes('where id = ?')) {
       list = list.filter(u => u.id === params[0]);
     } else if (lowerSql.includes('where') && (lowerSql.includes('or') || lowerSql.includes('admin') || lowerSql.includes('username'))) {

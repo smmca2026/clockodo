@@ -28,6 +28,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { USER_PROFILE, DIGIPLUS_TEAM_MEMBERS, INITIAL_PROJECTS } from '../data/mockData';
+import { useLanguage } from '../utils/i18n';
 
 export default function Header({
   activePage,
@@ -44,6 +45,7 @@ export default function Header({
   onLogout = null,
   usersList = []
 }) {
+  const { t } = useLanguage();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfilePopover, setShowProfilePopover] = useState(false);
   const [readNotifIds, setReadNotifIds] = useState([]);
@@ -391,7 +393,7 @@ export default function Header({
             ref={searchInputRef}
             type="text"
             className="search-input"
-            placeholder="Search projects, tasks, or entries..."
+            placeholder={t('search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

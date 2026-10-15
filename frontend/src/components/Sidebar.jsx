@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   User
 } from 'lucide-react';
+import { useLanguage } from '../utils/i18n';
 
 export default function Sidebar({ 
   activePage, 
@@ -24,22 +25,23 @@ export default function Sidebar({
   projectCount = 0,
   teamCount = 0
 }) {
+  const { t } = useLanguage();
   const isAdmin = currentUser?.role === 'admin';
 
   const trackingNav = [
-    { id: 'timesheet', label: 'Timesheet', icon: FileSpreadsheet, badge: null },
-    { id: 'time-tracker', label: 'Time Tracker', icon: Clock, badge: 'Live' },
-    { id: 'calendar', label: 'Calendar', icon: Calendar, badge: null },
+    { id: 'timesheet', label: t('timesheet'), icon: FileSpreadsheet, badge: null },
+    { id: 'time-tracker', label: t('time_tracker'), icon: Clock, badge: 'Live' },
+    { id: 'calendar', label: t('calendar'), icon: Calendar, badge: null },
   ];
 
   const analyzeNav = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: null },
-    { id: 'reports', label: 'Reports', icon: BarChart3, badge: null },
+    { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard, badge: null },
+    { id: 'reports', label: t('reports'), icon: BarChart3, badge: null },
   ];
 
   const manageNav = [
-    { id: 'projects', label: 'Projects', icon: FolderKanban, badge: projectCount ? String(projectCount) : null },
-    { id: 'team', label: 'Team', icon: Users, badge: teamCount ? String(teamCount) : null },
+    { id: 'projects', label: t('projects'), icon: FolderKanban, badge: projectCount ? String(projectCount) : null },
+    { id: 'team', label: t('team'), icon: Users, badge: teamCount ? String(teamCount) : null },
   ];
 
   const handleNavClick = (pageId) => {
@@ -92,7 +94,7 @@ export default function Sidebar({
               </div>
               <div style={{ fontSize: '10.5px', color: isAdmin ? '#00cc00' : '#94a3b8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {isAdmin ? <ShieldCheck size={11} /> : <User size={11} />}
-                <span>{isAdmin ? 'Admin (Owner)' : 'Employee'}</span>
+                <span>{isAdmin ? t('admin_owner') : t('employee')}</span>
               </div>
             </div>
           </div>
@@ -122,7 +124,7 @@ export default function Sidebar({
           })}
 
           {/* ANALYZE */}
-          <div className="nav-section-label">ANALYZE</div>
+          <div className="nav-section-label">{t('sec_analyze')}</div>
           {analyzeNav.map((item) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;
@@ -144,7 +146,7 @@ export default function Sidebar({
           })}
 
           {/* MANAGE */}
-          <div className="nav-section-label">MANAGE</div>
+          <div className="nav-section-label">{t('sec_manage')}</div>
           {manageNav.map((item) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;
@@ -176,7 +178,7 @@ export default function Sidebar({
               title="Log out of Clockodo"
             >
               <LogOut size={15} />
-              <span>Log Out</span>
+              <span>{t('logout')}</span>
             </button>
           </div>
         )}

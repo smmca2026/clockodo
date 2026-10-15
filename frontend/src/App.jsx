@@ -14,6 +14,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import TeamPage from './pages/TeamPage';
 import SettingsPage from './pages/SettingsPage';
 import SharedPublicReportPage from './pages/SharedPublicReportPage';
+import { applyTheme } from './utils/theme';
 
 import { 
   INITIAL_PROJECTS,
@@ -94,6 +95,22 @@ try {
   const [settingsTab, setSettingsTab] = useState('profile');
   
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Initialize and listen to system theme (Default is System Theme)
+  useEffect(() => {
+    applyTheme();
+    const media = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemChange = () => {
+      const currentChoice = localStorage.getItem('clockodo_appearance_theme') || 'system';
+      if (currentChoice === 'system') {
+        applyTheme('system');
+      }
+    };
+    if (media && media.addEventListener) {
+      media.addEventListener('change', handleSystemChange);
+      return () => media.removeEventListener('change', handleSystemChange);
+    }
+  }, []);
 
   // Registered users state with localStorage persistence
   // Clean legacy test storage on startup so existing browsers start 100% fresh
@@ -402,6 +419,7 @@ try {
         next.unshift(updatedUser);
       }
       try {
+        localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(next));
         localStorage.setItem('clockodo_registered_users_v3', JSON.stringify(next));
       } catch (e) {}
       return next;

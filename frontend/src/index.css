@@ -78,6 +78,60 @@
   --shadow-green: none;
 }
 
+[data-theme="dark"] {
+  --bg-page: #080c10;
+  --bg-surface: #0f1520;
+  --bg-card: #0e141d;
+  --bg-card-subtle: #141c28;
+  --bg-input: #090d14;
+  --bg-input-focus: #101722;
+  --bg-hover: #131c28;
+  --text-dark: #f8fafc;
+  --text-body: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .top-header {
+  background: rgba(8, 12, 16, 0.94);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .page-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .search-input {
+  background: #111822;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .settings-card,
+[data-theme="dark"] .timesheet-card,
+[data-theme="dark"] .tracker-card,
+[data-theme="dark"] .stat-card {
+  background: #0f1520;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+[data-theme="light"] {
+  --bg-page: #f4f7fb;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #f8fafc;
+  --bg-input: #f8fafc;
+  --bg-input-focus: #ffffff;
+  --bg-hover: #f0fdf4;
+  --text-dark: #090d14;
+  --text-body: #334155;
+  --text-muted: #64748b;
+  --border-light: #e2e8f0;
+  --border-subtle: #edf2f7;
+}
+
 /* Reset */
 *,
 *::before,

@@ -24,10 +24,15 @@ import {
   Lock,
   Smartphone,
   SlidersHorizontal,
-  ArrowRight
+  ArrowRight,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { USER_PROFILE } from '../data/mockData';
 import { api } from '../services/api';
+import { useLanguage } from '../utils/i18n';
+import { useTheme } from '../utils/theme';
 
 export default function SettingsPage({ 
   currentUser = null, 
@@ -36,6 +41,14 @@ export default function SettingsPage({
   setUsersList = () => {},
   initialTab = 'profile'
 }) {
+  const { t, setLang: setAppLang } = useLanguage();
+  const { themeChoice, effectiveTheme, setTheme } = useTheme();
+  const [selectedTheme, setSelectedTheme] = useState(themeChoice);
+
+  useEffect(() => {
+    setSelectedTheme(themeChoice);
+  }, [themeChoice]);
+
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'security' | 'language' | 'appearance' | 'notifications' | 'tracking'
   
   // Profile State
@@ -70,8 +83,9 @@ export default function SettingsPage({
       const saved = localStorage.getItem('clockodo_language_settings');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
+    const directLang = localStorage.getItem('clockodo_language');
     return {
-      language: 'en', // 'en' | 'ta' | 'hi' | 'de' | 'fr' | 'es'
+      language: directLang || 'en', // 'en' | 'ta' | 'hi'
       dateFormat: 'DD/MM/YYYY',
       timeFormat: '12h',
       firstDayOfWeek: 'monday',
@@ -166,28 +180,41 @@ export default function SettingsPage({
     setIsSaving(true);
 
     try {
-      const userId = currentUser?.id || 'usr-admin-1';
+      const userId = currentUser?.id || currentUser?.email || currentUser?.username || 'usr-admin-1';
       const updatedData = {
         name: profile.name.trim(),
-        username: profile.username.trim().toLowerCase(),
+        username: profile.username ? profile.username.trim().toLowerCase() : (profile.email ? profile.email.split('@')[0] : 'user'),
         email: profile.email.trim().toLowerCase(),
-        department: profile.title.trim(),
-        workspace: profile.workspace.trim(),
+        department: (profile.title || '').trim(),
+        workspace: (profile.workspace || 'DigiPlus').trim(),
       };
 
       const res = await api.updateProfile(userId, updatedData);
-      onUpdateCurrentUser(res?.user || { ...currentUser, ...updatedData });
-      showToast('Profile information updated successfully!');
+      const savedUser = (res && res.success && res.user) ? res.user : { ...currentUser, ...updatedData };
+
+      onUpdateCurrentUser(savedUser);
+
+      if (typeof setUsersList === 'function') {
+        setUsersList(prev => prev.map(u => {
+          if (u.id === savedUser.id || (u.email && u.email.toLowerCase() === savedUser.email.toLowerCase()) || (u.role === 'admin' && savedUser.role === 'admin')) {
+            return { ...u, ...savedUser };
+          }
+          return u;
+        }));
+      }
+
+      showToast(`✅ Profile details saved successfully for ${savedUser.name}!`);
     } catch (err) {
-      console.warn('Profile save error:', err);
-      onUpdateCurrentUser({
+      console.warn('Profile save fallback:', err);
+      const fallbackUser = {
         ...currentUser,
         name: profile.name.trim(),
-        username: profile.username.trim().toLowerCase(),
+        username: profile.username ? profile.username.trim().toLowerCase() : (profile.email ? profile.email.split('@')[0] : 'user'),
         email: profile.email.trim().toLowerCase(),
-        department: profile.title.trim(),
-        workspace: profile.workspace.trim(),
-      });
+        department: (profile.title || '').trim(),
+        workspace: (profile.workspace || 'DigiPlus').trim(),
+      };
+      onUpdateCurrentUser(fallbackUser);
       showToast('Profile saved to local workspace session!');
     } finally {
       setIsSaving(false);
@@ -275,17 +302,29 @@ export default function SettingsPage({
     if (e) e.preventDefault();
     try {
       localStorage.setItem('clockodo_language_settings', JSON.stringify(languageSettings));
+      setAppLang(languageSettings.language);
     } catch (err) {}
-    showToast('Language and localization preferences updated!');
+    const msg = languageSettings.language === 'ta'
+      ? 'மொழி வெற்றிகரமாக தமிழ் (Tamil) க்கு மாற்றப்பட்டது!'
+      : languageSettings.language === 'hi'
+        ? 'भाषा सफलतापूर्वक हिन्दी (Hindi) में बदल दी गई है!'
+        : 'Language successfully updated to English!';
+    showToast(msg);
   };
 
-  // 4. SAVE GENERAL PREFERENCES
-  const handleSaveGeneral = (e) => {
+  // 4. SAVE THEME & PREFERENCES
+  const handleSaveTheme = (e) => {
     if (e) e.preventDefault();
+    setTheme(selectedTheme);
     try {
       localStorage.setItem('clockodo_preference_toggles', JSON.stringify(toggles));
     } catch (err) {}
-    showToast('Workspace settings saved successfully!');
+    const themeName = selectedTheme === 'system' 
+      ? 'System Theme (Auto-Detect)' 
+      : selectedTheme === 'dark' 
+        ? 'Maximum Dark Theme' 
+        : 'White / Light Theme';
+    showToast(`✅ Theme preference saved: ${themeName}!`);
   };
 
   const LANGUAGES_LIST = [
@@ -330,27 +369,11 @@ export default function SettingsPage({
             <Sliders size={24} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ 
-                fontSize: '11px', 
-                fontWeight: 800, 
-                color: 'var(--digi-green, #00cc00)', 
-                background: 'rgba(0, 204, 0, 0.1)', 
-                border: '1px solid rgba(0, 204, 0, 0.3)', 
-                borderRadius: '4px', 
-                padding: '2px 8px',
-                letterSpacing: '0.5px'
-              }}>
-                CLOCKODO WORKSPACE
-              </span>
-              <span style={{ color: '#64748b', fontSize: '11px' }}>•</span>
-              <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 600 }}>Preferences & Credentials</span>
-            </div>
             <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-              Workspace & Account Settings
+              {t('workspace_settings_title')}
             </h2>
             <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: '3px 0 0 0' }}>
-              Configure login credentials, language localization, UI appearance, and time tracking policies.
+              {t('workspace_settings_desc')}
             </p>
           </div>
         </div>
@@ -381,7 +404,7 @@ export default function SettingsPage({
               {currentUser?.name || USER_PROFILE.name}
             </div>
             <div style={{ fontSize: '10.5px', fontWeight: 700, color: currentUser?.role === 'admin' ? 'var(--digi-green, #00cc00)' : '#38bdf8' }}>
-              {currentUser?.role === 'admin' ? '👑 Workspace Admin' : '👤 Employee Account'}
+              {currentUser?.role === 'admin' ? t('admin_badge') : t('employee_badge')}
             </div>
           </div>
         </div>
@@ -397,7 +420,7 @@ export default function SettingsPage({
               onClick={() => setActiveTab('profile')}
             >
               <User size={16} />
-              <span>Profile & Workspace</span>
+              <span>{t('tab_profile')}</span>
             </button>
 
             {isAdmin && (
@@ -407,7 +430,7 @@ export default function SettingsPage({
                 onClick={() => setActiveTab('security')}
               >
                 <KeyRound size={16} />
-                <span>Security & Password</span>
+                <span>{t('tab_security')}</span>
                 <span style={{ 
                   fontSize: '9.5px', 
                   fontWeight: 800, 
@@ -428,7 +451,7 @@ export default function SettingsPage({
               onClick={() => setActiveTab('language')}
             >
               <Globe size={16} />
-              <span>Language & Region (தமிழ்)</span>
+              <span>{t('tab_language')}</span>
             </button>
 
             <button 
@@ -437,7 +460,7 @@ export default function SettingsPage({
               onClick={() => setActiveTab('appearance')}
             >
               <Palette size={16} />
-              <span>Appearance & Theme</span>
+              <span>{t('tab_appearance')}</span>
             </button>
 
             <button 
@@ -446,7 +469,7 @@ export default function SettingsPage({
               onClick={() => setActiveTab('notifications')}
             >
               <Bell size={16} />
-              <span>Notifications</span>
+              <span>{t('tab_notifications')}</span>
             </button>
 
             <button 
@@ -455,7 +478,7 @@ export default function SettingsPage({
               onClick={() => setActiveTab('tracking')}
             >
               <Clock size={16} />
-              <span>Tracking Rules</span>
+              <span>{t('tab_tracking')}</span>
             </button>
           </div>
 
@@ -482,10 +505,10 @@ export default function SettingsPage({
                       }}>
                         <User size={18} />
                       </div>
-                      <span>Personal Details & Workspace Affiliation</span>
+                      <span>{t('personal_details_title')}</span>
                     </h3>
                     <p className="settings-section-desc">
-                      Manage your profile information, registered work email address, department, and company workspace affiliation.
+                      {t('personal_details_desc')}
                     </p>
                   </div>
                 </div>
@@ -496,15 +519,15 @@ export default function SettingsPage({
                     <div style={{ width: 26, height: 26, borderRadius: 6, background: 'rgba(0, 204, 0, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--digi-green, #00cc00)' }}>
                       <User size={15} />
                     </div>
-                    <h4 className="settings-panel-title">Employee Profile Information</h4>
+                    <h4 className="settings-panel-title">{t('employee_info_title')}</h4>
                   </div>
                   <p className="settings-panel-desc">
-                    These details identify your timesheet submissions, report activity logs, and workspace team directory entries.
+                    {t('employee_info_desc')}
                   </p>
 
                   <div className="settings-form-grid">
                     <div className="settings-field">
-                      <label className="settings-label">Full Name</label>
+                      <label className="settings-label">{t('full_name')}</label>
                       <input 
                         type="text" 
                         className="settings-input" 
@@ -515,7 +538,7 @@ export default function SettingsPage({
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">Work Email</label>
+                      <label className="settings-label">{t('work_email')}</label>
                       <input 
                         type="email" 
                         className="settings-input" 
@@ -526,7 +549,7 @@ export default function SettingsPage({
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">Department / Designation</label>
+                      <label className="settings-label">{t('department')}</label>
                       <input 
                         type="text" 
                         className="settings-input" 
@@ -537,7 +560,7 @@ export default function SettingsPage({
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">Organization Workspace</label>
+                      <label className="settings-label">{t('organization_workspace')}</label>
                       <input 
                         type="text" 
                         className="settings-input" 
@@ -553,7 +576,7 @@ export default function SettingsPage({
                 <div className="settings-actions-footer">
                   <button type="submit" className="btn-save-settings" disabled={isSaving}>
                     <Save size={16} />
-                    <span>{isSaving ? 'Saving Profile...' : 'Save Profile Changes'}</span>
+                    <span>{isSaving ? t('saving_profile') : t('save_profile_changes')}</span>
                   </button>
                 </div>
               </form>
@@ -947,7 +970,7 @@ export default function SettingsPage({
                 <div className="settings-actions-footer">
                   <button type="submit" className="btn-save-settings">
                     <Save size={16} />
-                    <span>Save Language Preferences</span>
+                    <span>{t('save_language_pref')}</span>
                   </button>
                 </div>
               </form>
@@ -973,68 +996,192 @@ export default function SettingsPage({
                       }}>
                         <Palette size={18} />
                       </div>
-                      <span>Visual Theme & Display Preferences</span>
+                      <span>{t('appearance_title')}</span>
                     </h3>
                     <p className="settings-section-desc">
-                      Clockodo is styled with our signature high-contrast Deep Obsidian + Emerald Green SaaS theme.
+                      {t('appearance_desc')}
                     </p>
                   </div>
                 </div>
 
                 <div className="settings-panel-box">
-                  <div 
-                    style={{ 
-                      padding: '16px 20px', 
-                      borderRadius: '10px', 
-                      background: '#111822', 
-                      border: '1.5px solid var(--digi-green, #00cc00)', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      marginBottom: '20px',
-                      boxShadow: '0 0 16px rgba(0, 204, 0, 0.2)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div 
-                        style={{ 
-                          width: 44, 
-                          height: 44, 
-                          borderRadius: 10, 
-                          background: '#080c10', 
-                          border: '2px solid var(--digi-green, #00cc00)', 
-                          display: 'flex', 
-                          alignItems: 'center', 
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+                      Select UI Appearance Theme
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                      System theme is default and auto-matches your OS mode. You can also select Maximum Dark or Clean White theme.
+                    </div>
+                  </div>
+
+                  {/* 3 Selectable Theme Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '22px' }}>
+                    
+                    {/* 1. System Theme (Default) */}
+                    <div
+                      onClick={() => {
+                        setSelectedTheme('system');
+                        setTheme('system');
+                      }}
+                      style={{
+                        padding: '16px',
+                        borderRadius: '12px',
+                        background: selectedTheme === 'system' ? 'rgba(0, 204, 0, 0.12)' : '#111822',
+                        border: selectedTheme === 'system' ? '2px solid var(--digi-green, #00cc00)' : '1.5px solid #1e293b',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: selectedTheme === 'system' ? '0 0 16px rgba(0, 204, 0, 0.25)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          background: '#080c10',
+                          border: '1px solid #334155',
+                          display: 'flex',
+                          alignItems: 'center',
                           justifyContent: 'center',
-                          boxShadow: '0 0 14px rgba(0, 204, 0, 0.4)'
-                        }}
-                      >
-                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--digi-green, #00cc00)' }}></span>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#ffffff' }}>
-                          Clockodo Signature (Deep Obsidian + Emerald Green)
+                          color: 'var(--digi-green, #00cc00)'
+                        }}>
+                          <Monitor size={18} />
                         </div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                          Deep Dark Obsidian • Vibrant Emerald Green Accents • High-Contrast Typography
-                        </div>
+                        <span style={{
+                          fontSize: '10.5px',
+                          fontWeight: 800,
+                          background: 'rgba(0, 204, 0, 0.15)',
+                          color: 'var(--digi-green, #00cc00)',
+                          border: '1px solid rgba(0, 204, 0, 0.3)',
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {t('theme_system_tag')}
+                        </span>
                       </div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
+                        {t('theme_system')}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>
+                        {t('theme_system_desc')}
+                      </div>
+                      {selectedTheme === 'system' && (
+                        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: 'var(--digi-green, #00cc00)' }}>
+                          <Check size={14} strokeWidth={3} /> {t('active_theme_label')} ({effectiveTheme === 'dark' ? 'Dark OS' : 'Light OS'})
+                        </div>
+                      )}
                     </div>
 
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(0, 204, 0, 0.15)',
-                      border: '1px solid var(--digi-green, #00cc00)',
-                      color: 'var(--digi-green, #00cc00)',
-                      padding: '5px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 700
-                    }}>
-                      <Check size={13} strokeWidth={3} /> Active System Theme
-                    </span>
+                    {/* 2. Maximum Dark Theme */}
+                    <div
+                      onClick={() => {
+                        setSelectedTheme('dark');
+                        setTheme('dark');
+                      }}
+                      style={{
+                        padding: '16px',
+                        borderRadius: '12px',
+                        background: selectedTheme === 'dark' ? 'rgba(0, 204, 0, 0.12)' : '#111822',
+                        border: selectedTheme === 'dark' ? '2px solid var(--digi-green, #00cc00)' : '1.5px solid #1e293b',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: selectedTheme === 'dark' ? '0 0 16px rgba(0, 204, 0, 0.25)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          background: '#080c10',
+                          border: '1px solid #334155',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#38bdf8'
+                        }}>
+                          <Moon size={18} />
+                        </div>
+                        <span style={{
+                          fontSize: '10.5px',
+                          fontWeight: 800,
+                          background: 'rgba(56, 189, 248, 0.12)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {t('theme_dark_tag')}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
+                        {t('theme_dark')}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>
+                        {t('theme_dark_desc')}
+                      </div>
+                      {selectedTheme === 'dark' && (
+                        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: 'var(--digi-green, #00cc00)' }}>
+                          <Check size={14} strokeWidth={3} /> {t('active_theme_label')}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. White / Light Theme */}
+                    <div
+                      onClick={() => {
+                        setSelectedTheme('light');
+                        setTheme('light');
+                      }}
+                      style={{
+                        padding: '16px',
+                        borderRadius: '12px',
+                        background: selectedTheme === 'light' ? 'rgba(0, 204, 0, 0.12)' : '#111822',
+                        border: selectedTheme === 'light' ? '2px solid var(--digi-green, #00cc00)' : '1.5px solid #1e293b',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: selectedTheme === 'light' ? '0 0 16px rgba(0, 204, 0, 0.25)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#eab308'
+                        }}>
+                          <Sun size={18} />
+                        </div>
+                        <span style={{
+                          fontSize: '10.5px',
+                          fontWeight: 800,
+                          background: 'rgba(234, 179, 8, 0.12)',
+                          color: '#eab308',
+                          border: '1px solid rgba(234, 179, 8, 0.3)',
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {t('theme_light_tag')}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
+                        {t('theme_light')}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>
+                        {t('theme_light_desc')}
+                      </div>
+                      {selectedTheme === 'light' && (
+                        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: 'var(--digi-green, #00cc00)' }}>
+                          <Check size={14} strokeWidth={3} /> {t('active_theme_label')}
+                        </div>
+                      )}
+                    </div>
+
                   </div>
 
                   <div className="settings-toggle-row">
@@ -1054,9 +1201,9 @@ export default function SettingsPage({
                 </div>
 
                 <div className="settings-actions-footer">
-                  <button type="button" className="btn-save-settings" onClick={handleSaveGeneral}>
+                  <button type="button" className="btn-save-settings" onClick={handleSaveTheme}>
                     <Save size={16} />
-                    <span>Save Theme Settings</span>
+                    <span>{t('save_theme_pref')}</span>
                   </button>
                 </div>
               </div>
