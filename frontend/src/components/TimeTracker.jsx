@@ -334,6 +334,16 @@ export default function TimeTracker({
         />
       </div>
 
+      {/* 3. Rupee (₹) Billable Icon */}
+      <button
+        type="button"
+        className={`clockify-billable-btn ${isBillable ? 'active' : ''}`}
+        onClick={() => setIsBillable(!isBillable)}
+        title={isBillable ? "Billable (₹)" : "Non-billable"}
+      >
+        <IndianRupee size={15} />
+      </button>
+
       {/* 5. Time Range Input (From - To) - in manual mode */}
       {trackerMode === 'manual' && (
         <div className="clockify-time-range-box">

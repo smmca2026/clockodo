@@ -37,7 +37,7 @@ router.post('/clock-in', async (req, res) => {
     await pool.query(`
       INSERT INTO attendance (id, user_id, user_name, user_role, date, clock_in, clock_out, break_time, total_shift, status)
       VALUES (?, ?, ?, ?, ?, ?, '—', '00:00:00', '00:00:00', ?)
-    `, [id, userId || 'usr-1', userName || 'Bharath', userRole || 'Admin', dateStr, timeStr, status]);
+    `, [id, userId || 'usr-1', userName || 'Bharath (Owner)', userRole || 'Admin (Owner)', dateStr, timeStr, status]);
 
     res.status(201).json({
       success: true,

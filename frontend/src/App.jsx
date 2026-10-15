@@ -132,15 +132,6 @@ function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && (parsed.id || parsed.email || parsed.name)) {
-          if (parsed.name) parsed.name = parsed.name.replace(/\s*\(Owner\)/gi, '').trim();
-          if (parsed.avatarInitials === 'BO' || parsed.avatar_initials === 'BO' || parsed.avatarInitials === 'B(') {
-            parsed.avatarInitials = 'B';
-            parsed.avatar_initials = 'B';
-          }
-          try {
-            localStorage.setItem('clockodo_session_user', JSON.stringify(parsed));
-            localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(parsed));
-          } catch (e) { }
           return parsed;
         }
       }
@@ -280,29 +271,8 @@ function App() {
         if (!isMounted) return;
 
         if (usersRes && usersRes.success && Array.isArray(usersRes.data) && usersRes.data.length > 0) {
-          const cleanUsers = usersRes.data.map(u => ({
-            ...u,
-            name: (u.name || '').replace(/\s*\(Owner\)/gi, '').trim(),
-            avatarInitials: (u.avatarInitials === 'BO' || u.avatar_initials === 'BO' || u.avatarInitials === 'B(') ? 'B' : (u.avatarInitials || u.avatar_initials)
-          }));
-          setUsersList(cleanUsers);
-          try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(cleanUsers)); } catch (e) { }
-
-          // Also ensure currentUser reflects clean name
-          setCurrentUser(prev => {
-            if (!prev) return prev;
-            const cName = (prev.name || '').replace(/\s*\(Owner\)/gi, '').trim();
-            const cInit = (prev.avatarInitials === 'BO' || prev.avatar_initials === 'BO' || prev.avatarInitials === 'B(') ? 'B' : prev.avatarInitials;
-            if (cName !== prev.name || cInit !== prev.avatarInitials) {
-              const u = { ...prev, name: cName, avatarInitials: cInit };
-              try {
-                localStorage.setItem('clockodo_session_user', JSON.stringify(u));
-                localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(u));
-              } catch (e) { }
-              return u;
-            }
-            return prev;
-          });
+          setUsersList(usersRes.data);
+          try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(usersRes.data)); } catch (e) { }
         }
 
         if (actRes && actRes.success && Array.isArray(actRes.data) && actRes.data.length > 0) {
@@ -400,15 +370,10 @@ function App() {
   const handleLogin = (user) => {
     setIsGuestSession(false);
     sessionStorage.removeItem('clockodo_guest_session');
-    const cleanUser = user ? {
-      ...user,
-      name: (user.name || '').replace(/\s*\(Owner\)/gi, '').trim(),
-      avatarInitials: (user.avatarInitials === 'BO' || user.avatar_initials === 'BO' || user.avatarInitials === 'B(') ? 'B' : (user.avatarInitials || user.avatar_initials)
-    } : null;
-    setCurrentUser(cleanUser);
+    setCurrentUser(user);
     try {
-      localStorage.setItem('clockodo_session_user', JSON.stringify(cleanUser));
-      localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(cleanUser));
+      localStorage.setItem('clockodo_session_user', JSON.stringify(user));
+      localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(user));
     } catch (e) { }
     setActivePage('dashboard');
   };
@@ -433,13 +398,8 @@ function App() {
 
   const handleUpdateCurrentUser = (updatedUser) => {
     if (!updatedUser) return;
-    const cleanUser = {
-      ...updatedUser,
-      name: (updatedUser.name || '').replace(/\s*\(Owner\)/gi, '').trim(),
-      avatarInitials: (updatedUser.avatarInitials === 'BO' || updatedUser.avatar_initials === 'BO' || updatedUser.avatarInitials === 'B(') ? 'B' : (updatedUser.avatarInitials || updatedUser.avatar_initials)
-    };
     setCurrentUser(prev => {
-      const merged = { ...prev, ...cleanUser };
+      const merged = { ...prev, ...updatedUser };
       try {
         localStorage.setItem('clockodo_session_user', JSON.stringify(merged));
         localStorage.setItem('clockodo_auth_user_v3', JSON.stringify(merged));

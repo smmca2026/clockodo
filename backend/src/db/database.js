@@ -6,7 +6,7 @@ const DB_FILE = path.join(__dirname, '../../data/clockodo_db.json');
 // Default initial datasets
 const DEFAULT_INITIAL_DATA = {
   users: [
-    { id: 'usr-1', name: 'Bharath', email: 'bharath@digiplusagency.com', role: 'admin', active: true, avatarInitials: 'B', avatarColor: '#10b981', workspace: 'DigiPlus' },
+    { id: 'usr-1', name: 'Bharath (Owner)', email: 'bharath@digiplusagency.com', role: 'admin', active: true, avatarInitials: 'BO', avatarColor: '#10b981', workspace: 'DigiPlus' },
     { id: 'usr-2', name: 'abirami', email: 'abirami@digiplusagency.com', role: 'employee', active: true, avatarInitials: 'AB', avatarColor: '#3b82f6', workspace: 'DigiPlus' },
     { id: 'usr-3', name: 'Aishwarya', email: 'aishwarya@digiplusagency.com', role: 'employee', active: true, avatarInitials: 'AI', avatarColor: '#8b5cf6', workspace: 'DigiPlus' },
     { id: 'usr-4', name: 'aishwaryadevi', email: 'aishwaryadevi@digiplusagency.com', role: 'employee', active: true, avatarInitials: 'AD', avatarColor: '#ec4899', workspace: 'DigiPlus' },
@@ -84,7 +84,7 @@ const DEFAULT_INITIAL_DATA = {
       durationFormatted: '07:40:00',
       durationSeconds: 27600,
       billable: true,
-      user: 'Bharath'
+      user: 'Bharath (Owner)'
     }
   ],
   timesheets: [
@@ -117,7 +117,7 @@ const DEFAULT_INITIAL_DATA = {
     }
   ],
   attendance: [
-    { id: 'att-1', userId: 'usr-1', userName: 'Bharath', userRole: 'Admin', date: 'Wed, Sep 2, 2026', clockIn: '09:00 AM', clockOut: '05:00 PM', breakTime: '00:45:00', totalShift: '07:15:00', status: 'Active (Working)' },
+    { id: 'att-1', userId: 'usr-1', userName: 'Bharath (Owner)', userRole: 'Admin (Owner)', date: 'Wed, Sep 2, 2026', clockIn: '09:00 AM', clockOut: '05:00 PM', breakTime: '00:45:00', totalShift: '07:15:00', status: 'Active (Working)' },
     { id: 'att-2', userId: 'usr-4', userName: 'aishwaryadevi', userRole: 'Quality Assurance', date: 'Tue, Sep 1, 2026', clockIn: '09:20 AM', clockOut: '05:45 PM', breakTime: '00:45:00', totalShift: '07:40:00', status: 'Present (On-Time)' },
     { id: 'att-3', userId: 'usr-8', userName: 'bavithra', userRole: 'Mobile Apps', date: 'Mon, Aug 31, 2026', clockIn: '09:15 AM', clockOut: '05:40 PM', breakTime: '00:45:00', totalShift: '07:40:00', status: 'Present (On-Time)' },
     { id: 'att-4', userId: 'usr-12', userName: 'Santhosh Kumar', userRole: 'Backend Engineering', date: 'Mon, Aug 31, 2026', clockIn: '—', clockOut: '—', breakTime: '—', totalShift: '—', status: 'On Leave (Annual Leave)' }

@@ -883,6 +883,14 @@ export default function TimeTrackerPage({
                                 />
                               </div>
 
+                              {/* Meta Icon: Billable Rupee */}
+                              <div className="clockify-entry-meta">
+                                <IndianRupee 
+                                  size={15} 
+                                  className={`entry-icon-rupee ${cluster.billable ? 'is-billable' : ''}`} 
+                                  title={cluster.billable ? "Billable task (₹)" : "Non-billable task"}
+                                />
+                              </div>
 
                               {/* Interval: Earliest start to latest end */}
                               <div className="clockify-entry-window">
@@ -1064,6 +1072,14 @@ export default function TimeTrackerPage({
                                         />
                                       </div>
 
+                                      {/* Meta Icon: Billable Rupee */}
+                                      <div className="clockify-entry-meta">
+                                        <IndianRupee 
+                                          size={15} 
+                                          className={`entry-icon-rupee ${session.billable ? 'is-billable' : ''}`} 
+                                          title={session.billable ? "Billable task (₹)" : "Non-billable task"}
+                                        />
+                                      </div>
 
                                       {/* Exact Session Time Interval (From - To) */}
                                       <div className="clockify-entry-window">

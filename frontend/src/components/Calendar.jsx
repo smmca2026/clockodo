@@ -1485,6 +1485,17 @@ export default function Calendar({
                     </div>
                   )}
                 </div>
+
+                {/* Billable Toggle */}
+                <label className="cal-billable-toggle">
+                  <input
+                    type="checkbox"
+                    checked={modalBillable}
+                    onChange={(e) => setModalBillable(e.target.checked)}
+                    style={{ accentColor: '#00cc00', width: 16, height: 16, cursor: 'pointer' }}
+                  />
+                  <span>Billable task</span>
+                </label>
               </div>
 
               {/* Modal Footer */}

@@ -353,9 +353,6 @@ async function syncStoreWithMysql() {
         );
       }
     }
-    try {
-      await mysqlPool.query("UPDATE users SET name = 'Bharath', avatar_initials = 'B' WHERE id IN ('usr-1', 'usr-admin-1') OR username IN ('bharath', 'bharath_owner') OR name LIKE 'Bharath (Owner)%'");
-    } catch (e) { }
     console.log('🔄 MySQL & persistent storage synchronized successfully!');
   } catch (err) {
     console.warn('Sync error:', err.message);

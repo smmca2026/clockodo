@@ -83,30 +83,22 @@ export default function Sidebar({
         </div>
 
         {/* Workspace Pill */}
-        {(() => {
-          const sidebarDisplayName = (currentUser?.name || workspace || '').replace(/\s*\(Owner\)/gi, '').trim();
-          const sidebarInitials = (currentUser?.avatarInitials === 'BO' || currentUser?.avatarInitials === 'B(')
-            ? 'B'
-            : (currentUser?.avatarInitials || (sidebarDisplayName ? sidebarDisplayName.substring(0, 1).toUpperCase() : 'DP'));
-          return (
-            <div className="workspace-selector" title="Active Workspace">
-              <div className="workspace-info">
-                <div className="workspace-avatar" style={{ background: isAdmin ? 'var(--grad-primary)' : '#16202c', color: isAdmin ? '#04261b' : '#34d399' }}>
-                  {sidebarInitials}
-                </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <div className="workspace-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {sidebarDisplayName}
-                  </div>
-                  <div style={{ fontSize: '10.5px', color: isAdmin ? '#00cc00' : '#94a3b8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {isAdmin ? <ShieldCheck size={11} /> : <User size={11} />}
-                    <span>{isAdmin ? t('admin_owner') : t('employee')}</span>
-                  </div>
-                </div>
+        <div className="workspace-selector" title="Active Workspace">
+          <div className="workspace-info">
+            <div className="workspace-avatar" style={{ background: isAdmin ? 'var(--grad-primary)' : '#16202c', color: isAdmin ? '#04261b' : '#34d399' }}>
+              {currentUser?.avatarInitials || 'DP'}
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <div className="workspace-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentUser?.name || workspace}
+              </div>
+              <div style={{ fontSize: '10.5px', color: isAdmin ? '#00cc00' : '#94a3b8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {isAdmin ? <ShieldCheck size={11} /> : <User size={11} />}
+                <span>{isAdmin ? t('admin_owner') : t('employee')}</span>
               </div>
             </div>
-          );
-        })()}
+          </div>
+        </div>
 
         {/* Navigation Sections */}
         <div className="sidebar-nav">

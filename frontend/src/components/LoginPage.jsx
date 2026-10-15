@@ -65,13 +65,13 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
         department: 'Management / Executive',
         active: true,
         accessGranted: true,
-        avatarInitials: 'B',
+        avatarInitials: 'BO',
         avatarColor: '#10b981',
         workspace: 'DigiPlus'
       };
       try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => { }); } catch (e) { }
       setLoading(false);
-      setSuccessMessage('Welcome back, Bharath! Logging you in...');
+      setSuccessMessage('Welcome back, Bharath (Owner)! Logging you in...');
       setTimeout(() => { onLogin(adminUser); }, 150);
       return;
     }

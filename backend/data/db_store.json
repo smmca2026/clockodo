@@ -2,17 +2,17 @@
   "users": [
     {
       "id": "usr-admin-1",
-      "name": "Bharath",
+      "name": "Bharath (Owner)",
       "username": "bharath_owner",
       "email": "bharath@digiplusagency.com",
       "password": "1234567890",
       "role": "admin",
       "department": "Management / Executive",
       "active": 1,
-      "avatar_initials": "B",
+      "avatar_initials": "B(",
       "avatar_color": "#10b981",
       "workspace": "DigiPlus",
-      "avatarInitials": "B"
+      "avatarInitials": "B("
     },
     {
       "id": "usr-admin-2",

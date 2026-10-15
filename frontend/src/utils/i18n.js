@@ -17,7 +17,7 @@ export const translations = {
     sec_manage: 'MANAGE',
     admin_badge: '👑 Workspace Admin',
     employee_badge: '👤 Employee Account',
-    admin_owner: 'Admin',
+    admin_owner: 'Admin (Owner)',
     employee: 'Employee',
 
     // Header & Global
@@ -86,7 +86,7 @@ export const translations = {
     sec_manage: 'மேலாண்மை',
     admin_badge: '👑 நிறுவன நிர்வாகி (Admin)',
     employee_badge: '👤 பணியாளர் கணக்கு',
-    admin_owner: 'நிர்வாகி (Admin)',
+    admin_owner: 'நிர்வாகி (Owner)',
     employee: 'பணியாளர்',
 
     // Header & Global
@@ -155,7 +155,7 @@ export const translations = {
     sec_manage: 'प्रबंधन',
     admin_badge: '👑 कार्यक्षेत्र व्यवस्थापक (Admin)',
     employee_badge: '👤 कर्मचारी खाता',
-    admin_owner: 'व्यवस्थापक (Admin)',
+    admin_owner: 'व्यवस्थापक (Owner)',
     employee: 'कर्मचारी',
 
     // Header & Global

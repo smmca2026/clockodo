@@ -49,7 +49,7 @@ export default function SettingsPage({
     setSelectedTheme(themeChoice);
   }, [themeChoice]);
 
-  const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'security' | 'language' | 'appearance' | 'notifications' | 'tracking'
+  const [activeTab, setActiveTab] = useState(initialTab === 'appearance' ? 'profile' : initialTab);
   
   // Profile State
   const [profile, setProfile] = useState({
@@ -471,15 +471,6 @@ export default function SettingsPage({
 
             <button 
               type="button"
-              className={`settings-tab-btn ${activeTab === 'appearance' ? 'active' : ''}`}
-              onClick={() => setActiveTab('appearance')}
-            >
-              <Palette size={16} />
-              <span>{t('tab_appearance')}</span>
-            </button>
-
-            <button 
-              type="button"
               className={`settings-tab-btn ${activeTab === 'notifications' ? 'active' : ''}`}
               onClick={() => setActiveTab('notifications')}
             >
@@ -646,7 +637,7 @@ export default function SettingsPage({
                       <span>Admin Account Security & Password</span>
                     </h3>
                     <p className="settings-section-desc">
-                      Update the login password for the primary workspace Administrator account (<strong>Bharath</strong>).
+                      Update the login password for the primary workspace Administrator account (<strong>Bharath (Owner)</strong>).
                     </p>
                   </div>
                 </div>
@@ -667,11 +658,11 @@ export default function SettingsPage({
                         fontWeight: 800,
                         fontSize: '15px'
                       }}>
-                        {((currentUser?.avatarInitials === 'BO' || currentUser?.avatarInitials === 'B(') ? 'B' : (currentUser?.avatarInitials || 'B'))}
+                        {currentUser?.avatarInitials || 'BO'}
                       </div>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>{(currentUser?.name || 'Bharath').replace(/\s*\(Owner\)/gi, '').trim()}</span>
+                          <span>{currentUser?.name || 'Bharath (Owner)'}</span>
                           <span style={{ fontSize: '10.5px', background: 'rgba(0,204,0,0.12)', color: '#00cc00', border: '1px solid rgba(0,204,0,0.3)', padding: '1px 7px', borderRadius: '4px', fontWeight: 800 }}>
                             👑 Primary Admin
                           </span>
@@ -1015,239 +1006,6 @@ export default function SettingsPage({
                   </button>
                 </div>
               </form>
-            )}
-
-            {/* TAB 4: APPEARANCE & THEME */}
-            {activeTab === 'appearance' && (
-              <div>
-                {/* Section Header with Green Accent */}
-                <div className="settings-section-header">
-                  <div>
-                    <h3 className="settings-section-title">
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        background: 'rgba(0, 204, 0, 0.12)',
-                        border: '1px solid rgba(0, 204, 0, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--digi-green, #00cc00)'
-                      }}>
-                        <Palette size={18} />
-                      </div>
-                      <span>{t('appearance_title')}</span>
-                    </h3>
-                    <p className="settings-section-desc">
-                      {t('appearance_desc')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="settings-panel-box">
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                      Select UI Appearance Theme
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                      System theme is default and auto-matches your OS mode. You can also select Maximum Dark or Clean White theme.
-                    </div>
-                  </div>
-
-                  {/* 3 Selectable Theme Cards */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '22px' }}>
-                    
-                    {/* 1. System Theme (Default) */}
-                    <div
-                      onClick={() => {
-                        setSelectedTheme('system');
-                        setTheme('system');
-                      }}
-                      style={{
-                        padding: '16px',
-                        borderRadius: '12px',
-                        background: selectedTheme === 'system' ? 'rgba(0, 204, 0, 0.12)' : '#111822',
-                        border: selectedTheme === 'system' ? '2px solid var(--digi-green, #00cc00)' : '1.5px solid #1e293b',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: selectedTheme === 'system' ? '0 0 16px rgba(0, 204, 0, 0.25)' : 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '8px',
-                          background: '#080c10',
-                          border: '1px solid #334155',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'var(--digi-green, #00cc00)'
-                        }}>
-                          <Monitor size={18} />
-                        </div>
-                        <span style={{
-                          fontSize: '10.5px',
-                          fontWeight: 800,
-                          background: 'rgba(0, 204, 0, 0.15)',
-                          color: 'var(--digi-green, #00cc00)',
-                          border: '1px solid rgba(0, 204, 0, 0.3)',
-                          padding: '2px 8px',
-                          borderRadius: '6px'
-                        }}>
-                          {t('theme_system_tag')}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
-                        {t('theme_system')}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>
-                        {t('theme_system_desc')}
-                      </div>
-                      {selectedTheme === 'system' && (
-                        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: 'var(--digi-green, #00cc00)' }}>
-                          <Check size={14} strokeWidth={3} /> {t('active_theme_label')} ({effectiveTheme === 'dark' ? 'Dark OS' : 'Light OS'})
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 2. Maximum Dark Theme */}
-                    <div
-                      onClick={() => {
-                        setSelectedTheme('dark');
-                        setTheme('dark');
-                      }}
-                      style={{
-                        padding: '16px',
-                        borderRadius: '12px',
-                        background: selectedTheme === 'dark' ? 'rgba(0, 204, 0, 0.12)' : '#111822',
-                        border: selectedTheme === 'dark' ? '2px solid var(--digi-green, #00cc00)' : '1.5px solid #1e293b',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: selectedTheme === 'dark' ? '0 0 16px rgba(0, 204, 0, 0.25)' : 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '8px',
-                          background: '#080c10',
-                          border: '1px solid #334155',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#38bdf8'
-                        }}>
-                          <Moon size={18} />
-                        </div>
-                        <span style={{
-                          fontSize: '10.5px',
-                          fontWeight: 800,
-                          background: 'rgba(56, 189, 248, 0.12)',
-                          color: '#38bdf8',
-                          border: '1px solid rgba(56, 189, 248, 0.3)',
-                          padding: '2px 8px',
-                          borderRadius: '6px'
-                        }}>
-                          {t('theme_dark_tag')}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
-                        {t('theme_dark')}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>
-                        {t('theme_dark_desc')}
-                      </div>
-                      {selectedTheme === 'dark' && (
-                        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: 'var(--digi-green, #00cc00)' }}>
-                          <Check size={14} strokeWidth={3} /> {t('active_theme_label')}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 3. White / Light Theme */}
-                    <div
-                      onClick={() => {
-                        setSelectedTheme('light');
-                        setTheme('light');
-                      }}
-                      style={{
-                        padding: '16px',
-                        borderRadius: '12px',
-                        background: selectedTheme === 'light' ? 'rgba(0, 204, 0, 0.12)' : '#111822',
-                        border: selectedTheme === 'light' ? '2px solid var(--digi-green, #00cc00)' : '1.5px solid #1e293b',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: selectedTheme === 'light' ? '0 0 16px rgba(0, 204, 0, 0.25)' : 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '8px',
-                          background: '#f8fafc',
-                          border: '1px solid #cbd5e1',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#eab308'
-                        }}>
-                          <Sun size={18} />
-                        </div>
-                        <span style={{
-                          fontSize: '10.5px',
-                          fontWeight: 800,
-                          background: 'rgba(234, 179, 8, 0.12)',
-                          color: '#eab308',
-                          border: '1px solid rgba(234, 179, 8, 0.3)',
-                          padding: '2px 8px',
-                          borderRadius: '6px'
-                        }}>
-                          {t('theme_light_tag')}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff', marginBottom: '4px' }}>
-                        {t('theme_light')}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>
-                        {t('theme_light_desc')}
-                      </div>
-                      {selectedTheme === 'light' && (
-                        <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 700, color: 'var(--digi-green, #00cc00)' }}>
-                          <Check size={14} strokeWidth={3} /> {t('active_theme_label')}
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-
-                  <div className="settings-toggle-row">
-                    <div>
-                      <div className="toggle-info-title">Emerald Green Glow Micro-Animations</div>
-                      <div className="toggle-info-desc">Subtle pulsing glow indicators for active timers, live sessions, and running project counters</div>
-                    </div>
-                    <label className="toggle-switch">
-                      <input 
-                        type="checkbox" 
-                        checked={toggles.highContrastGlow}
-                        onChange={() => handleToggle('highContrastGlow')}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="settings-actions-footer">
-                  <button type="button" className="btn-save-settings" onClick={handleSaveTheme}>
-                    <Save size={16} />
-                    <span>{t('save_theme_pref')}</span>
-                  </button>
-                </div>
-              </div>
             )}
 
             {/* TAB 5: NOTIFICATIONS */}
