@@ -5528,7 +5528,7 @@ export const INITIAL_USERS = [
     "id": "usr-admin-1",
     "name": "Bharath (Owner)",
     "username": "bharath_owner",
-    "email": "bharath.owner@digiplusagency.com",
+    "email": "bharath@digiplusagency.com",
     "password": "1234567890",
     "role": "admin",
     "group": "Management / Executive",
@@ -5607,7 +5607,7 @@ export const INITIAL_NOTIFICATIONS = [];
 export const USER_PROFILE = {
   name: 'Bharath (Owner)',
   title: 'Administrator / Owner',
-  email: 'bharath.owner@digiplusagency.com',
+  email: 'bharath@digiplusagency.com',
   workspace: 'DigiPlus',
   avatar: null,
   role: 'Owner',

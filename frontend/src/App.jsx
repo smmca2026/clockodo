@@ -142,7 +142,7 @@ try {
   // Dynamically compute effective user based on guest session
   const effectiveUser = isGuestSession 
     ? { id: 'guest-1', name: 'Shared Guest', role: 'guest', email: 'guest@client.com', avatarInitials: 'SG' }
-    : (currentUser || { name: 'Bharath (Owner)', role: 'admin', email: 'bharath.owner@digiplusagency.com', avatarInitials: 'BO' });
+    : (currentUser || { name: 'Bharath (Owner)', role: 'admin', email: 'bharath@digiplusagency.com', avatarInitials: 'BO' });
 
   // Global Active Timer State
   const [activeTimer, setActiveTimer] = useState({

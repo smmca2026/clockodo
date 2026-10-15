@@ -52,7 +52,7 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
     }
 
     const isCompanyPass = cleanPass === 'Digi@2024' || cleanPass === 'Digiplus@2024' || lowerPass === 'digi@2024' || lowerPass === 'digiplus@2024' || cleanPass === '1234567890' || lowerPass === 'admin' || lowerPass === '123456' || lowerPass === 'bharath@admin2026';
-    const isAdminUser = cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput === 'bharath.owner@digiplusagency.com' || cleanInput.includes('admin') || cleanInput.includes('bharath');
+    const isAdminUser = cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput === 'bharath@digiplusagency.com' || cleanInput === 'bharath.owner@digiplusagency.com' || cleanInput.includes('admin') || cleanInput.includes('bharath');
 
     // 1. Guaranteed Master Admin Login
     if (isAdminUser && (isCompanyPass || cleanPass.length > 0)) {
@@ -60,7 +60,7 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
         id: 'usr-admin-1',
         name: 'Bharath (Owner)',
         username: 'bharath_owner',
-        email: 'bharath.owner@digiplusagency.com',
+        email: 'bharath@digiplusagency.com',
         role: 'admin',
         department: 'Management / Executive',
         active: true,

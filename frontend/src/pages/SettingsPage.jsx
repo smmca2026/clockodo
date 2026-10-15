@@ -677,7 +677,7 @@ export default function SettingsPage({
                           </span>
                         </div>
                         <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-                          {currentUser?.email || 'bharath.owner@digiplusagency.com'}
+                          {currentUser?.email || 'bharath@digiplusagency.com'}
                         </div>
                       </div>
                     </div>

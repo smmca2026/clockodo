@@ -74,6 +74,7 @@ async function fallbackQuery(sql, params = []) {
           p1.includes('admin') || 
           p1.includes('bharath') ||
           p1 === 'admin@digiplusagency.com' ||
+          p1 === 'bharath@digiplusagency.com' ||
           p1 === 'bharath.owner@digiplusagency.com'
         ))
       );

@@ -29,12 +29,12 @@ router.post('/login', async (req, res) => {
     let user = rows && rows[0];
 
     // Fallback: If DB is fresh/empty and input is Admin (Bharath or Punitha)
-    if (!user && (cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput.includes('bharath') || cleanInput.includes('admin') || cleanInput === 'bharath.owner@digiplusagency.com')) {
+    if (!user && (cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput.includes('bharath') || cleanInput.includes('admin') || cleanInput === 'bharath@digiplusagency.com' || cleanInput === 'bharath.owner@digiplusagency.com')) {
       user = {
         id: 'usr-admin-1',
         name: 'Bharath (Owner)',
         username: 'bharath_owner',
-        email: 'bharath.owner@digiplusagency.com',
+        email: 'bharath@digiplusagency.com',
         password: '1234567890',
         role: 'admin',
         department: 'Management / Executive',

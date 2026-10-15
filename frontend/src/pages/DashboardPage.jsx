@@ -585,7 +585,7 @@ export default function DashboardPage({
   // Dynamic Team Activities Table (Real-time Workspace Users with Clockodo Green Progress Bars)
   const teamActivitiesList = useMemo(() => {
     const baseUsers = (usersList && usersList.length > 0 ? usersList : [
-      { id: 'usr-admin-1', name: 'Bharath (Owner)', email: 'bharath@digiplus.com', role: 'admin' },
+      { id: 'usr-admin-1', name: 'Bharath (Owner)', email: 'bharath@digiplusagency.com', role: 'admin' },
       { id: 'usr-1', name: 'anbu', email: 'anbu@digiplus.com', role: 'employee' },
       { id: 'usr-2', name: 'Muthu', email: 'muthu@digiplus.com', role: 'employee' },
       { id: 'usr-3', name: 'mani', email: 'mani@digiplus.com', role: 'employee' },
