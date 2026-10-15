@@ -150,9 +150,16 @@ export default function DashboardPage({
 }) {
   // Global Workspace Filters
   const [selectedProjectFilter, setSelectedProjectFilter] = useState('all');
-  const [userFilter, setUserFilter] = useState('all');
   const userRole = (currentUser?.role || currentUser?.roleName || '').toLowerCase();
-  const isAdmin = userRole === 'admin' || userRole === 'owner' || !userRole || currentUser?.email === 'admin@clockodo.com';
+  const isAdmin = userRole === 'admin' || userRole === 'owner' || currentUser?.email === 'admin@clockodo.com';
+  const [userFilter, setUserFilter] = useState(() => (isAdmin ? 'all' : 'Only me'));
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setUserFilter('Only me');
+    }
+  }, [isAdmin]);
+
   const isOnlyMe = userFilter === 'Only me' || !isAdmin;
   // Admin in 'Show all' sees Huge Multi-Color Wide Bar; Employees (and Admin in 'Only me') see Classic Green 7-Day Bars
   const showAdminWideStackedBar = isAdmin && (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone');
@@ -205,34 +212,44 @@ export default function DashboardPage({
     return `${formatISODateToShort(startISO)} - ${formatISODateToShort(endISO)}`;
   };
 
-  // 1. Get raw activities for selected user/member from real activities only
+  // 1. Get raw activities for selected user/member: Non-admins strictly see ONLY their own data!
   const memberActivities = useMemo(() => {
-    if (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone') {
-      return activities;
-    }
-
-    if (userFilter === 'Only me') {
-      const myName = (currentUser?.name || '').trim().toLowerCase();
+    if (!isAdmin || userFilter === 'Only me') {
+      const myName = (currentUser?.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
       const myEmail = (currentUser?.email || '').trim().toLowerCase();
+      const myId = currentUser?.id ? String(currentUser.id) : '';
 
-      return activities.filter(a => {
-        const aMember = (a.member || a.user || a.assignedTo || a.userName || a.user_name || '').trim().toLowerCase();
+      return (activities || []).filter(a => {
+        const aMember = (a.member || a.user || a.assignedTo || a.userName || a.user_name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
         const aEmail = (a.userEmail || a.email || '').trim().toLowerCase();
+        const aId = (a.userId || a.user_id) ? String(a.userId || a.user_id) : '';
 
-        if (myEmail && aEmail && aEmail === myEmail) return true;
-        if (myName && aMember && aMember.includes(myName)) return true;
-        if (!aMember && !aEmail) return true;
+        if (myId && aId && myId === aId) return true;
+        if (myEmail && aEmail && myEmail === aEmail) return true;
+        if (myName && aMember && (aMember === myName || aMember.includes(myName) || myName.includes(aMember))) return true;
         return false;
       });
     }
 
+    if (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone') {
+      return activities || [];
+    }
+
     const target = userFilter.trim().toLowerCase();
-    return activities.filter(a => {
+    return (activities || []).filter(a => {
       const aMember = (a.member || a.user || a.assignedTo || a.userName || a.user_name || '').trim().toLowerCase();
       const aEmail = (a.userEmail || a.email || '').trim().toLowerCase();
       return aMember.includes(target) || (target && aEmail.includes(target));
     });
-  }, [userFilter, activities, currentUser]);
+  }, [userFilter, activities, currentUser, isAdmin]);
+
+  // Projects visible in dropdown: Admin sees all, employee sees their worked projects
+  const visibleProjects = useMemo(() => {
+    if (isAdmin) return projects;
+    const myProjNames = new Set(memberActivities.map(a => (a.project || a.projectName || '').toLowerCase()));
+    const activeProjs = (projects || []).filter(p => myProjNames.has((p.name || '').toLowerCase()));
+    return activeProjs.length > 0 ? activeProjs : projects;
+  }, [isAdmin, projects, memberActivities]);
 
   // 2. Filter by Date Period Range (start to end inclusive)
   const periodFilteredActivities = useMemo(() => {
@@ -838,21 +855,23 @@ export default function DashboardPage({
             style={{ fontWeight: 600 }}
           >
             <option value="all">Project: All</option>
-            {projects.map(p => (
+            {visibleProjects.map(p => (
               <option key={p.id || p.name} value={p.name}>Project: {p.name}</option>
             ))}
           </select>
 
-          {/* 2. User / Team Filter: Only 2 options (Show all & Only me) */}
-          <select 
-            className="dash-dropdown"
-            value={userFilter}
-            onChange={(e) => setUserFilter(e.target.value)}
-            style={{ fontWeight: 600 }}
-          >
-            <option value="all">Show all (Everyone / Team)</option>
-            <option value="Only me">Only me ({currentUser?.name || USER_PROFILE.name})</option>
-          </select>
+          {/* 2. User / Team Filter: Rendered ONLY for Admin (Employees are strictly locked to their own account) */}
+          {isAdmin && (
+            <select 
+              className="dash-dropdown"
+              value={userFilter}
+              onChange={(e) => setUserFilter(e.target.value)}
+              style={{ fontWeight: 600 }}
+            >
+              <option value="all">Show all (Everyone / Team)</option>
+              <option value="Only me">Only me ({currentUser?.name || USER_PROFILE.name})</option>
+            </select>
+          )}
 
           {/* Clockify Date Range Selector Group with < > arrows */}
           <div className="dash-date-group" style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={datePickerRef}>
@@ -1562,8 +1581,8 @@ export default function DashboardPage({
           </div>
         </div>
 
-        {/* Full Width Beautiful Team Activities Row / Card (Shown only in 'Show all' / Team view) */}
-        {(userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone') && (
+        {/* Full Width Beautiful Team Activities Row / Card (Shown strictly to Admin in 'Show all' view) */}
+        {isAdmin && (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone') && (
           <div className="dash-team-activities-card" style={{ marginTop: '20px' }}>
           <div className="dash-team-act-header">
             <div className="dash-team-act-title-wrap">
@@ -1665,6 +1684,87 @@ export default function DashboardPage({
             </table>
           </div>
         </div>
+        )}
+
+        {/* For Employee: Dedicated My Project Tasks & Logged Activities */}
+        {!isAdmin && (
+          <div className="dash-team-activities-card" style={{ marginTop: '20px' }}>
+            <div className="dash-team-act-header">
+              <div className="dash-team-act-title-wrap" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="dash-team-act-title">My Tracked Projects & Activities</span>
+                <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', fontSize: '11.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px' }}>
+                  {filteredActivities.length} {filteredActivities.length === 1 ? 'Entry' : 'Entries'}
+                </span>
+              </div>
+            </div>
+
+            <div className="dash-team-table-wrap">
+              <table className="dash-team-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '25%' }}>PROJECT & CLIENT</th>
+                    <th style={{ width: '40%' }}>TASK DESCRIPTION</th>
+                    <th style={{ width: '20%' }}>DATE / TIME</th>
+                    <th style={{ width: '15%', textAlign: 'right' }}>DURATION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredActivities.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
+                        <Clock size={28} color="#00cc00" style={{ display: 'block', margin: '0 auto 8px' }} />
+                        <span style={{ fontWeight: 600, fontSize: '13px' }}>No tracked activities found for this period.</span>
+                        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>Start a live timer or log manual time to view your projects here.</div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredActivities.map((act, idx) => {
+                      const pName = act.project || act.projectName || 'General Task';
+                      const projObj = projects.find(p => p.name.toLowerCase() === pName.toLowerCase());
+                      const pColor = act.projectColor || projObj?.color || '#00cc00';
+                      const pClient = act.client || projObj?.client || 'DigiPlus Corp';
+                      const durFormatted = act.durationFormatted || formatSecondsToHMS(act.durationSeconds || parseTimeToSeconds(act.duration));
+
+                      return (
+                        <tr key={act.id || idx}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="project-bullet" style={{ backgroundColor: pColor, width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0 }} />
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>{pName}</div>
+                                <div style={{ fontSize: '11px', color: '#64748b' }}>{pClient}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600, color: '#334155', fontSize: '13px' }}>
+                              {act.description || act.task || 'Working session'}
+                            </div>
+                            {act.billable !== false && (
+                              <span style={{ display: 'inline-block', fontSize: '10px', color: '#008a00', background: 'rgba(0,204,0,0.1)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, marginTop: '3px' }}>
+                                Billable
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <div style={{ fontSize: '12.5px', color: '#0f172a', fontWeight: 600 }}>{formatRelativeTime(act.date)}</div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+                              {act.startTime && act.endTime ? `${act.startTime} - ${act.endTime}` : (act.date || 'Today')}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13.5px', color: '#0f172a' }}>
+                              {durFormatted}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </div>
     </div>

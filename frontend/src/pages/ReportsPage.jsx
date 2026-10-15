@@ -387,6 +387,8 @@ export default function ReportsPage({
   usersList = []
 }) {
   const [activeSubtab, setActiveSubtab] = useState('Summary');
+  const userRole = (currentUser?.role || currentUser?.roleName || '').toLowerCase();
+  const isAdmin = userRole === 'admin' || userRole === 'owner' || currentUser?.email === 'admin@clockodo.com';
 
   const getTodayISO = () => {
     const now = new Date();
@@ -514,9 +516,11 @@ export default function ReportsPage({
     { id: 'Team', name: 'Team' },
   ];
 
-  const [visibleFilterPills, setVisibleFilterPills] = useState([
-    'Team', 'Client', 'Project', 'Task', 'Tag', 'Status', 'Description', 'Kiosk'
-  ]);
+  const [visibleFilterPills, setVisibleFilterPills] = useState(() => (
+    isAdmin
+      ? ['Team', 'Client', 'Project', 'Task', 'Tag', 'Status', 'Description', 'Kiosk']
+      : ['Client', 'Project', 'Task', 'Tag', 'Status', 'Description', 'Kiosk']
+  ));
   const [openDropdown, setOpenDropdown] = useState(null);
 
   // Selected filter states (pending until Apply is clicked)
@@ -546,6 +550,19 @@ export default function ReportsPage({
 
   // Filter Categories data sources
   const teamFilterGroups = useMemo(() => {
+    if (!isAdmin && currentUser) {
+      return [
+        {
+          title: 'MY ACCOUNT',
+          items: [{
+            id: currentUser.name || currentUser.username || currentUser.email,
+            name: currentUser.name || currentUser.username || currentUser.email,
+            status: 'Active'
+          }]
+        }
+      ];
+    }
+
     const defaultTeam = [
       { id: 'usr-1', name: 'Bharath (Owner)', role: 'Admin (Owner)', department: 'Management', active: true, avatarColor: '#10b981', avatarInitials: 'BO' },
       { id: 'usr-2', name: 'anbu', role: 'Full Stack', department: 'Full Stack', active: true, avatarColor: '#14b8a6', avatarInitials: 'AN' },
@@ -796,6 +813,24 @@ export default function ReportsPage({
   // 1. Workspace Filtered Activities across all team members & date range
   const scopedActivities = useMemo(() => {
     let acts = activities || [];
+
+    // Privacy safeguard: Non-admin employees strictly see ONLY their own data
+    if (!isAdmin) {
+      const myName = (currentUser?.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+      const myEmail = (currentUser?.email || '').trim().toLowerCase();
+      const myId = currentUser?.id ? String(currentUser.id) : '';
+
+      acts = acts.filter(a => {
+        const aMember = (a.member || a.user || a.assignedTo || a.userName || a.user_name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+        const aEmail = (a.userEmail || a.email || '').trim().toLowerCase();
+        const aId = (a.userId || a.user_id) ? String(a.userId || a.user_id) : '';
+
+        if (myId && aId && myId === aId) return true;
+        if (myEmail && aEmail && myEmail === aEmail) return true;
+        if (myName && aMember && (aMember === myName || aMember.includes(myName) || myName.includes(aMember))) return true;
+        return false;
+      });
+    }
 
     // Date Range Filter
     const parsedRange = parseReportDateRange(appliedRange);
@@ -1436,6 +1471,29 @@ export default function ReportsPage({
         active: isApproved
       };
     });
+
+    // Privacy safeguard: Employees only see their own attendance record
+    if (!isAdmin && currentUser) {
+      const myEmail = (currentUser.email || '').toLowerCase();
+      const myName = (currentUser.name || '').toLowerCase();
+      targetMembers = targetMembers.filter(m => 
+        (m.email && m.email.toLowerCase() === myEmail) || 
+        (m.name && m.name.toLowerCase().includes(myName)) ||
+        (myName && m.name && myName.includes(m.name.toLowerCase())) ||
+        (m.id && String(m.id) === String(currentUser.id))
+      );
+      if (targetMembers.length === 0) {
+        targetMembers = [{
+          id: currentUser.id || 'usr-me',
+          name: currentUser.name || 'Employee',
+          email: currentUser.email || '',
+          role: currentUser.role || 'employee',
+          avatarColor: '#10b981',
+          avatarInitials: (currentUser.name || 'EM').substring(0, 2).toUpperCase(),
+          active: true
+        }];
+      }
+    }
 
     if (appliedTeam && appliedTeam.length > 0) {
       if (appliedTeam.includes('active-only')) {
