@@ -8,7 +8,8 @@ import {
   CheckCircle2,
   X,
   DollarSign,
-  Trash2
+  Trash2,
+  Search
 } from 'lucide-react';
 import { CALENDAR_WEEK_SCHEDULE, INITIAL_PROJECTS } from '../data/mockData';
 
@@ -207,6 +208,17 @@ export default function Calendar({
   const [modalDescription, setModalDescription] = useState('');
   const [modalProject, setModalProject] = useState(projects[0]?.name || 'JRKS Logistics');
   const [modalBillable, setModalBillable] = useState(true);
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
+
+  // Filtered projects for the Add Entry modal based on search query
+  const filteredModalProjects = useMemo(() => {
+    if (!projectSearchQuery.trim()) return projects || [];
+    const q = projectSearchQuery.toLowerCase();
+    return (projects || []).filter(p => 
+      (p.name && p.name.toLowerCase().includes(q)) || 
+      (p.client && p.client.toLowerCase().includes(q))
+    );
+  }, [projects, projectSearchQuery]);
 
         const START_HOUR = 8;
   const HOUR_HEIGHT = 64;
@@ -399,6 +411,7 @@ export default function Calendar({
     setModalFromTime(defaultFrom);
     setModalToTime(defaultTo);
     setModalDescription('');
+    setProjectSearchQuery('');
     setModalProject(projects[0]?.name || 'JRKS Logistics');
     setModalBillable(true);
     setShowAddModal(true);
@@ -1249,19 +1262,53 @@ export default function Calendar({
                   />
                 </div>
 
-                {/* Project Selection */}
+                {/* Project Selection with Search */}
                 <div className="cal-form-group">
-                  <label className="cal-form-label">Project</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <label className="cal-form-label" style={{ margin: 0 }}>Project</label>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      {filteredModalProjects.length} of {projects.length} projects
+                    </span>
+                  </div>
+
+                  {/* Search Option in Project Field */}
+                  <div style={{ position: 'relative', marginBottom: '8px' }}>
+                    <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    <input
+                      type="text"
+                      className="cal-form-input"
+                      placeholder="Search project by name or client..."
+                      value={projectSearchQuery}
+                      onChange={(e) => setProjectSearchQuery(e.target.value)}
+                      style={{ paddingLeft: '32px', height: '36px', fontSize: '12.5px', background: '#f8fafc' }}
+                    />
+                    {projectSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setProjectSearchQuery('')}
+                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
+                        title="Clear search"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Project Select Dropdown */}
                   <select
                     className="cal-form-select"
                     value={modalProject}
                     onChange={(e) => setModalProject(e.target.value)}
                   >
-                    {projects.map(p => (
-                      <option key={p.id} value={p.name}>
-                        {p.name} ({p.client || 'Client'})
-                      </option>
-                    ))}
+                    {filteredModalProjects.length === 0 ? (
+                      <option disabled value="">No projects match "{projectSearchQuery}"</option>
+                    ) : (
+                      filteredModalProjects.map(p => (
+                        <option key={p.id || p.name} value={p.name}>
+                          {p.name} {p.client && p.client !== '—' ? `(${p.client})` : ''}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 

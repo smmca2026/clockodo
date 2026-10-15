@@ -969,7 +969,7 @@ export default function TimeTrackerPage({
                                       e.stopPropagation();
                                       setActiveMenuId(activeMenuId === parentRowKey ? null : parentRowKey);
                                     }}
-                                    title="More options (Edit, Duplicate, Delete)"
+                                    title="More options (Edit, Delete)"
                                   >
                                     <MoreVertical size={14} />
                                   </button>
@@ -987,14 +987,6 @@ export default function TimeTrackerPage({
                                       >
                                         <Edit3 size={13} color="#3b82f6" />
                                         <span>Edit Description</span>
-                                      </button>
-                                      <button 
-                                        type="button" 
-                                        className="clockify-entry-menu-item"
-                                        onClick={() => handleDuplicate(repItem)}
-                                      >
-                                        <Copy size={13} color="#00cc00" />
-                                        <span>Duplicate</span>
                                       </button>
                                       <button 
                                         type="button" 
@@ -1164,7 +1156,7 @@ export default function TimeTrackerPage({
                                               e.stopPropagation();
                                               setActiveMenuId(activeMenuId === subRowKey ? null : subRowKey);
                                             }}
-                                            title="More options (Edit, Duplicate, Delete)"
+                                            title="More options (Edit, Delete)"
                                           >
                                             <MoreVertical size={14} />
                                           </button>
@@ -1181,14 +1173,6 @@ export default function TimeTrackerPage({
                                               >
                                                 <Edit3 size={13} color="#3b82f6" />
                                                 <span>Edit Description</span>
-                                              </button>
-                                              <button 
-                                                type="button" 
-                                                className="clockify-entry-menu-item"
-                                                onClick={() => handleDuplicate(session)}
-                                              >
-                                                <Copy size={13} color="#00cc00" />
-                                                <span>Duplicate</span>
                                               </button>
                                               <button 
                                                 type="button" 
