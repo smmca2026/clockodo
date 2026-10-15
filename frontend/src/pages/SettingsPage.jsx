@@ -542,9 +542,7 @@ export default function SettingsPage({
 
                   <div className="settings-form-grid">
                     <div className="settings-field">
-                      <label className="settings-label">
-                        {t('full_name')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
-                      </label>
+                      <label className="settings-label">{t('full_name')}</label>
                       <input 
                         type="text" 
                         className="settings-input" 
@@ -557,9 +555,7 @@ export default function SettingsPage({
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">
-                        {t('work_email')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
-                      </label>
+                      <label className="settings-label">{t('work_email')}</label>
                       <input 
                         type="email" 
                         className="settings-input" 
@@ -572,9 +568,7 @@ export default function SettingsPage({
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">
-                        {t('department')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
-                      </label>
+                      <label className="settings-label">{t('department')}</label>
                       <input 
                         type="text" 
                         className="settings-input" 
@@ -587,9 +581,7 @@ export default function SettingsPage({
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">
-                        {t('organization_workspace')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
-                      </label>
+                      <label className="settings-label">{t('organization_workspace')}</label>
                       <input 
                         type="text" 
                         className="settings-input" 
