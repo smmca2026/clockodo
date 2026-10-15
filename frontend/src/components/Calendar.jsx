@@ -9,7 +9,9 @@ import {
   X,
   DollarSign,
   Trash2,
-  Search
+  Search,
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { CALENDAR_WEEK_SCHEDULE, INITIAL_PROJECTS } from '../data/mockData';
 
@@ -209,6 +211,23 @@ export default function Calendar({
   const [modalProject, setModalProject] = useState(projects[0]?.name || 'JRKS Logistics');
   const [modalBillable, setModalBillable] = useState(true);
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const projectDropdownRef = useRef(null);
+
+  // Close project dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(e.target)) {
+        setIsProjectDropdownOpen(false);
+      }
+    };
+    if (isProjectDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isProjectDropdownOpen]);
 
   // Filtered projects for the Add Entry modal based on search query
   const filteredModalProjects = useMemo(() => {
@@ -219,6 +238,11 @@ export default function Calendar({
       (p.client && p.client.toLowerCase().includes(q))
     );
   }, [projects, projectSearchQuery]);
+
+  // Currently selected project object
+  const currentModalProjectObj = useMemo(() => {
+    return (projects || []).find(p => p.name === modalProject) || projects[0] || null;
+  }, [projects, modalProject]);
 
         const START_HOUR = 8;
   const HOUR_HEIGHT = 64;
@@ -412,6 +436,7 @@ export default function Calendar({
     setModalToTime(defaultTo);
     setModalDescription('');
     setProjectSearchQuery('');
+    setIsProjectDropdownOpen(false);
     setModalProject(projects[0]?.name || 'JRKS Logistics');
     setModalBillable(true);
     setShowAddModal(true);
@@ -1262,8 +1287,8 @@ export default function Calendar({
                   />
                 </div>
 
-                {/* Project Selection with Search */}
-                <div className="cal-form-group">
+                {/* Project Selection with Clickable Searchable Combobox */}
+                <div className="cal-form-group" ref={projectDropdownRef} style={{ position: 'relative' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <label className="cal-form-label" style={{ margin: 0 }}>Project</label>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>
@@ -1271,21 +1296,65 @@ export default function Calendar({
                     </span>
                   </div>
 
-                  {/* Search Option in Project Field */}
-                  <div style={{ position: 'relative', marginBottom: '8px' }}>
-                    <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  {/* Search Input Bar */}
+                  <div style={{ position: 'relative' }}>
+                    <Search 
+                      size={14} 
+                      color="#94a3b8" 
+                      style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} 
+                    />
                     <input
                       type="text"
                       className="cal-form-input"
-                      placeholder="Search project by name or client..."
+                      placeholder="Type to search or select project..."
                       value={projectSearchQuery}
-                      onChange={(e) => setProjectSearchQuery(e.target.value)}
-                      style={{ paddingLeft: '32px', height: '36px', fontSize: '12.5px', background: '#f8fafc' }}
+                      onFocus={() => setIsProjectDropdownOpen(true)}
+                      onClick={() => setIsProjectDropdownOpen(true)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProjectSearchQuery(val);
+                        setIsProjectDropdownOpen(true);
+                        // Auto-sync project selection if query matches
+                        if (val.trim()) {
+                          const q = val.toLowerCase();
+                          const match = (projects || []).find(p => 
+                            (p.name && p.name.toLowerCase().includes(q)) || 
+                            (p.client && p.client.toLowerCase().includes(q))
+                          );
+                          if (match) {
+                            setModalProject(match.name);
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault(); // Stop premature form submission
+                          if (filteredModalProjects.length > 0) {
+                            setModalProject(filteredModalProjects[0].name);
+                            setIsProjectDropdownOpen(false);
+                          }
+                        } else if (e.key === 'Escape') {
+                          setIsProjectDropdownOpen(false);
+                        } else if (e.key === 'ArrowDown') {
+                          setIsProjectDropdownOpen(true);
+                        }
+                      }}
+                      style={{ 
+                        paddingLeft: '32px', 
+                        paddingRight: projectSearchQuery ? '30px' : '10px', 
+                        height: '38px', 
+                        fontSize: '13px', 
+                        background: '#ffffff',
+                        borderColor: isProjectDropdownOpen ? '#00cc00' : '#cbd5e1'
+                      }}
                     />
                     {projectSearchQuery && (
                       <button
                         type="button"
-                        onClick={() => setProjectSearchQuery('')}
+                        onClick={() => {
+                          setProjectSearchQuery('');
+                          setIsProjectDropdownOpen(true);
+                        }}
                         style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
                         title="Clear search"
                       >
@@ -1294,22 +1363,127 @@ export default function Calendar({
                     )}
                   </div>
 
-                  {/* Project Select Dropdown */}
-                  <select
-                    className="cal-form-select"
-                    value={modalProject}
-                    onChange={(e) => setModalProject(e.target.value)}
+                  {/* Selected Project Preview Card (Clickable to re-open dropdown) */}
+                  <div
+                    onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      background: '#f8fafc',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      marginTop: '6px',
+                      transition: 'border-color 0.15s ease'
+                    }}
+                    title="Click to choose a project"
                   >
-                    {filteredModalProjects.length === 0 ? (
-                      <option disabled value="">No projects match "{projectSearchQuery}"</option>
-                    ) : (
-                      filteredModalProjects.map(p => (
-                        <option key={p.id || p.name} value={p.name}>
-                          {p.name} {p.client && p.client !== '—' ? `(${p.client})` : ''}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
+                      <span 
+                        style={{ 
+                          width: '9px', 
+                          height: '9px', 
+                          borderRadius: '50%', 
+                          backgroundColor: currentModalProjectObj?.color || '#00cc00',
+                          flexShrink: 0
+                        }} 
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {modalProject}
+                      </span>
+                      {currentModalProjectObj?.client && currentModalProjectObj.client !== '—' && (
+                        <span style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                          ({currentModalProjectObj.client})
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#00cc00', fontWeight: 600, flexShrink: 0, marginLeft: '6px' }}>
+                      <Check size={13} />
+                      <span>Selected</span>
+                      <ChevronDown size={13} color="#64748b" style={{ marginLeft: '2px' }} />
+                    </div>
+                  </div>
+
+                  {/* Interactive Clickable Dropdown Menu */}
+                  {isProjectDropdownOpen && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '4px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        boxShadow: '0 12px 28px -4px rgba(0,0,0,0.15), 0 6px 12px -4px rgba(0,0,0,0.08)',
+                        maxHeight: '220px',
+                        overflowY: 'auto',
+                        zIndex: 1100
+                      }}
+                    >
+                      {filteredModalProjects.length === 0 ? (
+                        <div style={{ padding: '14px 12px', fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>
+                          No projects match "{projectSearchQuery}"
+                        </div>
+                      ) : (
+                        filteredModalProjects.map((p) => {
+                          const isSelected = p.name === modalProject;
+                          return (
+                            <div
+                              key={p.id || p.name}
+                              onClick={() => {
+                                setModalProject(p.name);
+                                setIsProjectDropdownOpen(false);
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '9px 12px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                background: isSelected ? '#f0fdf4' : 'transparent',
+                                borderBottom: '1px solid #f1f5f9',
+                                transition: 'background 0.15s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isSelected) e.currentTarget.style.background = '#f8fafc';
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isSelected) e.currentTarget.style.background = 'transparent';
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                <span 
+                                  style={{ 
+                                    width: '8px', 
+                                    height: '8px', 
+                                    borderRadius: '50%', 
+                                    backgroundColor: p.color || '#00cc00', 
+                                    flexShrink: 0 
+                                  }} 
+                                />
+                                <span style={{ fontWeight: isSelected ? 600 : 500, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {p.name}
+                                </span>
+                                {p.client && p.client !== '—' && (
+                                  <span style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                    ({p.client})
+                                  </span>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <Check size={14} color="#00cc00" style={{ flexShrink: 0, marginLeft: '8px' }} />
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Billable Toggle */}
