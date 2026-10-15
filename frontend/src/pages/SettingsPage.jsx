@@ -327,6 +327,20 @@ export default function SettingsPage({
     showToast(`✅ Theme preference saved: ${themeName}!`);
   };
 
+  // 5. SAVE GENERAL PREFERENCES (NOTIFICATIONS & TRACKING RULES)
+  const handleSaveGeneral = (e) => {
+    if (e) e.preventDefault();
+    try {
+      localStorage.setItem('clockodo_preference_toggles', JSON.stringify(toggles));
+      localStorage.setItem('clockodo_tracking_rules', JSON.stringify({
+        dailyHours: profile.dailyHours,
+        weeklyHours: profile.weeklyHours,
+        hourlyRate: profile.hourlyRate,
+      }));
+    } catch (err) {}
+    showToast('Settings saved successfully!');
+  };
+
   const LANGUAGES_LIST = [
     { code: 'en', name: 'English', nativeName: 'English (US / UK)', flag: '🇬🇧', tag: 'Primary' },
     { code: 'ta', name: 'Tamil', nativeName: 'தமிழ் (Tamil)', flag: '🇮🇳', tag: 'Regional' },
