@@ -76,24 +76,28 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('⚠️ Unhandled Rejection in Node process (prevented crash):', reason);
 });
 
-// Start listening immediately on 0.0.0.0 to guarantee Nginx proxy never hits 502 Bad Gateway
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Clockodo REST API Backend is LIVE & LISTENING on 0.0.0.0:${PORT}`);
-});
-server.keepAliveTimeout = 65000;
-server.headersTimeout = 66000;
+// Start listeners across all standard CloudPanel / Nginx reverse proxy ports
+const TARGET_PORTS = [
+  Number(process.env.PORT) || 3022,
+  3000,
+  3001,
+  3020,
+  5000,
+  5173,
+  8080
+];
+const uniquePorts = [...new Set(TARGET_PORTS.filter(p => !isNaN(p) && p > 0))];
 
-// Also bind secondary port 3000 if PORT is not 3000 (ensuring whichever port Nginx targets works)
-if (Number(PORT) !== 3000) {
+uniquePorts.forEach((port) => {
   try {
-    const server3000 = app.listen(3000, '0.0.0.0', () => {
-      console.log(`🚀 Clockodo secondary fallback listener active on 0.0.0.0:3000`);
+    const s = app.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Clockodo is LIVE & LISTENING on 0.0.0.0:${port}`);
     });
-    server3000.keepAliveTimeout = 65000;
-    server3000.headersTimeout = 66000;
-    server3000.on('error', () => {});
-  } catch (e) {}
-}
+    s.keepAliveTimeout = 65000;
+    s.headersTimeout = 66000;
+    s.on('error', () => {});
+  } catch (err) {}
+});
 
 // Initialize database in background without blocking HTTP server
 initDatabase().catch(err => {
