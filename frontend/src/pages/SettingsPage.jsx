@@ -177,6 +177,10 @@ export default function SettingsPage({
   // 1. SAVE PROFILE DETAILS
   const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
+    if (!isAdmin) {
+      showToast('Profile editing is restricted to Workspace Administrators.', 'error');
+      return;
+    }
     setIsSaving(true);
 
     try {
@@ -386,9 +390,6 @@ export default function SettingsPage({
             <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
               {t('workspace_settings_title')}
             </h2>
-            <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: '3px 0 0 0' }}>
-              {t('workspace_settings_desc')}
-            </p>
           </div>
         </div>
 
@@ -541,45 +542,61 @@ export default function SettingsPage({
 
                   <div className="settings-form-grid">
                     <div className="settings-field">
-                      <label className="settings-label">{t('full_name')}</label>
+                      <label className="settings-label">
+                        {t('full_name')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
+                      </label>
                       <input 
                         type="text" 
                         className="settings-input" 
                         value={profile.name}
                         onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        disabled={!isAdmin}
+                        style={!isAdmin ? { opacity: 0.75, cursor: 'not-allowed', background: '#090d14', borderColor: '#1e293b' } : {}}
                         required
                       />
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">{t('work_email')}</label>
+                      <label className="settings-label">
+                        {t('work_email')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
+                      </label>
                       <input 
                         type="email" 
                         className="settings-input" 
                         value={profile.email}
                         onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                        disabled={!isAdmin}
+                        style={!isAdmin ? { opacity: 0.75, cursor: 'not-allowed', background: '#090d14', borderColor: '#1e293b' } : {}}
                         required
                       />
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">{t('department')}</label>
+                      <label className="settings-label">
+                        {t('department')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
+                      </label>
                       <input 
                         type="text" 
                         className="settings-input" 
                         value={profile.title}
                         onChange={(e) => setProfile({ ...profile, title: e.target.value })}
+                        disabled={!isAdmin}
+                        style={!isAdmin ? { opacity: 0.75, cursor: 'not-allowed', background: '#090d14', borderColor: '#1e293b' } : {}}
                         placeholder="e.g. Full Stack Developer, Management"
                       />
                     </div>
 
                     <div className="settings-field">
-                      <label className="settings-label">{t('organization_workspace')}</label>
+                      <label className="settings-label">
+                        {t('organization_workspace')} {!isAdmin && <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>(Admin Managed)</span>}
+                      </label>
                       <input 
                         type="text" 
                         className="settings-input" 
                         value={profile.workspace}
                         onChange={(e) => setProfile({ ...profile, workspace: e.target.value })}
+                        disabled={!isAdmin}
+                        style={!isAdmin ? { opacity: 0.75, cursor: 'not-allowed', background: '#090d14', borderColor: '#1e293b' } : {}}
                         placeholder="e.g. DigiPlus"
                       />
                     </div>
@@ -587,12 +604,30 @@ export default function SettingsPage({
                 </div>
 
                 {/* Footer Save Action */}
-                <div className="settings-actions-footer">
-                  <button type="submit" className="btn-save-settings" disabled={isSaving}>
-                    <Save size={16} />
-                    <span>{isSaving ? t('saving_profile') : t('save_profile_changes')}</span>
-                  </button>
-                </div>
+                {isAdmin ? (
+                  <div className="settings-actions-footer">
+                    <button type="submit" className="btn-save-settings" disabled={isSaving}>
+                      <Save size={16} />
+                      <span>{isSaving ? t('saving_profile') : t('save_profile_changes')}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{
+                    marginTop: '20px',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    background: 'rgba(56, 189, 248, 0.08)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    color: '#94a3b8',
+                    fontSize: '12.5px'
+                  }}>
+                    <Lock size={15} color="#38bdf8" />
+                    <span>Profile details and workspace department can only be modified by a <strong>Workspace Admin</strong>.</span>
+                  </div>
+                )}
               </form>
             )}
 
@@ -1329,9 +1364,6 @@ export default function SettingsPage({
                       </div>
                       <span>Workspace Time Tracking Rules & Defaults</span>
                     </h3>
-                    <p className="settings-section-desc">
-                      Set standard working hour goals, default billing rates, rounding precision, and idle pause rules.
-                    </p>
                   </div>
                 </div>
 
