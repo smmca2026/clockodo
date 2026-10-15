@@ -1,3 +1,4 @@
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -49,6 +50,18 @@ app.use(['/api/projects', '/projects'], projectRoutes);
 app.use(['/api/attendance', '/attendance'], attendanceRoutes);
 app.use(['/api/reports', '/reports'], reportRoutes);
 
+// Serve frontend static build files (SPA fallback)
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
@@ -67,9 +80,20 @@ process.on('unhandledRejection', (reason, promise) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Clockodo REST API Backend is LIVE & LISTENING on 0.0.0.0:${PORT}`);
 });
-
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 66000;
+
+// Also bind secondary port 3000 if PORT is not 3000 (ensuring whichever port Nginx targets works)
+if (Number(PORT) !== 3000) {
+  try {
+    const server3000 = app.listen(3000, '0.0.0.0', () => {
+      console.log(`🚀 Clockodo secondary fallback listener active on 0.0.0.0:3000`);
+    });
+    server3000.keepAliveTimeout = 65000;
+    server3000.headersTimeout = 66000;
+    server3000.on('error', () => {});
+  } catch (e) {}
+}
 
 // Initialize database in background without blocking HTTP server
 initDatabase().catch(err => {
