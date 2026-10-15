@@ -171,6 +171,9 @@ export default function DashboardPage({
   const isOnlyMe = userFilter === 'Only me' || !isAdmin;
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [pinnedTeamCard, setPinnedTeamCard] = useState(true);
+  const [chartMode, setChartMode] = useState('stacked'); // 'stacked' | 'weekly'
+  const [hoveredStackedSeg, setHoveredStackedSeg] = useState(null);
+  const [stackedTooltipPos, setStackedTooltipPos] = useState({ x: 0, y: 0, visible: false, dayLabel: '' });
 
   // Helper to get real current week (Monday to Sunday)
   const getCurrentWeekRange = () => {
@@ -474,6 +477,39 @@ export default function DashboardPage({
     if (activeDaysWithData.length <= 1) return true;
     return false;
   }, [dateRange, dailyBarData]);
+
+  // Period Stacked Bar Data (Aggregates all projects in the selected date range for wide stacked view)
+  const periodStackedData = useMemo(() => {
+    let totalSec = 0;
+    const projMap = {};
+
+    filteredActivities.forEach(a => {
+      const sec = a.durationSeconds || parseTimeToSeconds(a.durationFormatted || a.duration);
+      if (sec > 0) {
+        totalSec += sec;
+        const pName = a.project || a.projectName || 'General Task';
+        if (!projMap[pName]) {
+          const projObj = projects.find(p => p.name.toLowerCase() === pName.toLowerCase());
+          projMap[pName] = {
+            project: pName,
+            color: a.projectColor || projObj?.color || a.color || '#00cc00',
+            client: a.client || projObj?.client || 'DigiPlus Corp',
+            sec: 0
+          };
+        }
+        projMap[pName].sec += sec;
+      }
+    });
+
+    const projectSegments = Object.values(projMap).sort((a, b) => b.sec - a.sec);
+
+    return {
+      totalSec,
+      time: formatSecondsToHMS(totalSec),
+      hours: totalSec / 3600,
+      projectSegments
+    };
+  }, [filteredActivities, projects]);
 
   // Single Date Bar Data with all stacked project segments for wide display
   const singleDayData = useMemo(() => {
@@ -1136,17 +1172,57 @@ export default function DashboardPage({
           </div>
         </div>
 
-        {/* 1. Full-Width Weekly Activity Overview: Classic 7-Day Bars */}
-        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '26px 32px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
-          {/* Header Row: Title, Total & Peak */}
+        {/* 1. Full-Width Activity Overview: Stacked Overview with Hover Message Box & 7-Day View */}
+        <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '26px 32px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)', position: 'relative' }}>
+          {/* Header Row: Title, Total, View Mode Switcher & Peak */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                Weekly Activity Overview
+                Activity Overview
               </span>
               <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', padding: '2px 9px', borderRadius: '12px', fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
                 Total: {liveTotalTime}
               </span>
+
+              {/* View Switcher: Stacked Overview ("padutha mari mela mela") vs 7-Day View */}
+              <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '4px', marginLeft: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setChartMode('stacked')}
+                  style={{
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: chartMode === 'stacked' ? '#ffffff' : 'transparent',
+                    color: chartMode === 'stacked' ? '#0f172a' : '#64748b',
+                    boxShadow: chartMode === 'stacked' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Stacked Overview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartMode('weekly')}
+                  style={{
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: chartMode === 'weekly' ? '#ffffff' : 'transparent',
+                    color: chartMode === 'weekly' ? '#0f172a' : '#64748b',
+                    boxShadow: chartMode === 'weekly' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  7-Day View
+                </button>
+              </div>
             </div>
 
             {/* Right Header Status / Peak Indicator */}
@@ -1172,73 +1248,289 @@ export default function DashboardPage({
             </div>
           )}
 
-          {/* 7-DAY WEEKLY MULTI-COLUMN VERTICAL BAR GRID */}
-          <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
-            <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px', height: '300px', alignItems: 'flex-end', paddingBottom: '16px' }}>
-              {dailyBarData.map((d, idx) => (
-                <div
-                  key={idx}
-                  className="reports-bar-item"
-                  onClick={() => { setDateRange({ start: d.iso, end: d.iso }); }}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px', cursor: 'pointer' }}
-                  title={'Click to view ' + d.day}
-                >
-                  {/* Top Duration Label */}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                    {d.time}
-                  </span>
+          {/* VIEW 1: STACKED OVERVIEW ("padutha mari mela mela irunchu" with hover message box) */}
+          {chartMode === 'stacked' ? (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0 16px', position: 'relative' }}>
+              {/* Top Total Duration Label */}
+              <div style={{ marginBottom: '14px', textAlign: 'center' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>
+                  {periodStackedData.time}
+                </span>
+              </div>
 
-                  {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
-                  <div
-                    className="reports-bar-fill"
-                    style={{
-                      width: '100%',
-                      maxWidth: '110px',
-                      height: d.heightPercent + '%',
-                      minHeight: d.hours > 0 ? '16px' : '4px',
-                      borderRadius: '6px 6px 0 0',
-                      display: 'flex',
-                      flexDirection: 'column-reverse',
-                      overflow: 'hidden',
-                      background: d.hours > 0 ? 'transparent' : '#e2e8f0',
-                      boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 204, 0, 0.2)' : 'none',
-                      transition: 'all 0.35s ease',
-                      position: 'relative',
-                      cursor: 'pointer'
-                    }}
-                    title={d.day + ': ' + d.time}
-                  >
-                    {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
-                      d.projectSegments.map((seg, sIdx) => {
-                        const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
-                        return (
-                          <div
-                            key={sIdx}
-                            style={{
-                              width: '100%',
-                              height: segPercent + '%',
-                              minHeight: '3px',
-                              backgroundColor: seg.color || '#00cc00',
-                              transition: 'height 0.2s ease',
-                              position: 'relative'
-                            }}
-                            title={`${seg.project}: ${formatSecondsToHMS(seg.sec)} (${segPercent.toFixed(1)}%)`}
-                          />
-                        );
-                      })
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
-                    )}
+              {/* WIDE STACKED BAR SPANNING ~88% OF CONTAINER */}
+              <div
+                onMouseLeave={() => {
+                  setStackedTooltipPos(prev => ({ ...prev, visible: false }));
+                  setHoveredStackedSeg(null);
+                }}
+                style={{
+                  width: '88%',
+                  maxWidth: '850px',
+                  minWidth: '280px',
+                  height: '280px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  flexDirection: 'column-reverse',
+                  overflow: 'hidden',
+                  background: periodStackedData.hours > 0 ? 'transparent' : '#f1f5f9',
+                  boxShadow: periodStackedData.hours > 0 ? '0 8px 24px rgba(0, 0, 0, 0.12)' : 'none',
+                  border: '1px solid #cbd5e1',
+                  position: 'relative',
+                  cursor: 'pointer'
+                }}
+              >
+                {periodStackedData.hours > 0 && periodStackedData.projectSegments && periodStackedData.projectSegments.length > 0 ? (
+                  periodStackedData.projectSegments.map((seg, sIdx) => {
+                    const segPercent = periodStackedData.totalSec > 0 ? (seg.sec / periodStackedData.totalSec) * 100 : 0;
+                    const isHovered = hoveredStackedSeg?.project === seg.project;
+                    return (
+                      <div
+                        key={sIdx}
+                        onMouseEnter={(e) => {
+                          setHoveredStackedSeg(seg);
+                          setStackedTooltipPos({
+                            x: e.clientX,
+                            y: e.clientY,
+                            visible: true,
+                            dayLabel: formatRangeTitle(dateRange.start, dateRange.end)
+                          });
+                        }}
+                        onMouseMove={(e) => {
+                          setStackedTooltipPos({
+                            x: e.clientX,
+                            y: e.clientY,
+                            visible: true,
+                            dayLabel: formatRangeTitle(dateRange.start, dateRange.end)
+                          });
+                        }}
+                        style={{
+                          width: '100%',
+                          height: segPercent + '%',
+                          minHeight: '18px',
+                          backgroundColor: seg.color || '#00cc00',
+                          transition: 'filter 0.2s ease, transform 0.2s ease',
+                          filter: isHovered ? 'brightness(1.15) saturate(1.15)' : 'brightness(1)',
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0 24px',
+                          color: '#ffffff',
+                          fontWeight: 700,
+                          fontSize: '13.5px',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                          cursor: 'pointer',
+                          boxSizing: 'border-box',
+                          borderBottom: sIdx > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none',
+                          zIndex: isHovered ? 10 : 1
+                        }}
+                      >
+                        {segPercent >= 6 && (
+                          <>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%', fontWeight: 800 }}>
+                              {seg.project}
+                            </span>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', flexShrink: 0, fontWeight: 700 }}>
+                              {formatSecondsToHMS(seg.sec)} ({segPercent.toFixed(0)}%)
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>
+                    No activities recorded for this period
                   </div>
+                )}
+              </div>
 
-                  {/* Day Label Beneath Baseline */}
-                  <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
-                    {d.day}
-                  </span>
-                </div>
-              ))}
+              {/* Period Label Beneath Baseline */}
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <span style={{ fontSize: '15px', color: '#0f172a', fontWeight: 800 }}>
+                  {formatRangeTitle(dateRange.start, dateRange.end)}
+                </span>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* VIEW 2: 7-DAY WEEKLY MULTI-COLUMN VERTICAL BAR GRID */
+            <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
+              <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px', height: '300px', alignItems: 'flex-end', paddingBottom: '16px' }}>
+                {dailyBarData.map((d, idx) => (
+                  <div
+                    key={idx}
+                    className="reports-bar-item"
+                    onClick={() => { setDateRange({ start: d.iso, end: d.iso }); }}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px', cursor: 'pointer' }}
+                    title={'Click to view ' + d.day}
+                  >
+                    {/* Top Duration Label */}
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                      {d.time}
+                    </span>
+
+                    {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
+                    <div
+                      className="reports-bar-fill"
+                      onMouseLeave={() => {
+                        setStackedTooltipPos(prev => ({ ...prev, visible: false }));
+                        setHoveredStackedSeg(null);
+                      }}
+                      style={{
+                        width: '100%',
+                        maxWidth: '110px',
+                        height: d.heightPercent + '%',
+                        minHeight: d.hours > 0 ? '16px' : '4px',
+                        borderRadius: '6px 6px 0 0',
+                        display: 'flex',
+                        flexDirection: 'column-reverse',
+                        overflow: 'hidden',
+                        background: d.hours > 0 ? 'transparent' : '#e2e8f0',
+                        boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 204, 0, 0.2)' : 'none',
+                        transition: 'all 0.35s ease',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
+                        d.projectSegments.map((seg, sIdx) => {
+                          const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
+                          return (
+                            <div
+                              key={sIdx}
+                              onMouseEnter={(e) => {
+                                e.stopPropagation();
+                                setHoveredStackedSeg(seg);
+                                setStackedTooltipPos({
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  visible: true,
+                                  dayLabel: `${d.day} (${d.time})`
+                                });
+                              }}
+                              onMouseMove={(e) => {
+                                e.stopPropagation();
+                                setStackedTooltipPos(prev => ({
+                                  ...prev,
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  visible: true
+                                }));
+                              }}
+                              style={{
+                                width: '100%',
+                                height: segPercent + '%',
+                                minHeight: '3px',
+                                backgroundColor: seg.color || '#00cc00',
+                                transition: 'height 0.2s ease',
+                                position: 'relative'
+                              }}
+                            />
+                          );
+                        })
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
+                      )}
+                    </div>
+
+                    {/* Day Label Beneath Baseline */}
+                    <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
+                      {d.day}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* FLOATING HOVER MESSAGE TOOLTIP BOX ("antha color thotrappa chinnatha msg box") */}
+          {stackedTooltipPos.visible && periodStackedData.projectSegments && periodStackedData.projectSegments.length > 0 && (
+            <div
+              style={{
+                position: 'fixed',
+                top: Math.min(window.innerHeight - 340, Math.max(20, stackedTooltipPos.y + 16)),
+                left: Math.min(window.innerWidth - 320, Math.max(16, stackedTooltipPos.x - 140)),
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                padding: '14px 16px',
+                borderRadius: '10px',
+                boxShadow: '0 16px 36px rgba(0, 0, 0, 0.35)',
+                border: '1px solid #334155',
+                zIndex: 999999,
+                width: '300px',
+                pointerEvents: 'none',
+                animation: 'fadeIn 0.15s ease'
+              }}
+            >
+              {/* Tooltip Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '8px', marginBottom: '10px' }}>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#00cc00', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Activity Breakdown
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                    {stackedTooltipPos.dayLabel || formatRangeTitle(dateRange.start, dateRange.end)}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
+                    {periodStackedData.time}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+                    Total Duration
+                  </div>
+                </div>
+              </div>
+
+              {/* Sorted List: Hovered Project FIRST, followed by all other projects with Scrollable Container */}
+              <div style={{ maxHeight: '210px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
+                {(() => {
+                  const allSegs = periodStackedData.projectSegments || [];
+                  const activeSeg = hoveredStackedSeg || allSegs[0];
+                  const otherSegs = allSegs.filter(s => s.project !== activeSeg?.project);
+                  const orderedSegs = activeSeg ? [activeSeg, ...otherSegs] : allSegs;
+
+                  return orderedSegs.map((s, idx) => {
+                    const isSelected = idx === 0 && hoveredStackedSeg;
+                    const pct = periodStackedData.totalSec > 0 ? (s.sec / periodStackedData.totalSec) * 100 : 0;
+
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          background: isSelected ? 'rgba(0, 204, 0, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                          border: isSelected ? '1px solid rgba(0, 204, 0, 0.5)' : '1px solid transparent'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', maxWidth: '65%' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: s.color || '#00cc00', flexShrink: 0 }} />
+                          <span style={{ fontSize: '12px', fontWeight: isSelected ? 800 : 600, color: isSelected ? '#ffffff' : '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {s.project}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700, color: isSelected ? '#00cc00' : '#e2e8f0' }}>
+                            {formatSecondsToHMS(s.sec)}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8', minWidth: '34px', textAlign: 'right' }}>
+                            ({pct.toFixed(0)}%)
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 2. Middle Row: Donut Breakdown (Left) + Most Tracked Activities (Right) Column-Wise Arranged */}
