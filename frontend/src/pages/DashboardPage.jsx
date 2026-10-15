@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { 
-  BarChart3, 
-  PieChart, 
-  Clock, 
-  Calendar, 
-  ChevronDown, 
-  ArrowUpRight, 
-  Filter, 
-  CheckCircle2, 
-  ChevronLeft, 
+import {
+  BarChart3,
+  PieChart,
+  Clock,
+  Calendar,
+  ChevronDown,
+  ArrowUpRight,
+  Filter,
+  CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   TrendingUp,
   User,
@@ -42,7 +42,7 @@ function formatSecondsToHMS(sec) {
 function getActivityDate(act) {
   if (!act) return '';
   const raw = act.date || act.group || act.createdAt || act.timestamp || '';
-  
+
   // Dynamic Today / Yesterday resolution
   const now = new Date();
   const y = now.getFullYear();
@@ -58,7 +58,7 @@ function getActivityDate(act) {
   const yestISO = `${yy}-${ym}-${yd}`;
 
   if (!raw) return todayISO;
-  
+
   if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) {
     return raw.trim();
   }
@@ -101,7 +101,7 @@ function getActivityDate(act) {
       const da = String(parsed.getDate()).padStart(2, '0');
       return yr + '-' + mo + '-' + da;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   return todayISO;
 }
@@ -161,30 +161,28 @@ export default function DashboardPage({
   }, [isAdmin]);
 
   const isOnlyMe = userFilter === 'Only me' || !isAdmin;
-  // Admin in 'Show all' sees Huge Multi-Color Wide Bar; Employees (and Admin in 'Only me') see Classic Green 7-Day Bars
-  const showAdminWideStackedBar = isAdmin && (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone');
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [pinnedTeamCard, setPinnedTeamCard] = useState(true);
-  const [hoveredStackedSeg, setHoveredStackedSeg] = useState(null);
-  const [stackedTooltipPos, setStackedTooltipPos] = useState({ x: 0, y: 0, visible: false });
-  
-  // Helper to get real Today ISO
-  const getTodayISO = () => {
+
+  // Helper to get real current week (Monday to Sunday)
+  const getCurrentWeekRange = () => {
     const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
+    const mon = new Date(now.getFullYear(), now.getMonth(), diff);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    const fmt = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${da}`;
+    };
+    return { start: fmt(mon), end: fmt(sun) };
   };
 
-  // Date Range State: Defaults to Today (Single Date View)
-  const [dateRange, setDateRange] = useState(() => {
-    const todayISO = getTodayISO();
-    return {
-      start: todayISO,
-      end: todayISO
-    };
-  });
+  // Date Range State: Defaults to current week
+  const [dateRange, setDateRange] = useState(() => getCurrentWeekRange());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef(null);
 
@@ -271,7 +269,7 @@ export default function DashboardPage({
   }, [periodFilteredActivities, selectedProjectFilter]);
 
 
-      // Dynamic 7-day week (Monday to Sunday) generated from currently selected dateRange
+  // Dynamic 7-day week (Monday to Sunday) generated from currently selected dateRange
   const daysMeta = useMemo(() => {
     let startD;
     if (dateRange.start) {
@@ -280,7 +278,7 @@ export default function DashboardPage({
     } else {
       startD = new Date(2026, 8, 7);
     }
-    
+
     // Anchor to the Monday of the active start date
     const monday = new Date(startD);
     const dayOfWeek = (monday.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
@@ -531,7 +529,7 @@ export default function DashboardPage({
     filteredActivities.forEach(act => {
       const taskName = act.description || act.task || 'Working session';
       const projName = act.project || act.projectName || 'General Task';
-      
+
       const rawUser = act.user || act.userName || act.user_name || act.assignedTo || act.member;
       let userName = rawUser;
       if (!userName && act.userEmail && usersList.length > 0) {
@@ -585,7 +583,7 @@ export default function DashboardPage({
   // Dynamic Team Activities Table (Real-time Workspace Users with Clockodo Green Progress Bars)
   const teamActivitiesList = useMemo(() => {
     const baseUsers = (usersList && usersList.length > 0 ? usersList : [
-      { id: 'usr-admin-1', name: 'Bharath (Owner)', email: 'bharath@digiplusagency.com', role: 'admin' },
+      { id: 'usr-admin-1', name: 'Bharath', email: 'bharath@digiplusagency.com', role: 'admin' },
       { id: 'usr-1', name: 'anbu', email: 'anbu@digiplus.com', role: 'employee' },
       { id: 'usr-2', name: 'Muthu', email: 'muthu@digiplus.com', role: 'employee' },
       { id: 'usr-3', name: 'mani', email: 'mani@digiplus.com', role: 'employee' },
@@ -607,10 +605,10 @@ export default function DashboardPage({
     baseUsers.forEach((u, i) => {
       const uName = u.name || 'Member';
       const cleanName = uName.replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim();
-      const initials = cleanName.length >= 2 
-        ? (cleanName.split(' ').length > 1 
-            ? `${cleanName.split(' ')[0][0]}${cleanName.split(' ')[1][0]}` 
-            : cleanName.substring(0, 2)).toUpperCase()
+      const initials = cleanName.length >= 2
+        ? (cleanName.split(' ').length > 1
+          ? `${cleanName.split(' ')[0][0]}${cleanName.split(' ')[1][0]}`
+          : cleanName.substring(0, 2)).toUpperCase()
         : cleanName.toUpperCase() || 'TM';
 
       map[uName.toLowerCase()] = {
@@ -630,19 +628,19 @@ export default function DashboardPage({
     const activitiesToUse = (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone')
       ? periodFilteredActivities
       : memberActivities.filter(act => {
-          const actDate = getActivityDate(act);
-          if (!actDate) return false;
-          const s = dateRange.start;
-          const e = dateRange.end || dateRange.start;
-          return actDate >= s && actDate <= e;
-        });
+        const actDate = getActivityDate(act);
+        if (!actDate) return false;
+        const s = dateRange.start;
+        const e = dateRange.end || dateRange.start;
+        return actDate >= s && actDate <= e;
+      });
 
     activitiesToUse.forEach(act => {
       const sec = act.durationSeconds || parseTimeToSeconds(act.durationFormatted || act.duration);
       const rawUser = (act.user || act.userName || act.user_name || act.assignedTo || act.member || act.userEmail || '').trim().toLowerCase();
-      
+
       let targetKey = Object.keys(map).find(k => k === rawUser || k.includes(rawUser) || rawUser.includes(k.split(' ')[0]));
-      
+
       if (!targetKey && rawUser) {
         const cleanName = rawUser.replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim();
         const initials = cleanName.substring(0, 2).toUpperCase();
@@ -664,7 +662,7 @@ export default function DashboardPage({
       if (targetKey && map[targetKey]) {
         map[targetKey].totalSec += sec;
         map[targetKey].activitiesList.push(act);
-        
+
         if (!map[targetKey].latestActivity) {
           map[targetKey].latestActivity = act;
         }
@@ -766,7 +764,7 @@ export default function DashboardPage({
     setShowDatePicker(false);
   };
 
-    const handleShiftPeriod = (direction) => {
+  const handleShiftPeriod = (direction) => {
     if (!dateRange.start) return;
     const [yr, mo, da] = dateRange.start.split('-').map(Number);
     const s = new Date(yr, mo - 1, da);
@@ -848,7 +846,7 @@ export default function DashboardPage({
         {/* Top Filter Toolbar */}
         <div className="dash-filter-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
           {/* 1. Project Filter */}
-          <select 
+          <select
             className="dash-dropdown"
             value={selectedProjectFilter}
             onChange={(e) => setSelectedProjectFilter(e.target.value)}
@@ -862,7 +860,7 @@ export default function DashboardPage({
 
           {/* 2. User / Team Filter: Rendered ONLY for Admin (Employees are strictly locked to their own account) */}
           {isAdmin && (
-            <select 
+            <select
               className="dash-dropdown"
               value={userFilter}
               onChange={(e) => setUserFilter(e.target.value)}
@@ -950,7 +948,7 @@ export default function DashboardPage({
 
             {/* Interactive Date Range Popover */}
             {showDatePicker && (
-              <div 
+              <div
                 className="dash-date-popover"
                 style={{
                   position: 'absolute',
@@ -1094,7 +1092,7 @@ export default function DashboardPage({
           </div>
         </div>
 
-                        {/* Top 3 Metric Headers Row: Total Time, Top Project, Top Client */}
+        {/* Top 3 Metric Headers Row: Total Time, Top Project, Top Client */}
         <div className="dash-metric-banner" style={{ marginTop: '16px', background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', alignItems: 'center' }}>
           {/* Card 1: Total Time */}
           <div className="dash-metric-item" style={{ textAlign: 'center', padding: '8px 16px', borderRight: '1px solid #f1f5f9' }}>
@@ -1106,7 +1104,7 @@ export default function DashboardPage({
             </div>
           </div>
 
-                    {/* Card 2: Top Project */}
+          {/* Card 2: Top Project */}
           <div className="dash-metric-item" style={{ textAlign: 'center', padding: '8px 16px', borderRight: '1px solid #f1f5f9' }}>
             <div className="dash-metric-label" style={{ fontSize: '11.5px', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.5px' }}>
               TOP PROJECT
@@ -1130,37 +1128,31 @@ export default function DashboardPage({
           </div>
         </div>
 
-                        {/* 1. Full-Width Activity Overview: ADMIN 'SHOW ALL' = MULTI-COLOR WIDE BAR | EMPLOYEE & ADMIN 'ONLY ME' = CLASSIC GREEN 7-DAY BARS */}
+        {/* 1. Full-Width Weekly Activity Overview: Classic 7-Day Bars */}
         <div className="dash-chart-card full-width reports-chart-card" style={{ marginTop: '16px', padding: '26px 32px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}>
-          {/* Header Row: Title, Filter Mode & Peak */}
+          {/* Header Row: Title, Total & Peak */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-                {showAdminWideStackedBar 
-                  ? (`Activity Overview • ${singleDayData.day} (Overall)`) 
-                  : (`Weekly Activity Overview • ${currentUser?.name || 'My Activities'}`)}
+                Weekly Activity Overview
               </span>
               <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', padding: '2px 9px', borderRadius: '12px', fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
-                Total: {showAdminWideStackedBar ? singleDayData.time : liveTotalTime}
+                Total: {liveTotalTime}
               </span>
             </div>
 
             {/* Right Header Status / Peak Indicator */}
             <div>
-              {!showAdminWideStackedBar && peakDay.hours > 0 ? (
+              {peakDay.hours > 0 && (
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#008a00' }}>
                   Peak: {peakDay.day} ({peakDay.hours.toFixed(2)}h)
-                </span>
-              ) : (
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#008a00', background: '#f0fdf4', border: '1px solid rgba(0,204,0,0.25)', padding: '3px 8px', borderRadius: '6px' }}>
-                  👑 Admin (Overall)
                 </span>
               )}
             </div>
           </div>
 
-          {/* Project Color Legend (Only for Admin Show All multi-colored mode) */}
-          {showAdminWideStackedBar && liveProjectBreakdown.list.length > 0 && (
+          {/* Project Color Legend matching Pie Chart */}
+          {liveProjectBreakdown.list.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', alignItems: 'center', marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
               {liveProjectBreakdown.list.map((item, idx) => (
                 <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#334155', fontWeight: 600 }}>
@@ -1172,243 +1164,73 @@ export default function DashboardPage({
             </div>
           )}
 
-          {/* VIEW 1: ADMIN 'SHOW ALL' = HUGE MULTI-COLOR WIDE STACKED BAR */}
-          {showAdminWideStackedBar ? (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0 16px', position: 'relative' }}>
-              {/* Top Total Duration Label */}
-              <div style={{ marginBottom: '14px', textAlign: 'center' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>
-                  {singleDayData.time}
-                </span>
-              </div>
-
-              {/* HUGE WIDE STACKED BAR SPANNING ~88% OF CONTAINER */}
-              <div 
-                onMouseLeave={() => {
-                  setStackedTooltipPos(prev => ({ ...prev, visible: false }));
-                  setHoveredStackedSeg(null);
-                }}
-                style={{ 
-                  width: '88%',
-                  maxWidth: '850px',
-                  minWidth: '280px',
-                  height: '290px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  flexDirection: 'column-reverse',
-                  overflow: 'hidden',
-                  background: singleDayData.hours > 0 ? 'transparent' : '#f1f5f9',
-                  boxShadow: singleDayData.hours > 0 ? '0 8px 24px rgba(0, 0, 0, 0.12)' : 'none',
-                  border: '1px solid #cbd5e1',
-                  position: 'relative',
-                  cursor: 'pointer'
-                }}
-              >
-                {singleDayData.hours > 0 && singleDayData.projectSegments && singleDayData.projectSegments.length > 0 ? (
-                  singleDayData.projectSegments.map((seg, sIdx) => {
-                    const segPercent = singleDayData.totalSec > 0 ? (seg.sec / singleDayData.totalSec) * 100 : 0;
-                    const isHovered = hoveredStackedSeg?.project === seg.project;
-                    return (
-                      <div
-                        key={sIdx}
-                        onMouseEnter={(e) => {
-                          setHoveredStackedSeg(seg);
-                          setStackedTooltipPos({
-                            x: e.clientX,
-                            y: e.clientY,
-                            visible: true
-                          });
-                        }}
-                        onMouseMove={(e) => {
-                          setStackedTooltipPos({
-                            x: e.clientX,
-                            y: e.clientY,
-                            visible: true
-                          });
-                        }}
-                        style={{
-                          width: '100%',
-                          height: segPercent + '%',
-                          minHeight: '14px',
-                          backgroundColor: seg.color || '#00cc00',
-                          transition: 'filter 0.2s ease, transform 0.2s ease',
-                          filter: isHovered ? 'brightness(1.15) saturate(1.15)' : 'brightness(1)',
-                          position: 'relative',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0 24px',
-                          color: '#ffffff',
-                          fontWeight: 700,
-                          fontSize: '13.5px',
-                          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                          cursor: 'pointer',
-                          boxSizing: 'border-box',
-                          borderBottom: sIdx > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none',
-                          zIndex: isHovered ? 10 : 1
-                        }}
-                      >
-                        {segPercent >= 8 && (
-                          <>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%', fontWeight: 800 }}>
-                              {seg.project}
-                            </span>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', flexShrink: 0, fontWeight: 700 }}>
-                              {formatSecondsToHMS(seg.sec)} ({segPercent.toFixed(0)}%)
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '14px', fontWeight: 600 }}>
-                    No activities recorded for {singleDayData.day}
-                  </div>
-                )}
-              </div>
-
-              {/* Day Label Beneath Baseline */}
-              <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                <span style={{ fontSize: '16.5px', color: '#0f172a', fontWeight: 800 }}>
-                  {singleDayData.day}
-                </span>
-              </div>
-
-              {/* FLOATING OVERALL BREAKDOWN TOOLTIP (With Hovered Project First + Scrollable List) */}
-              {stackedTooltipPos.visible && singleDayData.projectSegments && singleDayData.projectSegments.length > 0 && (
+          {/* 7-DAY WEEKLY MULTI-COLUMN VERTICAL BAR GRID */}
+          <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
+            <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px', height: '300px', alignItems: 'flex-end', paddingBottom: '16px' }}>
+              {dailyBarData.map((d, idx) => (
                 <div
-                  style={{
-                    position: 'fixed',
-                    top: Math.min(window.innerHeight - 340, Math.max(20, stackedTooltipPos.y + 16)),
-                    left: Math.min(window.innerWidth - 320, Math.max(16, stackedTooltipPos.x - 140)),
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    backdropFilter: 'blur(8px)',
-                    color: '#ffffff',
-                    padding: '14px 16px',
-                    borderRadius: '10px',
-                    boxShadow: '0 16px 36px rgba(0, 0, 0, 0.35)',
-                    border: '1px solid #334155',
-                    zIndex: 999999,
-                    width: '300px',
-                    pointerEvents: 'none',
-                    animation: 'fadeIn 0.15s ease'
-                  }}
+                  key={idx}
+                  className="reports-bar-item"
+                  onClick={() => { setDateRange({ start: d.iso, end: d.iso }); }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px', cursor: 'pointer' }}
+                  title={'Click to view ' + d.day}
                 >
-                  {/* Tooltip Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '8px', marginBottom: '10px' }}>
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#00cc00', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Daily Breakdown
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        {singleDayData.day}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>
-                        {singleDayData.time}
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                        Total Duration
-                      </div>
-                    </div>
-                  </div>
+                  {/* Top Duration Label */}
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                    {d.time}
+                  </span>
 
-                  {/* Sorted List: Hovered Project FIRST, followed by all other projects with Scrollable Container */}
-                  <div style={{ maxHeight: '210px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
-                    {(() => {
-                      const allSegs = singleDayData.projectSegments || [];
-                      const activeSeg = hoveredStackedSeg || allSegs[0];
-                      const otherSegs = allSegs.filter(s => s.project !== activeSeg.project);
-                      const orderedSegs = [activeSeg, ...otherSegs];
-
-                      return orderedSegs.map((s, idx) => {
-                        const isSelected = idx === 0 && hoveredStackedSeg;
-                        const pct = singleDayData.totalSec > 0 ? (s.sec / singleDayData.totalSec) * 100 : 0;
-
+                  {/* Multi-Colored Stacked Project Bar Fill Matching Pie Chart */}
+                  <div
+                    className="reports-bar-fill"
+                    style={{
+                      width: '100%',
+                      maxWidth: '110px',
+                      height: d.heightPercent + '%',
+                      minHeight: d.hours > 0 ? '16px' : '4px',
+                      borderRadius: '6px 6px 0 0',
+                      display: 'flex',
+                      flexDirection: 'column-reverse',
+                      overflow: 'hidden',
+                      background: d.hours > 0 ? 'transparent' : '#e2e8f0',
+                      boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 204, 0, 0.2)' : 'none',
+                      transition: 'all 0.35s ease',
+                      position: 'relative',
+                      cursor: 'pointer'
+                    }}
+                    title={d.day + ': ' + d.time}
+                  >
+                    {d.hours > 0 && d.projectSegments && d.projectSegments.length > 0 ? (
+                      d.projectSegments.map((seg, sIdx) => {
+                        const segPercent = d.totalSec > 0 ? (seg.sec / d.totalSec) * 100 : 0;
                         return (
                           <div
-                            key={idx}
+                            key={sIdx}
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '6px 8px',
-                              borderRadius: '6px',
-                              background: isSelected ? 'rgba(0, 204, 0, 0.18)' : 'rgba(255, 255, 255, 0.04)',
-                              border: isSelected ? '1px solid rgba(0, 204, 0, 0.5)' : '1px solid transparent'
+                              width: '100%',
+                              height: segPercent + '%',
+                              minHeight: '3px',
+                              backgroundColor: seg.color || '#00cc00',
+                              transition: 'height 0.2s ease',
+                              position: 'relative'
                             }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', maxWidth: '65%' }}>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: s.color || '#00cc00', flexShrink: 0 }} />
-                              <span style={{ fontSize: '12px', fontWeight: isSelected ? 800 : 600, color: isSelected ? '#ffffff' : '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {s.project}
-                              </span>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700, color: isSelected ? '#00cc00' : '#e2e8f0' }}>
-                                {formatSecondsToHMS(s.sec)}
-                              </span>
-                              <span style={{ fontSize: '11px', color: '#94a3b8', minWidth: '34px', textAlign: 'right' }}>
-                                ({pct.toFixed(0)}%)
-                              </span>
-                            </div>
-                          </div>
+                            title={`${seg.project}: ${formatSecondsToHMS(seg.sec)} (${segPercent.toFixed(1)}%)`}
+                          />
                         );
-                      });
-                    })()}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* VIEW 2: CLASSIC SIGNATURE GREEN 7-DAY BARS (EMPLOYEES & ADMIN 'ONLY ME') */
-            <div className="reports-bars-scroll-wrapper" style={{ width: '100%', overflowX: 'auto', paddingBottom: '8px' }}>
-              <div className="reports-bars-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '16px', height: '300px', alignItems: 'flex-end', paddingBottom: '16px' }}>
-                {dailyBarData.map((d, idx) => (
-                  <div 
-                    key={idx} 
-                    className="reports-bar-item" 
-                    onClick={() => { setDateRange({ start: d.iso, end: d.iso }); }}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '10px', cursor: 'pointer' }}
-                    title={'Click to view ' + d.day}
-                  >
-                    {/* Top Duration Label */}
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: d.hours > 0 ? '#1e293b' : '#94a3b8', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                      {d.time}
-                    </span>
-
-                    {/* Classic Signature Green Bar Fill */}
-                    <div 
-                      className="reports-bar-fill" 
-                      style={{ 
-                        width: '100%',
-                        maxWidth: '120px',
-                        height: d.heightPercent + '%',
-                        minHeight: d.hours > 0 ? '16px' : '4px',
-                        borderRadius: '6px 6px 0 0',
-                        overflow: 'hidden',
-                        background: d.hours > 0 ? '#00cc00' : '#e2e8f0',
-                        boxShadow: d.hours > 0 ? '0 4px 12px rgba(0, 204, 0, 0.25)' : 'none',
-                        transition: 'all 0.35s ease',
-                        position: 'relative'
-                      }}
-                      title={d.day + ': ' + d.time}
-                    >
+                      })
+                    ) : (
                       <div style={{ width: '100%', height: '100%', backgroundColor: d.hours > 0 ? '#00cc00' : '#e2e8f0' }} />
-                    </div>
-
-                    {/* Day Label Beneath Baseline */}
-                    <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
-                      {d.day}
-                    </span>
+                    )}
                   </div>
-                ))}
-              </div>
+
+                  {/* Day Label Beneath Baseline */}
+                  <span style={{ fontSize: '13px', color: d.hours > 0 ? '#0f172a' : '#94a3b8', fontWeight: d.hours > 0 ? 800 : 600, whiteSpace: 'nowrap', marginTop: '6px' }}>
+                    {d.day}
+                  </span>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </div>
 
         {/* 2. Middle Row: Donut Breakdown (Left) + Most Tracked Activities (Right) Column-Wise Arranged */}
@@ -1472,7 +1294,7 @@ export default function DashboardPage({
                           {item.project}
                         </span>
                       </div>
-                      
+
                       <div className="dash-proj-time" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                         <span style={{ color: '#0f172a', fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
                           {item.time}
@@ -1480,7 +1302,7 @@ export default function DashboardPage({
                         <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
                           {item.percentage}%
                         </span>
-                        <span 
+                        <span
                           className="dash-increment-tag"
                           style={{
                             display: 'inline-flex',
@@ -1502,14 +1324,14 @@ export default function DashboardPage({
                     </div>
 
                     <div className="dash-prog-track" style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div 
-                        className="dash-prog-fill" 
-                        style={{ 
-                          width: `${Math.min(100, item.percentage)}%`, 
+                      <div
+                        className="dash-prog-fill"
+                        style={{
+                          width: `${Math.min(100, item.percentage)}%`,
                           backgroundColor: item.color || '#00cc00',
                           height: '100%',
                           borderRadius: '3px'
-                        }} 
+                        }}
                       />
                     </div>
                   </div>
@@ -1584,106 +1406,106 @@ export default function DashboardPage({
         {/* Full Width Beautiful Team Activities Row / Card (Shown strictly to Admin in 'Show all' view) */}
         {isAdmin && (userFilter === 'all' || userFilter === 'Show all' || userFilter === 'Everyone') && (
           <div className="dash-team-activities-card" style={{ marginTop: '20px' }}>
-          <div className="dash-team-act-header">
-            <div className="dash-team-act-title-wrap">
-              <span className="dash-team-act-title">Team activities</span>
+            <div className="dash-team-act-header">
+              <div className="dash-team-act-title-wrap">
+                <span className="dash-team-act-title">Team activities</span>
+              </div>
+              <button
+                type="button"
+                className="dash-team-act-pin-btn"
+                onClick={() => setPinnedTeamCard(!pinnedTeamCard)}
+                title={pinnedTeamCard ? "Pinned to Dashboard" : "Unpin from Dashboard"}
+              >
+                <Pin size={15} style={{ transform: pinnedTeamCard ? 'rotate(45deg)' : 'none', color: pinnedTeamCard ? '#008a00' : '#94a3b8' }} />
+              </button>
             </div>
-            <button
-              type="button"
-              className="dash-team-act-pin-btn"
-              onClick={() => setPinnedTeamCard(!pinnedTeamCard)}
-              title={pinnedTeamCard ? "Pinned to Dashboard" : "Unpin from Dashboard"}
-            >
-              <Pin size={15} style={{ transform: pinnedTeamCard ? 'rotate(45deg)' : 'none', color: pinnedTeamCard ? '#008a00' : '#94a3b8' }} />
-            </button>
-          </div>
 
-          <div className="dash-team-table-wrap">
-            <table className="dash-team-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '22%' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span>TEAM MEMBER</span>
-                      <ArrowUpDown size={11} color="#94a3b8" />
-                    </div>
-                  </th>
-                  <th style={{ width: '42%' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span>LATEST ACTIVITY</span>
-                      <ArrowUpDown size={11} color="#94a3b8" />
-                    </div>
-                  </th>
-                  <th style={{ width: '36%' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span>TOTAL TRACKED ({formatRangeTitle(dateRange.start, dateRange.end).toUpperCase()})</span>
-                      <ArrowUpDown size={11} color="#94a3b8" />
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {teamActivitiesList.map((m, idx) => (
-                  <tr key={m.id || idx}>
-                    {/* 1. Team Member */}
-                    <td>
-                      <div className="dash-team-member-flex">
-                        <div className="dash-member-avatar-box" style={{ backgroundColor: m.avatarColor }}>
-                          {m.initials}
-                        </div>
-                        <div className="dash-member-name-wrap">
-                          <span className="dash-member-name-text">{m.displayName}</span>
-                          <span className="dash-member-sub-text">{m.email || m.name}</span>
-                        </div>
+            <div className="dash-team-table-wrap">
+              <table className="dash-team-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '22%' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span>TEAM MEMBER</span>
+                        <ArrowUpDown size={11} color="#94a3b8" />
                       </div>
-                    </td>
-
-                    {/* 2. Latest Activity */}
-                    <td>
-                      <div className="dash-latest-task-wrap">
-                        <div className="dash-latest-task-name" title={m.latestTask}>
-                          {m.latestTask}
-                        </div>
-                        <div className="dash-latest-task-meta">
-                          {m.latestProject && (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                              <span className="project-bullet" style={{ backgroundColor: m.latestProjectColor }} />
-                              <span style={{ fontWeight: 600, color: '#475569' }}>{m.latestProject}</span>
-                            </div>
-                          )}
-                          {m.latestDuration && (
-                            <div className="dash-latest-dur-rel">
-                              <span className="dash-latest-dur-text">{m.latestDuration}</span>
-                              <span className="dash-latest-rel-text">{m.relativeTimeStr}</span>
-                            </div>
-                          )}
-                        </div>
+                    </th>
+                    <th style={{ width: '42%' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span>LATEST ACTIVITY</span>
+                        <ArrowUpDown size={11} color="#94a3b8" />
                       </div>
-                    </td>
-
-                    {/* 3. Total Tracked & Green Progress Bar */}
-                    <td>
-                      <div className="dash-team-total-wrap">
-                        <div className="dash-team-total-time">
-                          {m.totalTimeFormatted}
-                        </div>
-                        <div className="dash-team-bar-track">
-                          <div
-                            className="dash-team-bar-fill"
-                            style={{
-                              width: `${m.progressPercent}%`,
-                              background: '#00cc00'
-                            }}
-                          />
-                        </div>
+                    </th>
+                    <th style={{ width: '36%' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span>TOTAL TRACKED ({formatRangeTitle(dateRange.start, dateRange.end).toUpperCase()})</span>
+                        <ArrowUpDown size={11} color="#94a3b8" />
                       </div>
-                    </td>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {teamActivitiesList.map((m, idx) => (
+                    <tr key={m.id || idx}>
+                      {/* 1. Team Member */}
+                      <td>
+                        <div className="dash-team-member-flex">
+                          <div className="dash-member-avatar-box" style={{ backgroundColor: m.avatarColor }}>
+                            {m.initials}
+                          </div>
+                          <div className="dash-member-name-wrap">
+                            <span className="dash-member-name-text">{m.displayName}</span>
+                            <span className="dash-member-sub-text">{m.email || m.name}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 2. Latest Activity */}
+                      <td>
+                        <div className="dash-latest-task-wrap">
+                          <div className="dash-latest-task-name" title={m.latestTask}>
+                            {m.latestTask}
+                          </div>
+                          <div className="dash-latest-task-meta">
+                            {m.latestProject && (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                <span className="project-bullet" style={{ backgroundColor: m.latestProjectColor }} />
+                                <span style={{ fontWeight: 600, color: '#475569' }}>{m.latestProject}</span>
+                              </div>
+                            )}
+                            {m.latestDuration && (
+                              <div className="dash-latest-dur-rel">
+                                <span className="dash-latest-dur-text">{m.latestDuration}</span>
+                                <span className="dash-latest-rel-text">{m.relativeTimeStr}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 3. Total Tracked & Green Progress Bar */}
+                      <td>
+                        <div className="dash-team-total-wrap">
+                          <div className="dash-team-total-time">
+                            {m.totalTimeFormatted}
+                          </div>
+                          <div className="dash-team-bar-track">
+                            <div
+                              className="dash-team-bar-fill"
+                              style={{
+                                width: `${m.progressPercent}%`,
+                                background: '#00cc00'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
         )}
 
         {/* For Employee: Dedicated My Project Tasks & Logged Activities */}
