@@ -355,6 +355,27 @@ async function syncStoreWithMysql() {
       }
     }
 
+    // Sync projects from persistent store into MySQL (guaranteeing all 460 projects exist in MySQL)
+    for (const p of (store.projects || [])) {
+      if (!p.id || !p.name) continue;
+      const [exists] = await mysqlPool.query('SELECT id FROM projects WHERE id = ?', [p.id]);
+      if (exists.length === 0) {
+        await mysqlPool.query(
+          'INSERT INTO projects (id, name, client, color, tracked_hours, budget, hourly_rate, is_billable) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            p.id,
+            p.name,
+            p.client || 'DigiPlus Clients',
+            p.color || '#10b981',
+            p.tracked_hours || p.tracked || '00:00',
+            p.budget || '40h',
+            p.hourly_rate || p.hourlyRate || 85.00,
+            p.is_billable !== undefined ? (p.is_billable ? 1 : 0) : 1
+          ]
+        );
+      }
+    }
+
     // Sync activities from persistent store (e.g. Parimala & team entries) if not in MySQL
     for (const a of (store.activities || [])) {
       if (!a.id) continue;
