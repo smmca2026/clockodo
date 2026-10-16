@@ -301,12 +301,13 @@ function App() {
   // - Admin (role === 'admin'): sees ALL activities across the entire team
   // - Employee (role !== 'admin'): sees ONLY their own activities
   const effectiveActivities = useMemo(() => {
-    if (!currentUser) return [];
-    if (currentUser.role === 'admin') return activities;
+    const activeUser = currentUser || effectiveUser;
+    if (!activeUser) return [];
+    if (activeUser.role === 'admin') return activities;
 
-    const myName = (currentUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
-    const myEmail = (currentUser.email || '').trim().toLowerCase();
-    const myId = currentUser.id ? String(currentUser.id) : '';
+    const myName = (activeUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+    const myEmail = (activeUser.email || '').trim().toLowerCase();
+    const myId = activeUser.id ? String(activeUser.id) : '';
 
     return (activities || []).filter((act) => {
       const actUser = (act.user || act.userName || act.user_name || act.member || act.assignedTo || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
