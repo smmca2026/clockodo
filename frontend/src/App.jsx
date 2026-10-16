@@ -119,8 +119,8 @@ function App() {
       localStorage.removeItem('clockodo_activities_v2');
       localStorage.removeItem('clockodo_activities');
       localStorage.removeItem('clockodo_timesheet_rows_v2');
-      localStorage.removeItem('clockodo_registered_users_v2');
-      localStorage.removeItem('clockodo_registered_users_v3');
+      localStorage.removeItem('clockodo_activities_v4');
+      localStorage.removeItem('clockodo_timesheet_rows_v4');
       localStorage.removeItem('clockodo_shared_reports_v2');
     } catch (e) { }
   }, []);

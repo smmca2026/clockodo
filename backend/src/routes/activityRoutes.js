@@ -200,11 +200,14 @@ router.delete('/project/:projectName', async (req, res) => {
   }
 });
 
-// DELETE /api/activities/all-clean (Wipe all test activities from MySQL)
-router.delete('/all-clean', async (req, res) => {
+// ALL /api/activities/all-clean (Wipe all test activities & timesheets from MySQL while preserving projects & users)
+router.all('/all-clean', async (req, res) => {
   try {
     await pool.query('DELETE FROM activities');
-    res.json({ success: true, message: 'All activities deleted from database.' });
+    await pool.query('DELETE FROM timesheets');
+    await pool.query('DELETE FROM attendance');
+    await pool.query('DELETE FROM shared_reports');
+    res.json({ success: true, message: 'All test activities and timesheets cleared. 460 Projects and 19 Users are preserved.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

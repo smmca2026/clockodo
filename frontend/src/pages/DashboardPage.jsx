@@ -252,13 +252,25 @@ export default function DashboardPage({
     });
   }, [userFilter, activities, currentUser, isAdmin]);
 
-  // Projects visible in dropdown: Admin sees all, employee sees their worked projects
+  // Projects visible in dropdown: Show ALL catalog projects + any custom worked projects
   const visibleProjects = useMemo(() => {
-    if (isAdmin) return projects;
-    const myProjNames = new Set(memberActivities.map(a => (a.project || a.projectName || '').toLowerCase()));
-    const activeProjs = (projects || []).filter(p => myProjNames.has((p.name || '').toLowerCase()));
-    return activeProjs.length > 0 ? activeProjs : projects;
-  }, [isAdmin, projects, memberActivities]);
+    const map = new Map();
+    (projects || []).forEach(p => {
+      if (p && p.name) map.set(p.name.trim().toLowerCase(), p);
+    });
+    (memberActivities || []).forEach(a => {
+      const pName = (a.project || a.projectName || '').trim();
+      if (pName && !map.has(pName.toLowerCase())) {
+        map.set(pName.toLowerCase(), {
+          id: `proj-${pName}`,
+          name: pName,
+          color: a.projectColor || a.color || '#10b981',
+          client: a.client || 'DigiPlus Clients'
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [projects, memberActivities]);
 
   // 2. Filter by Date Period Range (start to end inclusive)
   const periodFilteredActivities = useMemo(() => {
