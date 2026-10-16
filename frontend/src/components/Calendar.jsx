@@ -132,16 +132,15 @@ export default function Calendar({
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDayDate, setSelectedDayDate] = useState(() => new Date());
 
-  // Helper to match activities for the currently logged in user (Admin sees all; Employee personal scoping)
+  // Helper to match activities for the currently logged in user (shows only logged-in user's schedule to prevent multi-employee clutter)
   const userFilteredActivities = useMemo(() => {
     if (!currentUser) return activities;
-    if (currentUser.role === 'admin') return activities;
-    const myName = (currentUser.name || '').trim().toLowerCase();
+    const myName = (currentUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
     const myEmail = (currentUser.email || '').trim().toLowerCase();
     const myId = currentUser.id ? String(currentUser.id) : '';
 
     return activities.filter(act => {
-      const actUser = (act.user || act.userName || act.user_name || act.member || act.assignedTo || '').trim().toLowerCase();
+      const actUser = (act.user || act.userName || act.user_name || act.member || act.assignedTo || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
       const actEmail = (act.userEmail || act.email || '').trim().toLowerCase();
       const actUserId = (act.userId || act.user_id) ? String(act.userId || act.user_id) : '';
 
@@ -599,7 +598,7 @@ export default function Calendar({
       });
     }
     return days;
-  }, [weekOffset, activities]);
+  }, [weekOffset, userFilteredActivities]);
 
   // Dynamic Week Title
   const weekTitleLabel = useMemo(() => {

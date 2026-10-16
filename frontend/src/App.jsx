@@ -191,15 +191,27 @@ function App() {
     return INITIAL_USERS;
   });
 
+  // Auto-clean stale transaction test cache on boot
   const [activities, setActivities] = useState(() => {
     try {
+      if (!localStorage.getItem('clockodo_clean_wipe_v10')) {
+        localStorage.removeItem('clockodo_activities_v4');
+        localStorage.removeItem('clockodo_activities_v3');
+        localStorage.removeItem('clockodo_activities_v2');
+        localStorage.removeItem('clockodo_activities');
+        localStorage.removeItem('clockodo_timesheet_rows_v4');
+        localStorage.removeItem('clockodo_timesheet_rows_v3');
+        localStorage.removeItem('clockodo_timesheet_rows');
+        localStorage.setItem('clockodo_clean_wipe_v10', 'true');
+        return [];
+      }
       const saved = localStorage.getItem('clockodo_activities_v4');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) { }
-    return INITIAL_RECENT_ACTIVITIES;
+    return [];
   });
 
   const [timesheetRows, setTimesheetRows] = useState(() => {
@@ -207,10 +219,10 @@ function App() {
       const saved = localStorage.getItem('clockodo_timesheet_rows_v4');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) { }
-    return INITIAL_TIMESHEET_ROWS;
+    return [];
   });
 
   const [todayTotalHours, setTodayTotalHours] = useState(0);
@@ -244,7 +256,7 @@ function App() {
 
   useEffect(() => {
     try {
-      if (Array.isArray(activities) && activities.length > 0) {
+      if (Array.isArray(activities)) {
         localStorage.setItem('clockodo_activities_v4', JSON.stringify(activities));
       }
     } catch (e) { }
@@ -252,7 +264,9 @@ function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timesheetRows));
+      if (Array.isArray(timesheetRows)) {
+        localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timesheetRows));
+      }
     } catch (e) { }
   }, [timesheetRows]);
 
@@ -275,12 +289,12 @@ function App() {
           try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(usersRes.data)); } catch (e) { }
         }
 
-        if (actRes && actRes.success && Array.isArray(actRes.data) && actRes.data.length > 0) {
+        if (actRes && actRes.success && Array.isArray(actRes.data)) {
           setActivities(actRes.data);
           try { localStorage.setItem('clockodo_activities_v4', JSON.stringify(actRes.data)); } catch (e) { }
         }
 
-        if (timeRes && timeRes.success && Array.isArray(timeRes.data) && timeRes.data.length > 0) {
+        if (timeRes && timeRes.success && Array.isArray(timeRes.data)) {
           setTimesheetRows(timeRes.data);
           try { localStorage.setItem('clockodo_timesheet_rows_v4', JSON.stringify(timeRes.data)); } catch (e) { }
         }
