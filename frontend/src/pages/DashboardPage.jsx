@@ -912,6 +912,13 @@ export default function DashboardPage({
             >
               <option value="all">Show all (Everyone / Team)</option>
               <option value="Only me">Only me ({currentUser?.name || USER_PROFILE.name})</option>
+              {(usersList || []).filter(u => {
+                const uName = (u.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+                const myName = (currentUser?.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+                return uName && uName !== myName;
+              }).map(u => (
+                <option key={u.id || u.email} value={u.name}>{u.name}</option>
+              ))}
             </select>
           )}
 

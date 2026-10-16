@@ -354,6 +354,53 @@ async function syncStoreWithMysql() {
         );
       }
     }
+
+    // Sync activities from persistent store (e.g. Parimala & team entries) if not in MySQL
+    for (const a of (store.activities || [])) {
+      if (!a.id) continue;
+      const [exists] = await mysqlPool.query('SELECT id FROM activities WHERE id = ?', [a.id]);
+      if (exists.length === 0) {
+        await mysqlPool.query(
+          'INSERT INTO activities (id, project, project_color, description, group_name, date, start_time, end_time, duration_formatted, duration_seconds, billable, user_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            a.id,
+            a.project || 'General Task',
+            a.project_color || a.projectColor || '#10b981',
+            a.description || '',
+            a.group_name || a.group || 'Today',
+            a.date || new Date().toISOString().slice(0, 10),
+            a.start_time || a.startTime || '09:00 AM',
+            a.end_time || a.endTime || '05:00 PM',
+            a.duration_formatted || a.durationFormatted || '00:00:00',
+            Number(a.duration_seconds || a.durationSeconds) || 0,
+            a.billable !== undefined ? (a.billable ? 1 : 0) : 1,
+            a.user_name || a.userName || a.user || 'Bharath (Owner)'
+          ]
+        );
+      }
+    }
+
+    // Sync timesheets from persistent store if not in MySQL
+    for (const t of (store.timesheets || [])) {
+      if (!t.id) continue;
+      const [exists] = await mysqlPool.query('SELECT id FROM timesheets WHERE id = ?', [t.id]);
+      if (exists.length === 0) {
+        const daysJson = typeof t.days_json === 'string' ? t.days_json : JSON.stringify(t.days_json || t.days || {});
+        await mysqlPool.query(
+          'INSERT INTO timesheets (id, project_name, project_color, task_description, billable, days_json, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            t.id,
+            t.project_name || t.projectName || 'General Task',
+            t.project_color || t.projectColor || '#10b981',
+            t.task_description || t.taskDescription || '',
+            t.billable !== undefined ? (t.billable ? 1 : 0) : 1,
+            daysJson,
+            t.total || '00:00:00'
+          ]
+        );
+      }
+    }
+
     console.log('🔄 MySQL & persistent storage synchronized successfully!');
   } catch (err) {
     console.warn('Sync error:', err.message);
