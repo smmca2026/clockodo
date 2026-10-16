@@ -49,6 +49,7 @@ async function fallbackQuery(sql, params = []) {
 
   // 1. USERS
   if (lowerSql.startsWith('select') && lowerSql.includes('from users')) {
+    let list = store.users || [];
     if (lowerSql.includes('where id = ? or lower(email) = lower(?)') || lowerSql.includes('lower(username) = lower(?)')) {
       const p = String(params[0] || '').toLowerCase();
       list = list.filter(u =>
