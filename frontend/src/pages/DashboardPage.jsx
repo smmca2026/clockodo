@@ -1809,13 +1809,20 @@ export default function DashboardPage({
                         <div className="dash-latest-task-wrap" style={{ maxWidth: '100%' }}>
                           <div 
                             className="dash-latest-task-name" 
-                            title={m.latestTask}
+                            onClick={() => {
+                              const key = `team-${m.id || idx}`;
+                              setExpandedTasks(prev => ({ ...prev, [key]: !prev[key] }));
+                            }}
+                            title={expandedTasks[`team-${m.id || idx}`] ? "Click to collapse" : `${m.latestTask} (Click to see full description)`}
                             style={{ 
-                              whiteSpace: 'normal', 
+                              whiteSpace: expandedTasks[`team-${m.id || idx}`] ? 'normal' : 'nowrap', 
+                              overflow: expandedTasks[`team-${m.id || idx}`] ? 'visible' : 'hidden',
+                              textOverflow: expandedTasks[`team-${m.id || idx}`] ? 'clip' : 'ellipsis',
                               wordBreak: 'break-word', 
                               lineHeight: '1.45', 
                               fontSize: '13px', 
-                              color: '#0f172a' 
+                              color: '#0f172a',
+                              cursor: 'pointer'
                             }}
                           >
                             {m.latestTask}

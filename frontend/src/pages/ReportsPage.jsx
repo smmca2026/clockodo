@@ -446,6 +446,7 @@ export default function ReportsPage({
   const subtabs = ['Summary', 'Detailed', 'Weekly', 'Shared'];
 
   const [roundingEnabled, setRoundingEnabled] = useState(false);
+  const [expandedReportTasks, setExpandedReportTasks] = useState({});
 
   // Admin Editable Attendance Overrides state
   const [attendanceOverrides, setAttendanceOverrides] = useState(() => {
@@ -3205,24 +3206,45 @@ export default function ReportsPage({
                                         {item.activities.map((pAct, paIdx) => {
                                           const desc = pAct.description || pAct.task;
                                           if (!desc) return null;
+                                          const key = pAct.id || `pact-${item.id}-${paIdx}`;
+                                          const isExp = Boolean(expandedReportTasks[key]);
                                           return (
                                             <div 
-                                              key={pAct.id || paIdx} 
+                                              key={key} 
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
+                                              }}
                                               style={{ 
-                                                display: 'inline-flex', 
-                                                alignItems: 'center', 
-                                                gap: '6px',
+                                                display: 'flex', 
+                                                alignItems: 'flex-start', 
+                                                gap: '8px',
                                                 background: '#f8fafc',
                                                 border: '1px solid #e2e8f0',
-                                                borderRadius: '5px',
-                                                padding: '4px 9px',
+                                                borderRadius: '6px',
+                                                padding: '5px 10px',
                                                 fontSize: '12px',
                                                 color: '#1e293b',
-                                                flexWrap: 'wrap'
+                                                cursor: 'pointer',
+                                                maxWidth: '100%',
+                                                transition: 'all 0.15s ease'
                                               }}
+                                              title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
                                             >
-                                              <span style={{ fontWeight: 600, color: '#0f172a' }}>{desc}</span>
-                                              <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+                                              <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ 
+                                                  fontWeight: 600, 
+                                                  color: '#0f172a',
+                                                  whiteSpace: isExp ? 'normal' : 'nowrap',
+                                                  overflow: isExp ? 'visible' : 'hidden',
+                                                  textOverflow: isExp ? 'clip' : 'ellipsis',
+                                                  wordBreak: 'break-word',
+                                                  lineHeight: '1.45'
+                                                }}>
+                                                  {desc}
+                                                </div>
+                                              </div>
+                                              <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px' }}>
                                                 ({pAct.durationFormatted || formatSecondsToHMS(pAct.durationSeconds || parseTimeToSeconds(pAct.duration))})
                                               </span>
                                             </div>
@@ -3261,30 +3283,51 @@ export default function ReportsPage({
                                         )}
                                       </div>
 
-                                      {/* Logged Activity Descriptions List */}
+                                      {/* Logged Activity Descriptions List (Clickable Expand / Collapse) */}
                                       {child.activities && child.activities.length > 0 && (
                                         <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                           {child.activities.map((cAct, caIdx) => {
                                             const desc = cAct.description || cAct.task;
                                             if (!desc) return null;
+                                            const key = cAct.id || `cact-${child.id}-${caIdx}`;
+                                            const isExp = Boolean(expandedReportTasks[key]);
                                             return (
                                               <div 
-                                                key={cAct.id || caIdx} 
+                                                key={key} 
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
+                                                }}
                                                 style={{ 
-                                                  display: 'inline-flex', 
-                                                  alignItems: 'center', 
-                                                  gap: '6px',
+                                                  display: 'flex', 
+                                                  alignItems: 'flex-start', 
+                                                  gap: '8px',
                                                   background: '#ffffff',
                                                   border: '1px solid #e2e8f0',
-                                                  borderRadius: '5px',
-                                                  padding: '4px 9px',
+                                                  borderRadius: '6px',
+                                                  padding: '5px 10px',
                                                   fontSize: '12px',
                                                   color: '#1e293b',
-                                                  flexWrap: 'wrap'
+                                                  cursor: 'pointer',
+                                                  maxWidth: '100%',
+                                                  transition: 'all 0.15s ease'
                                                 }}
+                                                title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
                                               >
-                                                <span style={{ fontWeight: 600, color: '#0f172a' }}>{desc}</span>
-                                                <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                  <div style={{ 
+                                                    fontWeight: 600, 
+                                                    color: '#0f172a',
+                                                    whiteSpace: isExp ? 'normal' : 'nowrap',
+                                                    overflow: isExp ? 'visible' : 'hidden',
+                                                    textOverflow: isExp ? 'clip' : 'ellipsis',
+                                                    wordBreak: 'break-word',
+                                                    lineHeight: '1.45'
+                                                  }}>
+                                                    {desc}
+                                                  </div>
+                                                </div>
+                                                <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px' }}>
                                                   ({cAct.durationFormatted || formatSecondsToHMS(cAct.durationSeconds || parseTimeToSeconds(cAct.duration))})
                                                 </span>
                                               </div>
