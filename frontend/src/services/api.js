@@ -51,6 +51,7 @@ export const api = {
   toggleUserAccess: (id) => request(`/users/${id}/access`, { method: 'PATCH' }),
   updateProfile: (id, data) => request(`/users/${id}/profile`, { method: 'PUT', body: JSON.stringify(data) }),
   updateCredentials: (id, data) => request(`/users/${id}/credentials`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
 
   // Activities / Tracker
   getActivities: (params = '') => request(`/activities${params ? '?' + new URLSearchParams(params) : ''}`),

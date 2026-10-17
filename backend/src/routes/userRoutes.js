@@ -215,4 +215,32 @@ router.put('/:id/credentials', async (req, res) => {
   }
 });
 
+// DELETE /api/users/:id (Admin Remove Team Member)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let [rows] = await pool.query('SELECT * FROM users WHERE id = ? OR LOWER(email) = LOWER(?)', [id, id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found in database.' });
+    }
+
+    const user = rows[0];
+    const isOwner = user.role === 'admin' && (user.name.toLowerCase().includes('bharath') || user.name.toLowerCase().includes('owner'));
+    if (isOwner) {
+      return res.status(400).json({ success: false, message: 'Primary workspace owner account cannot be deleted.' });
+    }
+
+    await pool.query('DELETE FROM users WHERE id = ?', [user.id]);
+
+    res.json({
+      success: true,
+      message: `Employee ${user.name} removed successfully!`,
+      userId: user.id
+    });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ success: false, message: 'Database error deleting member', error: err.message });
+  }
+});
+
 module.exports = router;

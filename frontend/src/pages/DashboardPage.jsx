@@ -170,6 +170,7 @@ export default function DashboardPage({
 
   const isOnlyMe = userFilter === 'Only me' || !isAdmin;
   const [showAllTasks, setShowAllTasks] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState({});
   const [pinnedTeamCard, setPinnedTeamCard] = useState(true);
   const [chartMode, setChartMode] = useState('stacked'); // 'stacked' | 'weekly'
   const [hoveredStackedSeg, setHoveredStackedSeg] = useState(null);
@@ -1684,11 +1685,35 @@ export default function DashboardPage({
                 topTrackedActivities.map((act, idx) => (
                   <div key={act.id || idx} className="dash-activity-item" style={{ padding: '8px 10px', borderRadius: '6px', borderBottom: '1px solid #f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                     <div className="dash-act-left" style={{ flex: 1, minWidth: 0 }}>
-                      <div className="dash-act-task" style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }} title={act.task}>
-                        <span className="dash-act-rank" style={{ color: idx === 0 ? '#00cc00' : '#94a3b8', fontWeight: 800, fontSize: '12px', minWidth: '20px' }}>
+                      <div 
+                        className="dash-act-task" 
+                        onClick={() => {
+                          const key = act.id || `${act.task}-${idx}`;
+                          setExpandedTasks(prev => ({ ...prev, [key]: !prev[key] }));
+                        }}
+                        style={{ 
+                          fontSize: '13px', 
+                          fontWeight: 600, 
+                          color: '#1e293b', 
+                          display: 'flex', 
+                          alignItems: 'flex-start', 
+                          gap: '6px',
+                          cursor: 'pointer'
+                        }} 
+                        title={expandedTasks[act.id || `${act.task}-${idx}`] ? "Click to collapse" : `${act.task} (Click to see full description)`}
+                      >
+                        <span className="dash-act-rank" style={{ color: idx === 0 ? '#00cc00' : '#94a3b8', fontWeight: 800, fontSize: '12px', minWidth: '20px', marginTop: '1px' }}>
                           #{idx + 1}
                         </span>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{act.task}</span>
+                        <span style={{ 
+                          whiteSpace: expandedTasks[act.id || `${act.task}-${idx}`] ? 'normal' : 'nowrap',
+                          overflow: expandedTasks[act.id || `${act.task}-${idx}`] ? 'visible' : 'hidden',
+                          textOverflow: expandedTasks[act.id || `${act.task}-${idx}`] ? 'clip' : 'ellipsis',
+                          wordBreak: 'break-word',
+                          lineHeight: '1.4'
+                        }}>
+                          {act.task}
+                        </span>
                       </div>
                       <div className="dash-act-proj" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '3px', marginLeft: '26px' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>

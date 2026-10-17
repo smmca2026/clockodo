@@ -474,6 +474,24 @@ function App() {
     }
   };
 
+  const handleDeleteTeamMember = async (idOrEmail) => {
+    if (isGuestSession || !currentUser || currentUser.role === 'guest') {
+      setGuestDeniedModal({
+        title: 'Action Restricted: Sign In Required',
+        subtitle: 'Read-Only Guest Mode Active',
+        message: 'You are currently viewing in Read-Only Guest Mode. Managing workspace members is restricted to Admin.'
+      });
+      return;
+    }
+    if (!idOrEmail) return;
+    try {
+      await api.deleteUser(idOrEmail);
+    } catch (err) {
+      console.warn('Error deleting user from API:', err);
+    }
+    setUsersList(prev => prev.filter(u => u.id !== idOrEmail && (u.email || '').toLowerCase() !== String(idOrEmail).toLowerCase()));
+  };
+
   const handleAddTeamMember = async (newMember) => {
     if (isGuestSession || !currentUser || currentUser.role === 'guest') {
       setGuestDeniedModal({
@@ -1569,6 +1587,7 @@ function App() {
               onToggleUserAccess={handleToggleUserAccess}
               onAddTeamMember={handleAddTeamMember}
               onUpdateMemberDepartment={handleUpdateMemberDepartment}
+              onDeleteTeamMember={handleDeleteTeamMember}
             />
           )}
 

@@ -1513,6 +1513,7 @@ export default function ReportsPage({
     const allLogs = [];
     targetMembers.forEach((member, mIdx) => {
       let memberDailyTaskSec = 0;
+      const memberTasks = [];
 
       // 1. Strict Date-Wise Task Duration from activities (Never Weekly Total)
       (activities || []).forEach(act => {
@@ -1532,6 +1533,15 @@ export default function ReportsPage({
           if (actDate === attendanceDate) {
             const sec = act.durationSeconds || act.duration_seconds || parseTimeToSeconds(act.durationFormatted) || parseTimeToSeconds(act.duration) || 0;
             memberDailyTaskSec += sec;
+            const tDesc = act.description || act.task || '';
+            const tProj = act.project || '';
+            if (tDesc || tProj) {
+              memberTasks.push({
+                task: tDesc || 'Work activity',
+                project: tProj,
+                duration: act.durationFormatted || formatSecondsToHMS(sec)
+              });
+            }
           }
         }
       });
@@ -1591,7 +1601,8 @@ export default function ReportsPage({
         breakTime: effectiveBreak,
         taskDuration: effectiveTotalShift,
         totalShift: effectiveTotalShift,
-        status: effectiveStatus
+        status: effectiveStatus,
+        tasks: memberTasks
       });
     });
 
@@ -2453,13 +2464,14 @@ export default function ReportsPage({
               <table className="clockodo-detailed-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '220px' }}>EMPLOYEE</th>
-                    <th style={{ width: '140px' }}>DATE</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>CLOCK-IN</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>CLOCK-OUT</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>BREAK TIME</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>SHIFT DURATION</th>
-                    <th style={{ width: '180px', textAlign: 'center' }}>ATTENDANCE STATUS</th>
+                    <th style={{ width: '200px' }}>EMPLOYEE</th>
+                    <th style={{ width: '120px' }}>DATE</th>
+                    <th style={{ minWidth: '220px' }}>LOGGED TASKS & DESCRIPTIONS</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>CLOCK-IN</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>CLOCK-OUT</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>BREAK TIME</th>
+                    <th style={{ width: '120px', textAlign: 'right' }}>SHIFT DURATION</th>
+                    <th style={{ width: '160px', textAlign: 'center' }}>ATTENDANCE STATUS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2486,6 +2498,31 @@ export default function ReportsPage({
                         </div>
                       </td>
                       <td className="detailed-date-cell">{log.date}</td>
+
+                      {/* Logged Tasks & Descriptions Cell */}
+                      <td style={{ maxWidth: '280px', verticalAlign: 'middle' }}>
+                        {log.tasks && log.tasks.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {log.tasks.map((t, tIdx) => (
+                              <div key={tIdx} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                {t.project && (
+                                  <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#008a00', background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(0,204,0,0.25)' }}>
+                                    {t.project}
+                                  </span>
+                                )}
+                                <span style={{ color: '#1e293b', fontWeight: 600 }} title={t.task}>
+                                  {t.task}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+                                  ({t.duration})
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '12px' }}>—</span>
+                        )}
+                      </td>
                       
                       {/* CLOCK-IN: Admin editable vs Employee read-only */}
                       <td style={{ textAlign: 'center' }}>

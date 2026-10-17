@@ -17,7 +17,9 @@ import {
   UserCheck, 
   Edit2, 
   Building2, 
-  Sparkles 
+  Sparkles,
+  MoreVertical,
+  Trash2
 } from 'lucide-react';
 
 const DEFAULT_DEPARTMENTS = [
@@ -42,12 +44,25 @@ export default function TeamPage({
   usersList = [],
   onToggleUserAccess,
   onAddTeamMember,
-  onUpdateMemberDepartment
+  onUpdateMemberDepartment,
+  onDeleteTeamMember
 }) {
   const [activeSubtab, setActiveSubtab] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'PENDING'
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Close 3-dots menu on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('.team-action-menu-wrap')) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   // Add Member Modal State
   const [addName, setAddName] = useState('');
@@ -472,65 +487,164 @@ export default function TeamPage({
                           <span>Full Access (Owner)</span>
                         </span>
                       ) : (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', position: 'relative' }} className="team-action-menu-wrap">
+                          {/* Single Status/Action element: Grant Access button if Pending; Active badge if Approved */}
                           {isGranted ? (
                             <span style={{
-                              background: 'rgba(0, 204, 0, 0.1)',
+                              background: 'rgba(0, 204, 0, 0.12)',
                               color: '#008a00',
                               border: '1px solid rgba(0, 204, 0, 0.25)',
-                              padding: '4px 10px',
+                              padding: '5px 12px',
                               borderRadius: '6px',
                               fontSize: '11.5px',
                               fontWeight: 700,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px'
+                              gap: '5px'
                             }}>
                               <CheckCircle2 size={13} />
-                              <span>Active (Approved)</span>
+                              <span>Active</span>
                             </span>
                           ) : (
-                            <span style={{
-                              background: 'rgba(245, 158, 11, 0.12)',
-                              color: '#d97706',
-                              border: '1px solid rgba(245, 158, 11, 0.3)',
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              fontSize: '11.5px',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              <Clock size={13} />
-                              <span>Pending Approval</span>
-                            </span>
-                          )}
-
-                          {/* Admin Grant/Revoke Button */}
-                          {isAdmin && (
                             <button
                               type="button"
                               onClick={() => {
                                 if (onToggleUserAccess) {
                                   onToggleUserAccess(member.id || member.email);
-                                  showToast(`Access ${isGranted ? 'Revoked (Pending)' : 'Granted (Active)'} for ${member.name}`);
+                                  showToast(`✓ Access Granted (Active) for ${member.name}`);
                                 }
                               }}
                               style={{
-                                padding: '5px 12px',
+                                padding: '5px 14px',
                                 fontSize: '11.5px',
                                 fontWeight: 700,
                                 borderRadius: '6px',
-                                border: isGranted ? '1px solid #cbd5e1' : 'none',
-                                background: isGranted ? '#f8fafc' : '#00cc00',
-                                color: isGranted ? '#475569' : '#ffffff',
+                                border: 'none',
+                                background: '#00cc00',
+                                color: '#ffffff',
                                 cursor: 'pointer',
-                                boxShadow: isGranted ? 'none' : '0 2px 6px rgba(0,204,0,0.25)'
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                boxShadow: '0 2px 6px rgba(0,204,0,0.25)'
                               }}
+                              title="Click to Grant Access & make Active"
                             >
-                              {isGranted ? 'Revoke' : 'Grant Access'}
+                              <Clock size={13} />
+                              <span>Grant Access</span>
                             </button>
+                          )}
+
+                          {/* 3-Dots Action Menu for Admin */}
+                          {isAdmin && (
+                            <div style={{ position: 'relative' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(activeMenuId === (member.id || member.email) ? null : (member.id || member.email));
+                                }}
+                                style={{
+                                  background: activeMenuId === (member.id || member.email) ? '#f1f5f9' : 'transparent',
+                                  border: '1px solid transparent',
+                                  borderRadius: '6px',
+                                  padding: '5px',
+                                  cursor: 'pointer',
+                                  color: '#64748b',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                title="Member actions"
+                              >
+                                <MoreVertical size={16} />
+                              </button>
+
+                              {activeMenuId === (member.id || member.email) && (
+                                <div style={{
+                                  position: 'absolute',
+                                  right: 0,
+                                  top: '100%',
+                                  marginTop: '4px',
+                                  background: '#ffffff',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '8px',
+                                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                                  zIndex: 100,
+                                  minWidth: '150px',
+                                  padding: '4px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '2px'
+                                }}>
+                                  {isGranted && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveMenuId(null);
+                                        if (onToggleUserAccess) {
+                                          onToggleUserAccess(member.id || member.email);
+                                          showToast(`Access marked as Pending for ${member.name}`);
+                                        }
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        textAlign: 'left',
+                                        padding: '7px 10px',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        color: '#d97706',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.background = '#fef3c7'}
+                                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                      <Clock size={13} />
+                                      <span>Mark Pending</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      const confirmDelete = window.confirm(`Are you sure you want to remove ${member.name} from the workspace?`);
+                                      if (confirmDelete && onDeleteTeamMember) {
+                                        onDeleteTeamMember(member.id || member.email);
+                                        showToast(`✓ Removed ${member.name} from workspace`);
+                                      }
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      textAlign: 'left',
+                                      padding: '7px 10px',
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                      color: '#ef4444',
+                                      background: 'transparent',
+                                      border: 'none',
+                                      borderRadius: '5px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <Trash2 size={13} />
+                                    <span>Remove Member</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
