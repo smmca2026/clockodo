@@ -1572,6 +1572,7 @@ export default function ReportsPage({
             const tProj = act.project || '';
             if (tDesc || tProj) {
               memberTasks.push({
+                id: act.id || `act-${member.id}-${actDate}-${memberTasks.length}`,
                 task: tDesc || 'Work activity',
                 project: tProj,
                 duration: act.durationFormatted || formatSecondsToHMS(sec)
@@ -2535,24 +2536,71 @@ export default function ReportsPage({
                       <td className="detailed-date-cell">{log.date}</td>
 
                       {/* Logged Tasks & Descriptions Cell */}
-                      <td style={{ maxWidth: '280px', verticalAlign: 'middle' }}>
+                      <td style={{ maxWidth: '320px', verticalAlign: 'top', padding: '10px 14px' }}>
                         {log.tasks && log.tasks.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {log.tasks.map((t, tIdx) => (
-                              <div key={tIdx} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                                {t.project && (
-                                  <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#008a00', background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(0,204,0,0.25)' }}>
-                                    {t.project}
-                                  </span>
-                                )}
-                                <span style={{ color: '#1e293b', fontWeight: 600 }} title={t.task}>
-                                  {t.task}
-                                </span>
-                                <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
-                                  ({t.duration})
-                                </span>
-                              </div>
-                            ))}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {log.tasks.map((t, tIdx) => {
+                              const key = t.id || `att-${log.id}-${tIdx}`;
+                              const isExp = Boolean(expandedReportTasks[key]);
+                              return (
+                                <div 
+                                  key={key} 
+                                  onClick={() => setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }))}
+                                  title={isExp ? "Click to collapse" : "Click to view full description"}
+                                  style={{ 
+                                    fontSize: '12px', 
+                                    padding: '6px 10px',
+                                    borderRadius: '6px',
+                                    background: isExp ? '#f8fafc' : '#ffffff',
+                                    border: isExp ? '1px solid #e2e8f0' : '1px solid #f1f5f9',
+                                    borderLeft: isExp ? '3px solid #00cc00' : '3px solid #cbd5e1',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
+                                      {t.project && (
+                                        <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#008a00', background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(0,204,0,0.25)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                          {t.project}
+                                        </span>
+                                      )}
+                                      {!isExp && (
+                                        <span style={{ 
+                                          color: '#1e293b', 
+                                          fontWeight: 600, 
+                                          whiteSpace: 'nowrap', 
+                                          overflow: 'hidden', 
+                                          textOverflow: 'ellipsis',
+                                          maxWidth: '180px',
+                                          display: 'inline-block'
+                                        }}>
+                                          {t.task}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)', fontWeight: 600, flexShrink: 0, marginLeft: 'auto' }}>
+                                      {t.duration}
+                                    </span>
+                                  </div>
+                                  {isExp && (
+                                    <div style={{ 
+                                      color: '#334155', 
+                                      fontWeight: 500, 
+                                      fontSize: '12px',
+                                      lineHeight: '1.5',
+                                      wordBreak: 'break-word',
+                                      overflowWrap: 'anywhere',
+                                      marginTop: '6px',
+                                      paddingTop: '6px',
+                                      borderTop: '1px dashed #e2e8f0'
+                                    }}>
+                                      {renderDescriptionWithLinks(t.task)}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <span style={{ color: '#94a3b8', fontSize: '12px' }}>—</span>
