@@ -1806,8 +1806,18 @@ export default function DashboardPage({
 
                       {/* 2. Latest Activity */}
                       <td>
-                        <div className="dash-latest-task-wrap">
-                          <div className="dash-latest-task-name" title={m.latestTask}>
+                        <div className="dash-latest-task-wrap" style={{ maxWidth: '100%' }}>
+                          <div 
+                            className="dash-latest-task-name" 
+                            title={m.latestTask}
+                            style={{ 
+                              whiteSpace: 'normal', 
+                              wordBreak: 'break-word', 
+                              lineHeight: '1.45', 
+                              fontSize: '13px', 
+                              color: '#0f172a' 
+                            }}
+                          >
                             {m.latestTask}
                           </div>
                           <div className="dash-latest-task-meta">

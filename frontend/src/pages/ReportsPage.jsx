@@ -1189,10 +1189,12 @@ export default function ReportsPage({
         primaryMap[pKey] = {
           ...pInfo,
           totalSec: 0,
+          activities: [],
           childrenMap: {}
         };
       }
       primaryMap[pKey].totalSec += effectiveSec;
+      primaryMap[pKey].activities.push(act);
 
       if (secondaryType) {
         const sInfo = getGroupInfo(act, secondaryType);
@@ -1200,10 +1202,12 @@ export default function ReportsPage({
         if (!primaryMap[pKey].childrenMap[sKey]) {
           primaryMap[pKey].childrenMap[sKey] = {
             ...sInfo,
-            totalSec: 0
+            totalSec: 0,
+            activities: []
           };
         }
         primaryMap[pKey].childrenMap[sKey].totalSec += effectiveSec;
+        primaryMap[pKey].childrenMap[sKey].activities.push(act);
       }
     });
 
@@ -1212,6 +1216,7 @@ export default function ReportsPage({
       if (secondaryType && p.childrenMap) {
         children = Object.values(p.childrenMap).map(c => ({
           ...c,
+          activities: c.activities || [],
           duration: formatSecondsToHMS(c.totalSec),
           percentage: p.totalSec > 0 ? ((c.totalSec / p.totalSec) * 100).toFixed(1) : '0.0'
         }));
@@ -1221,6 +1226,7 @@ export default function ReportsPage({
       return {
         ...p,
         children,
+        activities: p.activities || [],
         duration: formatSecondsToHMS(p.totalSec),
         percentage: totalSec > 0 ? ((p.totalSec / totalSec) * 100).toFixed(1) : '0.0'
       };
@@ -3192,6 +3198,38 @@ export default function ReportsPage({
                                         {item.subtitle}
                                       </div>
                                     )}
+
+                                    {/* Primary Row Activities Descriptions (shown if no nested children) */}
+                                    {!hasChildren && item.activities && item.activities.length > 0 && (
+                                      <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        {item.activities.map((pAct, paIdx) => {
+                                          const desc = pAct.description || pAct.task;
+                                          if (!desc) return null;
+                                          return (
+                                            <div 
+                                              key={pAct.id || paIdx} 
+                                              style={{ 
+                                                display: 'inline-flex', 
+                                                alignItems: 'center', 
+                                                gap: '6px',
+                                                background: '#f8fafc',
+                                                border: '1px solid #e2e8f0',
+                                                borderRadius: '5px',
+                                                padding: '4px 9px',
+                                                fontSize: '12px',
+                                                color: '#1e293b',
+                                                flexWrap: 'wrap'
+                                              }}
+                                            >
+                                              <span style={{ fontWeight: 600, color: '#0f172a' }}>{desc}</span>
+                                              <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+                                                ({pAct.durationFormatted || formatSecondsToHMS(pAct.durationSeconds || parseTimeToSeconds(pAct.duration))})
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </td>
@@ -3211,14 +3249,48 @@ export default function ReportsPage({
                                 }}
                               >
                                 <td style={{ padding: '11px 20px 11px 52px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: child.color || item.color || '#94a3b8', flexShrink: 0 }} />
-                                    <div>
-                                      <span style={{ color: '#334155', fontWeight: 600, fontSize: '13px' }}>{child.name}</span>
-                                      {child.subtitle && child.subtitle !== child.name && (
-                                        <span style={{ color: '#64748b', fontSize: '11.5px', marginLeft: '8px' }}>
-                                          • {child.subtitle}
-                                        </span>
+                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: child.color || item.color || '#94a3b8', flexShrink: 0, marginTop: '5px' }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                        <span style={{ color: '#334155', fontWeight: 600, fontSize: '13px' }}>{child.name}</span>
+                                        {child.subtitle && child.subtitle !== child.name && (
+                                          <span style={{ color: '#64748b', fontSize: '11.5px' }}>
+                                            • {child.subtitle}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Logged Activity Descriptions List */}
+                                      {child.activities && child.activities.length > 0 && (
+                                        <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                          {child.activities.map((cAct, caIdx) => {
+                                            const desc = cAct.description || cAct.task;
+                                            if (!desc) return null;
+                                            return (
+                                              <div 
+                                                key={cAct.id || caIdx} 
+                                                style={{ 
+                                                  display: 'inline-flex', 
+                                                  alignItems: 'center', 
+                                                  gap: '6px',
+                                                  background: '#ffffff',
+                                                  border: '1px solid #e2e8f0',
+                                                  borderRadius: '5px',
+                                                  padding: '4px 9px',
+                                                  fontSize: '12px',
+                                                  color: '#1e293b',
+                                                  flexWrap: 'wrap'
+                                                }}
+                                              >
+                                                <span style={{ fontWeight: 600, color: '#0f172a' }}>{desc}</span>
+                                                <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+                                                  ({cAct.durationFormatted || formatSecondsToHMS(cAct.durationSeconds || parseTimeToSeconds(cAct.duration))})
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
                                       )}
                                     </div>
                                   </div>
