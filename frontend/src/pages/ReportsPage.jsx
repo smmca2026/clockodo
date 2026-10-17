@@ -448,6 +448,34 @@ export default function ReportsPage({
   const [roundingEnabled, setRoundingEnabled] = useState(false);
   const [expandedReportTasks, setExpandedReportTasks] = useState({});
 
+  const renderDescriptionWithLinks = (text) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              color: '#0284c7',
+              textDecoration: 'underline',
+              wordBreak: 'break-all',
+              fontWeight: 600
+            }}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   // Admin Editable Attendance Overrides state
   const [attendanceOverrides, setAttendanceOverrides] = useState(() => {
     try {
@@ -3123,18 +3151,26 @@ export default function ReportsPage({
                 minWidth: 0, 
                 boxSizing: 'border-box' 
               }}>
-                <table className="projects-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table className="projects-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: 'calc(100% - 130px)' }} />
+                    <col style={{ width: '130px' }} />
+                  </colgroup>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#ffffff' }}>
                     <tr style={{ background: '#ffffff', borderBottom: '2px solid #e2e8f0' }}>
-                      <th style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 700, color: '#475569', letterSpacing: '0.4px', textTransform: 'uppercase', padding: '16px 20px', background: '#ffffff' }}>
-                        <span>
-                          {groupByPrimary === 'User' ? 'TEAM MEMBER / USER' : (groupByPrimary === 'Client' ? 'CLIENT NAME' : (groupByPrimary === 'Date' ? 'DATE' : (groupByPrimary === 'Task' ? 'TASK' : (groupByPrimary === 'Tag' ? 'TAG' : 'PROJECT TITLE'))))}
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>↑</span>
+                      <th style={{ textAlign: 'left', fontSize: '12px', fontWeight: 700, color: '#475569', letterSpacing: '0.4px', textTransform: 'uppercase', padding: '14px 20px', background: '#ffffff' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span>
+                            {groupByPrimary === 'User' ? 'TEAM MEMBER / USER' : (groupByPrimary === 'Client' ? 'CLIENT NAME' : (groupByPrimary === 'Date' ? 'DATE' : (groupByPrimary === 'Task' ? 'TASK' : (groupByPrimary === 'Tag' ? 'TAG' : 'PROJECT TITLE'))))}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>↑</span>
+                        </div>
                       </th>
-                      <th style={{ textAlign: 'right', fontSize: '12.5px', fontWeight: 700, color: '#475569', letterSpacing: '0.4px', textTransform: 'uppercase', padding: '16px 20px', background: '#ffffff' }}>
-                        <span>DURATION</span>
-                        <span style={{ fontSize: '11px', marginLeft: '6px', color: '#64748b' }}>⇅</span>
+                      <th style={{ textAlign: 'right', fontSize: '12px', fontWeight: 700, color: '#475569', letterSpacing: '0.4px', textTransform: 'uppercase', padding: '14px 20px', background: '#ffffff', width: '130px' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%' }}>
+                          <span>DURATION</span>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>⇅</span>
+                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -3162,7 +3198,7 @@ export default function ReportsPage({
                               onClick={() => hasChildren && toggleGroup(item.id)}
                               className="summary-table-row"
                             >
-                              <td style={{ padding: '14px 20px' }}>
+                              <td style={{ padding: '14px 20px', overflow: 'hidden' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   {hasChildren ? (
                                     <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', transition: 'transform 0.15s ease' }}>
@@ -3175,9 +3211,9 @@ export default function ReportsPage({
                                   {/* Item bullet */}
                                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color || '#00cc00', flexShrink: 0 }} />
 
-                                  <div style={{ minWidth: 0 }}>
+                                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                      <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
+                                      <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {item.name}
                                       </span>
                                       {item.count > 0 && (
@@ -3187,7 +3223,8 @@ export default function ReportsPage({
                                           background: '#f1f5f9', 
                                           padding: '2px 8px', 
                                           borderRadius: '12px',
-                                          fontWeight: 600
+                                          fontWeight: 600,
+                                          flexShrink: 0
                                         }}>
                                           {item.count} {groupBySecondary} {item.count > 1 ? 'entries' : 'entry'}
                                         </span>
@@ -3195,14 +3232,14 @@ export default function ReportsPage({
                                     </div>
 
                                     {item.subtitle && (
-                                      <div style={{ color: '#64748b', fontSize: '12px', marginTop: '3px', fontWeight: 500 }}>
+                                      <div style={{ color: '#64748b', fontSize: '12px', marginTop: '3px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {item.subtitle}
                                       </div>
                                     )}
                                   </div>
                                 </div>
                               </td>
-                              <td style={{ padding: '14px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#0f172a', fontWeight: 700, fontSize: '14px' }}>
+                              <td style={{ padding: '14px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#0f172a', fontWeight: 700, fontSize: '14px', width: '130px', whiteSpace: 'nowrap' }}>
                                 <div>{item.duration}</div>
                                 <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>{item.percentage}%</div>
                               </td>
@@ -3219,38 +3256,44 @@ export default function ReportsPage({
                               return (
                                 <tr 
                                   key={key}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
                                   }}
                                   style={{
-                                    background: isExp ? '#f0fdf4' : '#fafafa',
+                                    background: isExp ? '#f8fafc' : '#ffffff',
                                     borderBottom: '1px solid #f1f5f9',
+                                    borderLeft: isExp ? '3px solid #00cc00' : '3px solid transparent',
                                     cursor: 'pointer',
-                                    transition: 'background 0.15s ease'
+                                    transition: 'all 0.15s ease'
                                   }}
-                                  title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
+                                  title={isExp ? "Click to collapse" : "Click to view full description"}
                                 >
-                                  <td style={{ padding: '8px 20px 8px 56px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                      <span style={{ color: isExp ? '#00cc00' : '#94a3b8', fontSize: '12px', marginTop: '1px', flexShrink: 0 }}>↳</span>
+                                  <td style={{ padding: '8px 16px 8px 52px', verticalAlign: 'top', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', minWidth: 0 }}>
+                                      <span style={{ color: isExp ? '#00cc00' : '#94a3b8', fontSize: '12px', marginTop: '2px', flexShrink: 0, fontWeight: 700 }}>↳</span>
                                       <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{
                                           fontSize: '12.5px',
-                                          fontWeight: 500,
-                                          color: isExp ? '#008a00' : '#1e293b',
+                                          fontWeight: isExp ? 600 : 500,
+                                          color: isExp ? '#0f172a' : '#475569',
                                           whiteSpace: isExp ? 'normal' : 'nowrap',
                                           overflow: isExp ? 'visible' : 'hidden',
                                           textOverflow: isExp ? 'clip' : 'ellipsis',
                                           wordBreak: 'break-word',
-                                          lineHeight: '1.45'
+                                          overflowWrap: 'anywhere',
+                                          lineHeight: '1.5'
                                         }}>
-                                          {desc}
+                                          {renderDescriptionWithLinks(desc)}
                                         </div>
+                                        {isExp && (pAct.user || pAct.userName) && (
+                                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                                            Logged by: <strong style={{ color: '#334155' }}>{(pAct.user || pAct.userName).replace(/\s*\(Owner\)|\s*\(Admin\)/i, '')}</strong>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </td>
-                                  <td style={{ padding: '8px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#64748b', fontSize: '12.5px', fontWeight: 600 }}>
+                                  <td style={{ padding: '8px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#64748b', fontSize: '12px', fontWeight: 600, verticalAlign: 'top', width: '130px', whiteSpace: 'nowrap' }}>
                                     {pDur}
                                   </td>
                                 </tr>
@@ -3266,18 +3309,18 @@ export default function ReportsPage({
                                     borderBottom: '1px solid #f1f5f9'
                                   }}
                                 >
-                                  <td style={{ padding: '11px 20px 11px 52px' }}>
+                                  <td style={{ padding: '11px 20px 11px 52px', overflow: 'hidden' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                       <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: child.color || item.color || '#94a3b8', flexShrink: 0 }} />
-                                      <span style={{ color: '#334155', fontWeight: 700, fontSize: '13px' }}>{child.name}</span>
+                                      <span style={{ color: '#334155', fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.name}</span>
                                       {child.subtitle && child.subtitle !== child.name && (
-                                        <span style={{ color: '#64748b', fontSize: '11.5px' }}>
+                                        <span style={{ color: '#64748b', fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                           • {child.subtitle}
                                         </span>
                                       )}
                                     </div>
                                   </td>
-                                  <td style={{ padding: '11px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#475569', fontSize: '13px', fontWeight: 600 }}>
+                                  <td style={{ padding: '11px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#475569', fontSize: '13px', fontWeight: 600, width: '130px', whiteSpace: 'nowrap' }}>
                                     <div>{child.duration}</div>
                                     <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{child.percentage}% of group</div>
                                   </td>
@@ -3294,38 +3337,44 @@ export default function ReportsPage({
                                   return (
                                     <tr 
                                       key={key}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                                      onClick={() => {
                                         setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
                                       }}
                                       style={{
-                                        background: isExp ? '#f0fdf4' : '#ffffff',
-                                        borderBottom: '1px solid #f8fafc',
+                                        background: isExp ? '#f8fafc' : '#ffffff',
+                                        borderBottom: '1px solid #f1f5f9',
+                                        borderLeft: isExp ? '3px solid #00cc00' : '3px solid transparent',
                                         cursor: 'pointer',
-                                        transition: 'background 0.15s ease'
+                                        transition: 'all 0.15s ease'
                                       }}
-                                      title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
+                                      title={isExp ? "Click to collapse" : "Click to view full description"}
                                     >
-                                      <td style={{ padding: '8px 20px 8px 76px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                          <span style={{ color: isExp ? '#00cc00' : '#94a3b8', fontSize: '12px', marginTop: '1px', flexShrink: 0 }}>↳</span>
+                                      <td style={{ padding: '8px 16px 8px 72px', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', minWidth: 0 }}>
+                                          <span style={{ color: isExp ? '#00cc00' : '#94a3b8', fontSize: '12px', marginTop: '2px', flexShrink: 0, fontWeight: 700 }}>↳</span>
                                           <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{
                                               fontSize: '12.5px',
-                                              fontWeight: 500,
-                                              color: isExp ? '#008a00' : '#1e293b',
+                                              fontWeight: isExp ? 600 : 500,
+                                              color: isExp ? '#0f172a' : '#475569',
                                               whiteSpace: isExp ? 'normal' : 'nowrap',
                                               overflow: isExp ? 'visible' : 'hidden',
                                               textOverflow: isExp ? 'clip' : 'ellipsis',
                                               wordBreak: 'break-word',
-                                              lineHeight: '1.45'
+                                              overflowWrap: 'anywhere',
+                                              lineHeight: '1.5'
                                             }}>
-                                              {desc}
+                                              {renderDescriptionWithLinks(desc)}
                                             </div>
+                                            {isExp && (cAct.user || cAct.userName) && (
+                                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                                                Logged by: <strong style={{ color: '#334155' }}>{(cAct.user || cAct.userName).replace(/\s*\(Owner\)|\s*\(Admin\)/i, '')}</strong>
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
                                       </td>
-                                      <td style={{ padding: '8px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#64748b', fontSize: '12.5px', fontWeight: 600 }}>
+                                      <td style={{ padding: '8px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#64748b', fontSize: '12px', fontWeight: 600, verticalAlign: 'top', width: '130px', whiteSpace: 'nowrap' }}>
                                         {cDur}
                                       </td>
                                     </tr>
