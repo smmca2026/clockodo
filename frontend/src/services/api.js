@@ -6,12 +6,13 @@ const getApiBaseUrl = () => {
     }
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
-      return 'http://localhost:5000/api';
+      // Connect to live backend API so localhost development sees real live database entries
+      return 'https://clockodo.digipl.us/api';
     }
     // Production default: relative '/api' to avoid Mixed Content / port blocking
     return '/api';
   }
-  return 'http://localhost:5000/api';
+  return 'https://clockodo.digipl.us/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

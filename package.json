@@ -1,4 +1,12 @@
 {
+  "name": "clockodo",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "frontend": "npm --prefix frontend run dev",
+    "backend": "node backend/src/server.js",
+    "start": "node backend/src/server.js"
+  },
   "dependencies": {
     "lucide-react": "^1.34.0"
   }
