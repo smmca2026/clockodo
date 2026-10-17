@@ -3199,59 +3199,6 @@ export default function ReportsPage({
                                         {item.subtitle}
                                       </div>
                                     )}
-
-                                    {/* Primary Row Activities Descriptions (shown if no nested children) */}
-                                    {!hasChildren && item.activities && item.activities.length > 0 && (
-                                      <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {item.activities.map((pAct, paIdx) => {
-                                          const desc = pAct.description || pAct.task;
-                                          if (!desc) return null;
-                                          const key = pAct.id || `pact-${item.id}-${paIdx}`;
-                                          const isExp = Boolean(expandedReportTasks[key]);
-                                          return (
-                                            <div 
-                                              key={key} 
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
-                                              }}
-                                              style={{ 
-                                                display: 'flex', 
-                                                alignItems: 'flex-start', 
-                                                gap: '8px',
-                                                background: '#f8fafc',
-                                                border: '1px solid #e2e8f0',
-                                                borderRadius: '6px',
-                                                padding: '5px 10px',
-                                                fontSize: '12px',
-                                                color: '#1e293b',
-                                                cursor: 'pointer',
-                                                maxWidth: '100%',
-                                                transition: 'all 0.15s ease'
-                                              }}
-                                              title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
-                                            >
-                                              <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ 
-                                                  fontWeight: 600, 
-                                                  color: '#0f172a',
-                                                  whiteSpace: isExp ? 'normal' : 'nowrap',
-                                                  overflow: isExp ? 'visible' : 'hidden',
-                                                  textOverflow: isExp ? 'clip' : 'ellipsis',
-                                                  wordBreak: 'break-word',
-                                                  lineHeight: '1.45'
-                                                }}>
-                                                  {desc}
-                                                </div>
-                                              </div>
-                                              <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px' }}>
-                                                ({pAct.durationFormatted || formatSecondsToHMS(pAct.durationSeconds || parseTimeToSeconds(pAct.duration))})
-                                              </span>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               </td>
@@ -3261,88 +3208,130 @@ export default function ReportsPage({
                               </td>
                             </tr>
 
+                            {/* If no nested children: render activities directly under primary group */}
+                            {!hasChildren && item.activities && item.activities.map((pAct, paIdx) => {
+                              const desc = pAct.description || pAct.task;
+                              if (!desc) return null;
+                              const key = pAct.id || `pact-${item.id}-${paIdx}`;
+                              const isExp = Boolean(expandedReportTasks[key]);
+                              const pDur = pAct.durationFormatted || formatSecondsToHMS(pAct.durationSeconds || parseTimeToSeconds(pAct.duration) || 0);
+
+                              return (
+                                <tr 
+                                  key={key}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
+                                  }}
+                                  style={{
+                                    background: isExp ? '#f0fdf4' : '#fafafa',
+                                    borderBottom: '1px solid #f1f5f9',
+                                    cursor: 'pointer',
+                                    transition: 'background 0.15s ease'
+                                  }}
+                                  title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
+                                >
+                                  <td style={{ padding: '8px 20px 8px 56px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                      <span style={{ color: isExp ? '#00cc00' : '#94a3b8', fontSize: '12px', marginTop: '1px', flexShrink: 0 }}>↳</span>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{
+                                          fontSize: '12.5px',
+                                          fontWeight: 500,
+                                          color: isExp ? '#008a00' : '#1e293b',
+                                          whiteSpace: isExp ? 'normal' : 'nowrap',
+                                          overflow: isExp ? 'visible' : 'hidden',
+                                          textOverflow: isExp ? 'clip' : 'ellipsis',
+                                          wordBreak: 'break-word',
+                                          lineHeight: '1.45'
+                                        }}>
+                                          {desc}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '8px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#64748b', fontSize: '12.5px', fontWeight: 600 }}>
+                                    {pDur}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+
                             {/* Secondary Group Nested Sub-Rows */}
                             {hasChildren && isExpanded && item.children.map((child, cIdx) => (
-                              <tr 
-                                key={child.id || `sub-${cIdx}`}
-                                style={{ 
-                                  background: '#f8fafc', 
-                                  borderBottom: '1px solid #f1f5f9'
-                                }}
-                              >
-                                <td style={{ padding: '11px 20px 11px 52px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: child.color || item.color || '#94a3b8', flexShrink: 0, marginTop: '5px' }} />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                        <span style={{ color: '#334155', fontWeight: 600, fontSize: '13px' }}>{child.name}</span>
-                                        {child.subtitle && child.subtitle !== child.name && (
-                                          <span style={{ color: '#64748b', fontSize: '11.5px' }}>
-                                            • {child.subtitle}
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {/* Logged Activity Descriptions List (Clickable Expand / Collapse) */}
-                                      {child.activities && child.activities.length > 0 && (
-                                        <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                          {child.activities.map((cAct, caIdx) => {
-                                            const desc = cAct.description || cAct.task;
-                                            if (!desc) return null;
-                                            const key = cAct.id || `cact-${child.id}-${caIdx}`;
-                                            const isExp = Boolean(expandedReportTasks[key]);
-                                            return (
-                                              <div 
-                                                key={key} 
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
-                                                }}
-                                                style={{ 
-                                                  display: 'flex', 
-                                                  alignItems: 'flex-start', 
-                                                  gap: '8px',
-                                                  background: '#ffffff',
-                                                  border: '1px solid #e2e8f0',
-                                                  borderRadius: '6px',
-                                                  padding: '5px 10px',
-                                                  fontSize: '12px',
-                                                  color: '#1e293b',
-                                                  cursor: 'pointer',
-                                                  maxWidth: '100%',
-                                                  transition: 'all 0.15s ease'
-                                                }}
-                                                title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
-                                              >
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                  <div style={{ 
-                                                    fontWeight: 600, 
-                                                    color: '#0f172a',
-                                                    whiteSpace: isExp ? 'normal' : 'nowrap',
-                                                    overflow: isExp ? 'visible' : 'hidden',
-                                                    textOverflow: isExp ? 'clip' : 'ellipsis',
-                                                    wordBreak: 'break-word',
-                                                    lineHeight: '1.45'
-                                                  }}>
-                                                    {desc}
-                                                  </div>
-                                                </div>
-                                                <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px' }}>
-                                                  ({cAct.durationFormatted || formatSecondsToHMS(cAct.durationSeconds || parseTimeToSeconds(cAct.duration))})
-                                                </span>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
+                              <React.Fragment key={child.id || `sub-${cIdx}`}>
+                                <tr 
+                                  style={{ 
+                                    background: '#f8fafc', 
+                                    borderBottom: '1px solid #f1f5f9'
+                                  }}
+                                >
+                                  <td style={{ padding: '11px 20px 11px 52px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: child.color || item.color || '#94a3b8', flexShrink: 0 }} />
+                                      <span style={{ color: '#334155', fontWeight: 700, fontSize: '13px' }}>{child.name}</span>
+                                      {child.subtitle && child.subtitle !== child.name && (
+                                        <span style={{ color: '#64748b', fontSize: '11.5px' }}>
+                                          • {child.subtitle}
+                                        </span>
                                       )}
                                     </div>
-                                  </div>
-                                </td>
-                                <td style={{ padding: '11px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#475569', fontSize: '13px', fontWeight: 600 }}>
-                                  <div>{child.duration}</div>
-                                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{child.percentage}% of group</div>
-                                </td>
-                              </tr>
+                                  </td>
+                                  <td style={{ padding: '11px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#475569', fontSize: '13px', fontWeight: 600 }}>
+                                    <div>{child.duration}</div>
+                                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{child.percentage}% of group</div>
+                                  </td>
+                                </tr>
+
+                                {/* Clean Indented Activity Descriptions Under Date */}
+                                {child.activities && child.activities.map((cAct, caIdx) => {
+                                  const desc = cAct.description || cAct.task;
+                                  if (!desc) return null;
+                                  const key = cAct.id || `cact-${child.id}-${caIdx}`;
+                                  const isExp = Boolean(expandedReportTasks[key]);
+                                  const cDur = cAct.durationFormatted || formatSecondsToHMS(cAct.durationSeconds || parseTimeToSeconds(cAct.duration) || 0);
+
+                                  return (
+                                    <tr 
+                                      key={key}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExpandedReportTasks(prev => ({ ...prev, [key]: !prev[key] }));
+                                      }}
+                                      style={{
+                                        background: isExp ? '#f0fdf4' : '#ffffff',
+                                        borderBottom: '1px solid #f8fafc',
+                                        cursor: 'pointer',
+                                        transition: 'background 0.15s ease'
+                                      }}
+                                      title={isExp ? "Click to collapse" : `${desc} (Click to see full description)`}
+                                    >
+                                      <td style={{ padding: '8px 20px 8px 76px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                          <span style={{ color: isExp ? '#00cc00' : '#94a3b8', fontSize: '12px', marginTop: '1px', flexShrink: 0 }}>↳</span>
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                              fontSize: '12.5px',
+                                              fontWeight: 500,
+                                              color: isExp ? '#008a00' : '#1e293b',
+                                              whiteSpace: isExp ? 'normal' : 'nowrap',
+                                              overflow: isExp ? 'visible' : 'hidden',
+                                              textOverflow: isExp ? 'clip' : 'ellipsis',
+                                              wordBreak: 'break-word',
+                                              lineHeight: '1.45'
+                                            }}>
+                                              {desc}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: '8px 20px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#64748b', fontSize: '12.5px', fontWeight: 600 }}>
+                                        {cDur}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </React.Fragment>
                             ))}
                           </React.Fragment>
                         );
