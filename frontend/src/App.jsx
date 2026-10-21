@@ -311,15 +311,13 @@ function App() {
     return () => { isMounted = false; };
   }, []);
 
-  // Scoped activities based on user role:
-  // - Admin (role === 'admin'): sees ALL activities across the entire team
-  // - Employee (role !== 'admin'): sees ONLY their own activities
-  const effectiveActivities = useMemo(() => {
+  // Strictly scoped personal activities for the logged-in user (Time Tracker & personal views)
+  const myActivities = useMemo(() => {
     const activeUser = currentUser || effectiveUser;
     if (!activeUser) return [];
-    if (activeUser.role === 'admin') return activities;
 
     const myName = (activeUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+    const myUsername = (activeUser.username || '').trim().toLowerCase();
     const myEmail = (activeUser.email || '').trim().toLowerCase();
     const myId = activeUser.id ? String(activeUser.id) : '';
 
@@ -330,10 +328,21 @@ function App() {
 
       if (myId && actId && myId === actId) return true;
       if (myEmail && actEmail && myEmail === actEmail) return true;
+      if (myUsername && actUser && (actUser === myUsername || actUser.includes(myUsername))) return true;
       if (myName && actUser && (actUser === myName || actUser.includes(myName) || myName.includes(actUser))) return true;
       return false;
     });
-  }, [activities, currentUser]);
+  }, [activities, currentUser, effectiveUser]);
+
+  // Scoped activities based on user role:
+  // - Admin (role === 'admin'): sees ALL activities across the entire team (for Dashboard & Reports)
+  // - Employee (role !== 'admin'): sees ONLY their own activities
+  const effectiveActivities = useMemo(() => {
+    const activeUser = currentUser || effectiveUser;
+    if (!activeUser) return [];
+    if (activeUser.role === 'admin') return activities;
+    return myActivities;
+  }, [activities, currentUser, effectiveUser, myActivities]);
 
   // Permission helper: Admin can edit/delete anything; Employees can only edit/delete their own entries
   const canEditActivity = (act) => {
@@ -1504,7 +1513,7 @@ function App() {
               projects={projects}
               onCreateProject={handleCreateProject}
               searchQuery={globalSearchQuery}
-              activities={effectiveActivities}
+              activities={activities}
               onAddManualEntry={handleAddManualEntry}
               onUpdateTimesheetCell={handleUpdateTimesheetCell}
               onDeleteProjectActivities={handleDeleteProjectActivities}
@@ -1518,7 +1527,7 @@ function App() {
           {!sharedToken && activePage === 'time-tracker' && (
             <TimeTrackerPage
               projects={projects}
-              activities={effectiveActivities}
+              activities={myActivities}
               onAddManualEntry={handleAddManualEntry}
               onCreateProject={handleCreateProject}
               searchQuery={globalSearchQuery}
@@ -1539,7 +1548,7 @@ function App() {
               calendarSchedule={calendarSchedule}
               onUpdateCalendarSchedule={setCalendarSchedule}
               activeTimer={activeTimer}
-              activities={effectiveActivities}
+              activities={myActivities}
               timesheetRows={timesheetRows}
               projects={projects}
               onAddManualEntry={handleAddManualEntry}

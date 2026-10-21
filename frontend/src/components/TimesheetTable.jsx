@@ -176,12 +176,17 @@ export default function TimesheetTable({
     if (isEmp) {
       const curEmail = (currentUser.email || '').trim().toLowerCase();
       const curName = (currentUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+      const curUsername = (currentUser.username || '').trim().toLowerCase();
+      const curId = currentUser.id ? String(currentUser.id) : '';
 
-      return activities.filter(a => {
+      return (activities || []).filter(a => {
         const actEmail = (a.userEmail || a.email || '').trim().toLowerCase();
-        const actUser = (a.user || a.userName || a.user_name || a.assignedTo || a.member || '').trim().toLowerCase();
+        const actUser = (a.user || a.userName || a.user_name || a.assignedTo || a.member || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+        const actId = (a.userId || a.user_id) ? String(a.userId || a.user_id) : '';
 
+        if (curId && actId && curId === actId) return true;
         if (curEmail && actEmail && curEmail === actEmail) return true;
+        if (curUsername && actUser && (actUser === curUsername || actUser.includes(curUsername))) return true;
         if (curName && actUser && (actUser.includes(curName) || curName.includes(actUser))) return true;
         return false;
       });
@@ -191,18 +196,39 @@ export default function TimesheetTable({
     if (selectedTeammate) {
       const tEmail = (selectedTeammate.email || '').trim().toLowerCase();
       const tName = (selectedTeammate.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+      const tUsername = (selectedTeammate.username || '').trim().toLowerCase();
+      const tId = selectedTeammate.id ? String(selectedTeammate.id) : '';
 
-      return activities.filter(a => {
+      return (activities || []).filter(a => {
         const actEmail = (a.userEmail || a.email || '').trim().toLowerCase();
-        const actUser = (a.user || a.userName || a.user_name || a.assignedTo || a.member || '').trim().toLowerCase();
+        const actUser = (a.user || a.userName || a.user_name || a.assignedTo || a.member || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+        const actId = (a.userId || a.user_id) ? String(a.userId || a.user_id) : '';
 
+        if (tId && actId && tId === actId) return true;
         if (tEmail && actEmail && tEmail === actEmail) return true;
+        if (tUsername && actUser && (actUser === tUsername || actUser.includes(tUsername))) return true;
         if (tName && actUser && (actUser.includes(tName) || tName.includes(actUser))) return true;
         return false;
       });
     }
 
-    return activities;
+    // Admin default view: Show ONLY Admin's own timesheet activities
+    const curEmail = (currentUser.email || '').trim().toLowerCase();
+    const curName = (currentUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+    const curUsername = (currentUser.username || '').trim().toLowerCase();
+    const curId = currentUser.id ? String(currentUser.id) : '';
+
+    return (activities || []).filter(a => {
+      const actEmail = (a.userEmail || a.email || '').trim().toLowerCase();
+      const actUser = (a.user || a.userName || a.user_name || a.assignedTo || a.member || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+      const actId = (a.userId || a.user_id) ? String(a.userId || a.user_id) : '';
+
+      if (curId && actId && curId === actId) return true;
+      if (curEmail && actEmail && curEmail === actEmail) return true;
+      if (curUsername && actUser && (actUser === curUsername || actUser.includes(curUsername))) return true;
+      if (curName && actUser && (actUser === curName || actUser.includes(curName) || curName.includes(actUser))) return true;
+      return false;
+    });
   }, [activities, currentUser, selectedTeammate]);
 
   // Derive rows purely from master activities for the active week
