@@ -508,6 +508,8 @@ export default function TimeTracker({
                 taskDescription: taskDescription.trim() || 'Working session',
                 isBillable: isBillable,
               });
+              setTaskDescription('');
+              setSelectedProjectId(null);
             }}
             title="Start Stopwatch Timer"
           >

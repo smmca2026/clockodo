@@ -854,616 +854,258 @@ export default function TimeTrackerPage({
                 {/* Day Entry Rows */}
                 {!isCollapsed && (
                   <div className="clockify-entries-list">
-                    {(() => {
-                      const clustersMap = {};
-                      const clustersOrder = [];
+                    {groupItems.map((item, itemIdx) => {
+                      const rowKey = `row_${item.id || itemIdx}`;
+                      const running = isItemRunning(item);
+                      const isRowActive = editingItemKey === rowKey;
+                      const isEditingDesc = isRowActive && (editingMode === 'desc_only' || editingMode === 'both');
+                      const isEditingTime = isRowActive && (editingMode === 'time_only' || editingMode === 'both');
+                      const isDatePickerOpen = activeDatePickerKey === rowKey;
+                      const isProjPickerOpen = activeProjectPickerKey === rowKey;
+                      const isLastInGroup = itemIdx === groupItems.length - 1;
+                      const shouldOpenUpwards = isLastGroup || isLastInGroup;
 
-                      groupItems.forEach((item) => {
-                        const projKey = (item.project || 'No Project').trim().toLowerCase();
-                        const clusterKey = projKey;
+                      const startStr = item.startTime || '09:00';
+                      const endStr = item.endTime || '17:00';
+                      const displayDesc = item.description || 'Working session';
+                      const displayDuration = item.durationFormatted || '00:00:00';
 
-                        if (!clustersMap[clusterKey]) {
-                          clustersMap[clusterKey] = {
-                            key: clusterKey,
-                            description: item.description,
-                            project: item.project || 'No Project',
-                            projectColor: item.projectColor || '#00cc00',
-                            billable: item.billable !== false,
-                            sessions: [],
-                            totalSec: 0,
-                            representativeItem: item,
-                          };
-                          clustersOrder.push(clusterKey);
-                        }
-
-                        clustersMap[clusterKey].sessions.push(item);
-                        clustersMap[clusterKey].totalSec += parseTimeToSeconds(item.durationFormatted);
-                      });
-
-                      clustersOrder.forEach((key) => {
-                        clustersMap[key].sessions.sort((a, b) => {
-                          return parseStartMinutes(b.startTime) - parseStartMinutes(a.startTime);
-                        });
-                      });
-
-                      return clustersOrder.map((clusterKey, cIdx) => {
-                        const cluster = clustersMap[clusterKey];
-                        const isMultiSession = cluster.sessions.length > 1;
-                        const taskExpandedKey = `${isoDate}_${clusterKey}`;
-                        const isExpanded = !!expandedTasks[taskExpandedKey];
-                        const repItem = cluster.representativeItem;
-                        const running = cluster.sessions.some((s) => isItemRunning(s));
-                        const formattedClusterTotal = formatSecondsToTime(cluster.totalSec);
-                        const isLastInGroup = cIdx === clustersOrder.length - 1;
-                        const shouldOpenUpwards = isLastGroup || isLastInGroup;
-
-                        const parentRowKey = `parent_${isoDate}_${clusterKey}`;
-                        const isRowActive = editingItemKey === parentRowKey;
-                        const isEditingDesc = isRowActive && (editingMode === 'desc_only' || editingMode === 'both');
-                        const isEditingTime = isRowActive && (editingMode === 'time_only' || editingMode === 'both');
-                        const isDatePickerOpen = activeDatePickerKey === parentRowKey;
-                        const isProjPickerOpen = activeProjectPickerKey === parentRowKey;
-
-                        let earliestMin = 99999;
-                        let earliestStartStr = cluster.sessions[0].startTime;
-                        let latestMin = -1;
-                        let latestEndStr = cluster.sessions[0].endTime;
-
-                        cluster.sessions.forEach((s) => {
-                          const sMin = parseStartMinutes(s.startTime);
-                          const eMin = parseStartMinutes(s.endTime);
-                          if (sMin < earliestMin) {
-                            earliestMin = sMin;
-                            earliestStartStr = s.startTime;
-                          }
-                          if (eMin > latestMin) {
-                            latestMin = eMin;
-                            latestEndStr = s.endTime;
-                          }
-                        });
-
-                        const displayDesc = isMultiSession
-                          ? (cluster.sessions[0]?.description || cluster.project)
-                          : (cluster.sessions[0]?.description || cluster.project);
-
-                        return (
+                      return (
+                        <div 
+                          key={item.id || itemIdx} 
+                          className="clockify-entry-cluster"
+                          style={{ 
+                            position: 'relative', 
+                            zIndex: (isDatePickerOpen || isProjPickerOpen || activeMenuId === rowKey) ? 9999 : 1 
+                          }}
+                        >
                           <div 
-                            key={clusterKey} 
-                            className={`clockify-entry-cluster ${isExpanded ? 'is-cluster-expanded' : ''}`}
-                            style={{ 
-                              position: 'relative', 
-                              zIndex: (isDatePickerOpen || isProjPickerOpen || activeMenuId === parentRowKey) ? 9999 : (isExpanded ? 10 : 1) 
-                            }}
+                            className={`clockify-entry-row ${running ? 'is-row-running' : ''}`}
+                            style={{ position: 'relative' }}
                           >
-                            {/* Main Task Row */}
-                            <div 
-                              className={`clockify-entry-row ${running ? 'is-row-running' : ''} ${isMultiSession ? 'is-multi-session' : ''}`}
-                              onClick={() => {
-                                if (isMultiSession && !isEditingDesc && !isProjPickerOpen) {
-                                  toggleTaskExpand(taskExpandedKey);
-                                }
-                              }}
-                              style={{ 
-                                cursor: isMultiSession ? 'pointer' : 'default',
-                                position: 'relative'
-                              }}
-                            >
-                              {/* Description & Clean Project Picker (NO '+' BUTTON!) */}
-                              <div className="clockify-entry-left">
-                                {isMultiSession ? (
-                                  <button 
-                                    type="button" 
-                                    className="cluster-expand-chevron-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleTaskExpand(taskExpandedKey);
-                                    }}
-                                    title={isExpanded ? "Collapse project sessions" : "Expand project sessions dropdown"}
-                                  >
-                                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                  </button>
-                                ) : (
-                                  <span className="cluster-single-indent" />
-                                )}
+                            {/* Description & Clean Project Picker */}
+                            <div className="clockify-entry-left">
+                              <span className="cluster-single-indent" />
 
-                                {/* Seamless Inline Editable Description */}
-                                <div className="clockify-desc-cell-wrapper" onClick={(e) => e.stopPropagation()}>
-                                  {isEditingDesc ? (
-                                    <input
-                                      type="text"
-                                      className="clockify-desc-seamless-input"
-                                      value={editingDescText}
-                                      onChange={(e) => setEditingDescText(e.target.value)}
-                                      onBlur={() => handleSaveEntry(cluster)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleSaveEntry(cluster);
-                                          e.target.blur();
-                                        }
-                                        if (e.key === 'Escape') {
-                                          setEditingItemKey(null);
-                                        }
-                                      }}
-                                      autoFocus
-                                      placeholder="What did you work on?"
-                                    />
-                                  ) : (
-                                    <span 
-                                      className="clockify-entry-desc-clean"
-                                      onClick={(e) => startEditingDescOnly(parentRowKey, displayDesc, cluster, e)}
-                                      title="Click to edit task description"
-                                    >
-                                      {displayDesc || 'Add description...'}
-                                      {isMultiSession && (
-                                        <span className="sub-session-count-tag" style={{ marginLeft: '6px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                                          (+{cluster.sessions.length - 1})
-                                        </span>
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                                
-                                {/* Clean Project Selector: Dot + Project Name with Hover Underline (NO '+' sign!) */}
-                                <RowProjectPicker
-                                  projects={projects}
-                                  currentProjectName={cluster.project}
-                                  currentProjectColor={cluster.projectColor}
-                                  isOpen={isProjPickerOpen}
-                                  onToggle={(isOpen) => setActiveProjectPickerKey(isOpen ? parentRowKey : null)}
-                                  onSelectProject={(projObj) => handleRowSelectProject(cluster, projObj)}
-                                />
-                              </div>
-
-                              {/* Meta Icon: Billable Rupee */}
-                              <div className="clockify-entry-meta">
-                                <IndianRupee 
-                                  size={15} 
-                                  className={`entry-icon-rupee ${cluster.billable ? 'is-billable' : ''}`} 
-                                  title={cluster.billable ? "Billable task (₹)" : "Non-billable task"}
-                                />
-                              </div>
-
-                              {/* Interval: Earliest start to latest end (Editable timing & 24h display) */}
-                              {isEditingTime ? (
-                                <div className="clockify-entry-window is-editing" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                  <input 
+                              {/* Seamless Inline Editable Description */}
+                              <div className="clockify-desc-cell-wrapper" onClick={(e) => e.stopPropagation()}>
+                                {isEditingDesc ? (
+                                  <input
                                     type="text"
-                                    value={editingStartTime}
-                                    onChange={(e) => setEditingStartTime(autoFormatTimeHHMM(e.target.value))}
-                                    placeholder="10:00"
-                                    title="Start Time"
-                                    style={{ width: '56px', padding: '2px 4px', fontSize: '12px', textAlign: 'center', borderRadius: '4px', border: '1px solid #00cc00', outline: 'none', fontFamily: 'var(--font-mono)', background: '#ffffff', color: '#0f172a', fontWeight: 600 }}
+                                    className="clockify-desc-seamless-input"
+                                    value={editingDescText}
+                                    onChange={(e) => setEditingDescText(e.target.value)}
+                                    onBlur={() => handleSaveEntry(item)}
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter') handleSaveEntry(cluster);
-                                      if (e.key === 'Escape') setEditingItemKey(null);
+                                      if (e.key === 'Enter') {
+                                        handleSaveEntry(item);
+                                        e.target.blur();
+                                      }
+                                      if (e.key === 'Escape') {
+                                        setEditingItemKey(null);
+                                      }
                                     }}
+                                    autoFocus
+                                    placeholder="What did you work on?"
                                   />
-                                  <span className="window-sep">-</span>
-                                  <input 
-                                    type="text"
-                                    value={editingEndTime}
-                                    onChange={(e) => setEditingEndTime(autoFormatTimeHHMM(e.target.value))}
-                                    placeholder="18:00"
-                                    title="End Time"
-                                    style={{ width: '56px', padding: '2px 4px', fontSize: '12px', textAlign: 'center', borderRadius: '4px', border: '1px solid #00cc00', outline: 'none', fontFamily: 'var(--font-mono)', background: '#ffffff', color: '#0f172a', fontWeight: 600 }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') handleSaveEntry(cluster);
-                                      if (e.key === 'Escape') setEditingItemKey(null);
-                                    }}
-                                  />
-                                  <button 
-                                    type="button" 
-                                    onClick={() => handleSaveEntry(cluster)} 
-                                    title="Save Changes (Enter)" 
-                                    style={{ background: '#00cc00', color: '#fff', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
-                                  >
-                                    ✓
-                                  </button>
-                                  <button 
-                                    type="button" 
-                                    onClick={() => { setEditingItemKey(null); setEditingMode(null); }} 
-                                    title="Cancel (Esc)" 
-                                    style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer' }}
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ) : (
-                                <div 
-                                  className="clockify-entry-window is-clickable"
-                                  onClick={(e) => startEditingTimeOnly(parentRowKey, earliestStartStr, latestEndStr, cluster, e)}
-                                  title="Click to edit timing"
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  <span>{formatTimeDisplay(earliestStartStr)}</span>
-                                  <span className="window-sep">-</span>
-                                  <span>{formatTimeDisplay(latestEndStr)}</span>
-                                </div>
-                              )}
-
-                              {/* Calendar Icon Button with Interactive Date Picker Popover */}
-                              <div className="clockify-cal-action-wrapper">
-                                <button
-                                  type="button"
-                                  className={`clockify-entry-cal-btn is-clickable ${isDatePickerOpen ? 'active' : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveDatePickerKey(isDatePickerOpen ? null : parentRowKey);
-                                  }}
-                                  title="Click to view/change date"
-                                >
-                                  <CalendarIcon size={14} />
-                                </button>
-
-                                {isDatePickerOpen && (
-                                  <RowDatePickerPopover
-                                    currentIsoDate={isoDate}
-                                    onSelectDate={(newDate) => handleSelectNewDate(cluster, newDate)}
-                                    onClose={() => setActiveDatePickerKey(null)}
-                                  />
-                                )}
-                              </div>
-
-                              {/* Duration / Cluster Total */}
-                              <div 
-                                className="clockify-entry-duration"
-                                style={running ? { color: '#009900', fontWeight: 800 } : {}}
-                              >
-                                {running && activeTimer?.isRunning
-                                  ? `${String(Math.floor(activeTimer.elapsedSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((activeTimer.elapsedSeconds % 3600) / 60)).padStart(2, '0')}:${String(activeTimer.elapsedSeconds % 60).padStart(2, '0')}`
-                                  : formattedClusterTotal}
-                              </div>
-
-                              {/* Direct Play / Pause Action Button */}
-                              <div className="clockify-entry-actions">
-                                {running ? (
-                                  <button 
-                                    type="button" 
-                                    className="entry-btn-play" 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleTogglePlayEntry(repItem);
-                                    }}
-                                    title={`Pause timer for "${cluster.project}"`}
-                                    style={{ color: '#009900' }}
-                                  >
-                                    <Pause size={13} fill="currentColor" />
-                                  </button>
                                 ) : (
-                                  <button 
-                                    type="button" 
-                                    className="entry-btn-play" 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleTogglePlayEntry(repItem);
-                                    }}
-                                    title={`Start timer for "${cluster.project}"`}
+                                  <span 
+                                    className="clockify-entry-desc-clean"
+                                    onClick={(e) => startEditingDescOnly(rowKey, displayDesc, item, e)}
+                                    title="Click to edit task description"
                                   >
-                                    <Play size={13} fill="currentColor" />
-                                  </button>
+                                    {displayDesc}
+                                  </span>
                                 )}
-
-                                <div className="clockify-entry-menu-wrapper" style={{ position: 'relative' }}>
-                                  <button 
-                                    type="button" 
-                                    className={`entry-btn-options ${activeMenuId === parentRowKey ? 'active' : ''}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveMenuId(activeMenuId === parentRowKey ? null : parentRowKey);
-                                    }}
-                                    title="More options (Edit, Delete)"
-                                  >
-                                    <MoreVertical size={14} />
-                                  </button>
-
-                                  {/* 3-Dots Dropdown Menu */}
-                                  {activeMenuId === parentRowKey && (
-                                    <div 
-                                      className={`clockify-entry-dropdown-menu ${shouldOpenUpwards ? 'open-upwards' : ''}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <button 
-                                        type="button" 
-                                        className="clockify-entry-menu-item"
-                                        onClick={(e) => startEditingBoth(parentRowKey, displayDesc, earliestStartStr, latestEndStr, cluster, e)}
-                                      >
-                                        <Edit3 size={13} color="#3b82f6" />
-                                        <span>Edit Description & Time</span>
-                                      </button>
-                                      <button 
-                                        type="button" 
-                                        className="clockify-entry-menu-item is-delete"
-                                        onClick={() => {
-                                          cluster.sessions.forEach(s => onDeleteActivity(s.id));
-                                          setActiveMenuId(null);
-                                          showToast(`✓ Deleted time entries for "${cluster.project}"`);
-                                        }}
-                                      >
-                                        <Trash2 size={13} color="#ef4444" />
-                                        <span>Delete</span>
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
                               </div>
+                              
+                              {/* Clean Project Selector: Dot + Project Name with Hover Underline (NO '+' sign!) */}
+                              <RowProjectPicker
+                                projects={projects}
+                                currentProjectName={item.project || 'No Project'}
+                                currentProjectColor={item.projectColor || '#00cc00'}
+                                isOpen={isProjPickerOpen}
+                                onToggle={(isOpen) => setActiveProjectPickerKey(isOpen ? rowKey : null)}
+                                onSelectProject={(projObj) => handleRowSelectProject(item, projObj)}
+                              />
                             </div>
 
-                            {/* INLINE SUB-ROWS ROW BY ROW DIRECTLY BENEATH THAT SPECIFIC TASK */}
-                            {isMultiSession && isExpanded && (
-                              <div className="clockify-sub-sessions-list">
-                                {cluster.sessions.map((session, sIdx) => {
-                                  const sessionRunning = isItemRunning(session);
-                                  const subRowKey = `sub_${session.id || sIdx}`;
-                                  const isSubRowActive = editingItemKey === subRowKey;
-                                  const isSubEditingDesc = isSubRowActive && (editingMode === 'desc_only' || editingMode === 'both');
-                                  const isSubEditingTime = isSubRowActive && (editingMode === 'time_only' || editingMode === 'both');
-                                  const isSubDatePickerOpen = activeDatePickerKey === subRowKey;
-                                  const isSubProjPickerOpen = activeProjectPickerKey === subRowKey;
+                            {/* Meta Icon: Billable Rupee */}
+                            <div className="clockify-entry-meta">
+                              <IndianRupee 
+                                size={15} 
+                                className={`entry-icon-rupee ${item.billable !== false ? 'is-billable' : ''}`} 
+                                title={item.billable !== false ? "Billable task (₹)" : "Non-billable task"}
+                              />
+                            </div>
 
-                                  return (
-                                    <div 
-                                      key={session.id || sIdx} 
-                                      className={`clockify-entry-row clockify-sub-session-row ${sessionRunning ? 'is-row-running' : ''}`}
-                                      style={{ 
-                                        zIndex: (isSubDatePickerOpen || isSubProjPickerOpen || activeMenuId === subRowKey) ? 9999 : 2, 
-                                        position: 'relative' 
-                                      }}
-                                    >
-                                      {/* Description & Clean Project Picker (NO '+' BUTTON!) */}
-                                      <div className="clockify-entry-left">
-                                        <span className="sub-session-indent-spacer" />
-                                        
-                                        {/* Sub-Session Seamless Editable Description */}
-                                        <div className="clockify-desc-cell-wrapper" onClick={(e) => e.stopPropagation()}>
-                                          {isSubEditingDesc ? (
-                                            <input
-                                              type="text"
-                                              className="clockify-desc-seamless-input"
-                                              value={editingDescText}
-                                              onChange={(e) => setEditingDescText(e.target.value)}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                  handleSaveEntry();
-                                                }
-                                                if (e.key === 'Escape') {
-                                                  setEditingItemKey(null);
-                                                }
-                                              }}
-                                              autoFocus
-                                              placeholder="Session description..."
-                                            />
-                                          ) : (
-                                            <span 
-                                              className="clockify-entry-desc-clean"
-                                              onClick={(e) => startEditingDescOnly(subRowKey, session.description, session, e)}
-                                              title="Click to edit session description"
-                                            >
-                                              {session.description || 'Session details'}
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        {/* Sub-Session Clean Project Picker */}
-                                        <RowProjectPicker
-                                          projects={projects}
-                                          currentProjectName={session.project}
-                                          currentProjectColor={session.projectColor}
-                                          isOpen={isSubProjPickerOpen}
-                                          onToggle={(isOpen) => setActiveProjectPickerKey(isOpen ? subRowKey : null)}
-                                          onSelectProject={(projObj) => handleRowSelectProject(session, projObj)}
-                                        />
-                                      </div>
-
-                                      {/* Meta Icon: Billable Rupee */}
-                                      <div className="clockify-entry-meta">
-                                        <IndianRupee 
-                                          size={15} 
-                                          className={`entry-icon-rupee ${session.billable ? 'is-billable' : ''}`} 
-                                          title={session.billable ? "Billable task (₹)" : "Non-billable task"}
-                                        />
-                                      </div>
-
-                                      {/* Exact Session Time Interval (From - To) */}
-                                      <div className="clockify-entry-window" onClick={(e) => e.stopPropagation()}>
-                                        {isSubEditingTime ? (
-                                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                            <input 
-                                              type="text"
-                                              className="clockify-timing-inline-input"
-                                              value={editingStartTime}
-                                              onChange={(e) => setEditingStartTime(e.target.value)}
-                                              onBlur={() => setEditingStartTime(autoFormatTimeHHMM(editingStartTime))}
-                                              placeholder="10:00"
-                                              title="Start Time (HH:MM)"
-                                              style={{
-                                                width: '56px',
-                                                padding: '2px 4px',
-                                                fontSize: '12px',
-                                                border: '1px solid #10b981',
-                                                borderRadius: '4px',
-                                                background: '#0f172a',
-                                                color: '#f8fafc',
-                                                textAlign: 'center'
-                                              }}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleSaveEntry(session);
-                                                if (e.key === 'Escape') { setEditingItemKey(null); setEditingMode(null); }
-                                              }}
-                                            />
-                                            <span className="window-sep">-</span>
-                                            <input 
-                                              type="text"
-                                              className="clockify-timing-inline-input"
-                                              value={editingEndTime}
-                                              onChange={(e) => setEditingEndTime(e.target.value)}
-                                              onBlur={() => setEditingEndTime(autoFormatTimeHHMM(editingEndTime))}
-                                              placeholder="18:00"
-                                              title="End Time (HH:MM)"
-                                              style={{
-                                                width: '56px',
-                                                padding: '2px 4px',
-                                                fontSize: '12px',
-                                                border: '1px solid #10b981',
-                                                borderRadius: '4px',
-                                                background: '#0f172a',
-                                                color: '#f8fafc',
-                                                textAlign: 'center'
-                                              }}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleSaveEntry(session);
-                                                if (e.key === 'Escape') { setEditingItemKey(null); setEditingMode(null); }
-                                              }}
-                                            />
-                                            <button
-                                              type="button"
-                                              onClick={() => handleSaveEntry(session)}
-                                              title="Save (Description & Times)"
-                                              style={{
-                                                padding: '2px 6px',
-                                                background: '#10b981',
-                                                color: '#ffffff',
-                                                borderRadius: '4px',
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                fontSize: '11px',
-                                                fontWeight: 700
-                                              }}
-                                            >✓</button>
-                                            <button
-                                              type="button"
-                                              onClick={() => { setEditingItemKey(null); setEditingMode(null); }}
-                                              title="Cancel"
-                                              style={{
-                                                padding: '2px 6px',
-                                                background: '#334155',
-                                                color: '#cbd5e1',
-                                                borderRadius: '4px',
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                fontSize: '11px'
-                                              }}
-                                            >✕</button>
-                                          </div>
-                                        ) : (
-                                          <div 
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={(e) => startEditingTimeOnly(subRowKey, session.startTime, session.endTime, session, e)}
-                                            title="Click to edit session timing"
-                                          >
-                                            <span>{formatTimeDisplay(session.startTime)}</span>
-                                            <span className="window-sep">-</span>
-                                            <span>{formatTimeDisplay(session.endTime)}</span>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Calendar Icon Button with Interactive Date Picker Popover */}
-                                      <div className="clockify-cal-action-wrapper">
-                                        <button
-                                          type="button"
-                                          className={`clockify-entry-cal-btn is-clickable ${isSubDatePickerOpen ? 'active' : ''}`}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveDatePickerKey(isSubDatePickerOpen ? null : subRowKey);
-                                          }}
-                                          title="Click to view/change date"
-                                        >
-                                          <CalendarIcon size={14} />
-                                        </button>
-
-                                        {isSubDatePickerOpen && (
-                                          <RowDatePickerPopover
-                                            currentIsoDate={normalizeActivityDate(session)}
-                                            onSelectDate={(newDate) => handleSelectNewDate(session, newDate)}
-                                            onClose={() => setActiveDatePickerKey(null)}
-                                          />
-                                        )}
-                                      </div>
-
-                                      {/* Duration */}
-                                      <div 
-                                        className="clockify-entry-duration"
-                                        style={sessionRunning ? { color: '#009900', fontWeight: 800 } : {}}
-                                      >
-                                        {session.durationFormatted}
-                                      </div>
-
-                                      {/* Direct Play / Pause Action Button */}
-                                      <div className="clockify-entry-actions">
-                                        {sessionRunning ? (
-                                          <button 
-                                            type="button" 
-                                            className="entry-btn-play" 
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleTogglePlayEntry(session);
-                                            }}
-                                            title="Pause session"
-                                            style={{ color: '#009900' }}
-                                          >
-                                            <Pause size={13} fill="currentColor" />
-                                          </button>
-                                        ) : (
-                                          <button 
-                                            type="button" 
-                                            className="entry-btn-play" 
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleTogglePlayEntry(session);
-                                            }}
-                                            title="Resume session"
-                                          >
-                                            <Play size={13} fill="currentColor" />
-                                          </button>
-                                        )}
-
-                                        <div className="clockify-entry-menu-wrapper" style={{ position: 'relative' }}>
-                                          <button 
-                                            type="button" 
-                                            className={`entry-btn-options ${activeMenuId === subRowKey ? 'active' : ''}`}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActiveMenuId(activeMenuId === subRowKey ? null : subRowKey);
-                                            }}
-                                            title="More options (Edit, Delete)"
-                                          >
-                                            <MoreVertical size={14} />
-                                          </button>
-
-                                          {activeMenuId === subRowKey && (
-                                            <div 
-                                              className="clockify-entry-dropdown-menu open-upwards"
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              <button 
-                                                type="button" 
-                                                className="clockify-entry-menu-item"
-                                                onClick={(e) => startEditingBoth(subRowKey, session.description, session.startTime, session.endTime, session, e)}
-                                              >
-                                                <Edit3 size={13} color="#3b82f6" />
-                                                <span>Edit Description & Time</span>
-                                              </button>
-                                              <button 
-                                                type="button" 
-                                                className="clockify-entry-menu-item is-delete"
-                                                onClick={() => handleDelete(session)}
-                                              >
-                                                <Trash2 size={13} color="#ef4444" />
-                                                <span>Delete</span>
-                                              </button>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                            {/* Interval: start to end (Editable timing & 24h Railway display) */}
+                            {isEditingTime ? (
+                              <div className="clockify-entry-window is-editing" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <input 
+                                  type="text"
+                                  value={editingStartTime}
+                                  onChange={(e) => setEditingStartTime(autoFormatTimeHHMM(e.target.value))}
+                                  placeholder="10:00"
+                                  title="Start Time"
+                                  style={{ width: '56px', padding: '2px 4px', fontSize: '12px', textAlign: 'center', borderRadius: '4px', border: '1px solid #00cc00', outline: 'none', fontFamily: 'var(--font-mono)', background: '#ffffff', color: '#0f172a', fontWeight: 600 }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveEntry(item);
+                                    if (e.key === 'Escape') setEditingItemKey(null);
+                                  }}
+                                />
+                                <span className="window-sep">-</span>
+                                <input 
+                                  type="text"
+                                  value={editingEndTime}
+                                  onChange={(e) => setEditingEndTime(autoFormatTimeHHMM(e.target.value))}
+                                  placeholder="18:00"
+                                  title="End Time"
+                                  style={{ width: '56px', padding: '2px 4px', fontSize: '12px', textAlign: 'center', borderRadius: '4px', border: '1px solid #00cc00', outline: 'none', fontFamily: 'var(--font-mono)', background: '#ffffff', color: '#0f172a', fontWeight: 600 }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveEntry(item);
+                                    if (e.key === 'Escape') setEditingItemKey(null);
+                                  }}
+                                />
+                                <button 
+                                  type="button" 
+                                  onClick={() => handleSaveEntry(item)} 
+                                  title="Save Changes (Enter)" 
+                                  style={{ background: '#00cc00', color: '#fff', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+                                >
+                                  ✓
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => { setEditingItemKey(null); setEditingMode(null); }} 
+                                  title="Cancel (Esc)" 
+                                  style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer' }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <div 
+                                className="clockify-entry-window is-clickable"
+                                onClick={(e) => startEditingTimeOnly(rowKey, startStr, endStr, item, e)}
+                                title="Click to edit timing"
+                                style={{ cursor: 'pointer' }}
+                              >
+                                <span>{formatTimeDisplay(startStr)}</span>
+                                <span className="window-sep">-</span>
+                                <span>{formatTimeDisplay(endStr)}</span>
                               </div>
                             )}
+
+                            {/* Calendar Icon Button with Interactive Date Picker Popover */}
+                            <div className="clockify-cal-action-wrapper">
+                              <button
+                                type="button"
+                                className={`clockify-entry-cal-btn is-clickable ${isDatePickerOpen ? 'active' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDatePickerKey(isDatePickerOpen ? null : rowKey);
+                                }}
+                                title="Click to view/change date"
+                              >
+                                <CalendarIcon size={14} />
+                              </button>
+
+                              {isDatePickerOpen && (
+                                <RowDatePickerPopover
+                                  currentIsoDate={isoDate}
+                                  onSelectDate={(newDate) => handleSelectNewDate(item, newDate)}
+                                  onClose={() => setActiveDatePickerKey(null)}
+                                />
+                              )}
+                            </div>
+
+                            {/* Exact Individual Duration (e.g. 03:20:00, NOT the summed 13:20:00!) */}
+                            <div 
+                              className="clockify-entry-duration"
+                              style={running ? { color: '#009900', fontWeight: 800 } : {}}
+                            >
+                              {running && activeTimer?.isRunning
+                                ? `${String(Math.floor(activeTimer.elapsedSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((activeTimer.elapsedSeconds % 3600) / 60)).padStart(2, '0')}:${String(activeTimer.elapsedSeconds % 60).padStart(2, '0')}`
+                                : displayDuration}
+                            </div>
+
+                            {/* Direct Play / Pause Action Button */}
+                            <div className="clockify-entry-actions">
+                              {running ? (
+                                <button 
+                                  type="button" 
+                                  className="entry-btn-play" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTogglePlayEntry(item);
+                                  }}
+                                  title={`Pause timer for "${item.project}"`}
+                                  style={{ color: '#009900' }}
+                                >
+                                  <Pause size={13} fill="currentColor" />
+                                </button>
+                              ) : (
+                                <button 
+                                  type="button" 
+                                  className="entry-btn-play" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTogglePlayEntry(item);
+                                  }}
+                                  title={`Start timer for "${item.project}"`}
+                                >
+                                  <Play size={13} fill="currentColor" />
+                                </button>
+                              )}
+
+                              <div className="clockify-entry-menu-wrapper" style={{ position: 'relative' }}>
+                                <button 
+                                  type="button" 
+                                  className={`entry-btn-options ${activeMenuId === rowKey ? 'active' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuId(activeMenuId === rowKey ? null : rowKey);
+                                  }}
+                                  title="More options (Edit, Delete)"
+                                >
+                                  <MoreVertical size={14} />
+                                </button>
+
+                                {/* 3-Dots Dropdown Menu */}
+                                {activeMenuId === rowKey && (
+                                  <div 
+                                    className={`clockify-entry-dropdown-menu ${shouldOpenUpwards ? 'open-upwards' : ''}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button 
+                                      type="button" 
+                                      className="clockify-entry-menu-item"
+                                      onClick={(e) => startEditingBoth(rowKey, displayDesc, startStr, endStr, item, e)}
+                                    >
+                                      <Edit3 size={13} color="#3b82f6" />
+                                      <span>Edit Description & Time</span>
+                                    </button>
+                                    <button 
+                                      type="button" 
+                                      className="clockify-entry-menu-item is-delete"
+                                      onClick={() => {
+                                        onDeleteActivity(item.id);
+                                        setActiveMenuId(null);
+                                        showToast(`✓ Deleted time entry`);
+                                      }}
+                                    >
+                                      <Trash2 size={13} color="#ef4444" />
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        );
-                      });
-                    })()}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
