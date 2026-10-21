@@ -531,6 +531,35 @@ export default function ReportsPage({
   // Date selection state
   const [selectedRange, setSelectedRange] = useState(() => getLiveThisWeekRange());
   const [appliedRange, setAppliedRange] = useState(() => getLiveThisWeekRange());
+
+  // Interactive Month-Wise Calendar Navigation State (defaults to current month)
+  const [calViewYear, setCalViewYear] = useState(() => new Date().getFullYear());
+  const [calViewMonth, setCalViewMonth] = useState(() => new Date().getMonth());
+
+  const monthNamesFull = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const handlePrevCalMonth = (e) => {
+    e.stopPropagation();
+    setCalViewMonth(prev => {
+      if (prev === 0) {
+        setCalViewYear(y => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const handleNextCalMonth = (e) => {
+    e.stopPropagation();
+    setCalViewMonth(prev => {
+      if (prev === 11) {
+        setCalViewYear(y => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
   
   // Exact Clockify Filter States (Multi-select arrays):
   // FILTER | Team | Client | Project | Task | Tag | Status | Description | Kiosk
@@ -2088,33 +2117,58 @@ export default function ReportsPage({
                     ))}
                   </div>
 
-                  {/* Mini Calendar Grid */}
+                  {/* Dynamic Month-Navigable Calendar Grid */}
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '6px' }}>
-                      SEPTEMBER 2026
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', padding: '0 4px' }}>
+                      <button 
+                        type="button" 
+                        onClick={handlePrevCalMonth}
+                        title="Previous month"
+                        style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: '4px', color: '#64748b', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <ChevronLeft size={13} />
+                      </button>
+                      <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#1e293b', letterSpacing: '0.4px' }}>
+                        {monthNamesFull[calViewMonth]} {calViewYear}
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={handleNextCalMonth}
+                        title="Next month"
+                        style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: '4px', color: '#64748b', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <ChevronRight size={13} />
+                      </button>
                     </div>
+
                     <div className="popover-weekdays-row">
-                      <span > Su</span><span > Mo</span><span > Tu</span><span > We</span><span > Th</span><span > Fr</span><span > Sa</span>
+                      <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
                     </div>
+
                     <div className="popover-days-grid">
-                      {/* Sep 1, 2026 starts on Tuesday (blank for Su and Mo) */}
-                      <div style={{ height: '26px' }} />
-                      <div style={{ height: '26px' }} />
-                      {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
+                      {/* Blank padding days for the first day of the week */}
+                      {Array.from({ length: new Date(calViewYear, calViewMonth, 1).getDay() }).map((_, i) => (
+                        <div key={`cal-pad-${i}`} style={{ height: '26px' }} />
+                      ))}
+
+                      {Array.from({ length: new Date(calViewYear, calViewMonth + 1, 0).getDate() }, (_, i) => i + 1).map((d) => {
                         const now = new Date();
-                        const isToday = d === now.getDate() && now.getMonth() === 8 && now.getFullYear() === 2026;
+                        const isToday = d === now.getDate() && calViewMonth === now.getMonth() && calViewYear === now.getFullYear();
+                        const moStr = monthNamesShort[calViewMonth];
+                        const dateTargetStr = `${moStr} ${d}, ${calViewYear}`;
+                        const isSelected = selectedRange.includes(`${moStr} ${d}`) || appliedRange.includes(`${moStr} ${d}`);
+
                         return (
                           <button
                             key={d}
                             type="button"
-                            className={`popover-day-btn ${isToday ? 'is-today' : ''} ${(selectedRange.includes(`Sep ${d}`) || appliedRange.includes(`Sep ${d}`)) ? 'is-selected' : ''}`}
+                            className={`popover-day-btn ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}`}
                             onClick={() => {
-                              const dStr = `Sep ${d}, 2026`;
-                              setSelectedRange(dStr);
-                              setAppliedRange(dStr);
+                              setSelectedRange(dateTargetStr);
+                              setAppliedRange(dateTargetStr);
                               setShowDatePicker(false);
                             }}
-                            title={isToday ? "Today (Active)" : `Sep ${d}, 2026`}
+                            title={isToday ? `Today (${dateTargetStr})` : dateTargetStr}
                           >
                             {d}
                           </button>

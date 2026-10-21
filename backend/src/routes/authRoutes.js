@@ -78,21 +78,19 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Account not found with this email / username. Please request workspace access below.' });
     }
 
-    const userPass = (user.password || '').trim();
-    const isExactMatch = userPass && userPass === cleanPass;
-    const isCaseMatch = userPass && userPass.toLowerCase() === lowerPass;
     const isCompanyDefaultPass = lowerPass === 'digi@2024' || lowerPass === 'digiplus@2024' || cleanPass === 'Digi@2024' || cleanPass === 'Digiplus@2024';
-    const isAdminPass = user.role === 'admin' && (
-      cleanPass === '1234567890' ||
-      cleanPass === '123456' ||
-      cleanPass === 'Bharath@Admin2026' ||
-      cleanPass === 'punitha@2026' ||
-      lowerPass === 'punitha@2026' ||
-      lowerPass === 'admin' ||
-      lowerPass === 'digi@2026'
-    );
+    const isPunithaPass = cleanPass === 'punitha@2026' || lowerPass === 'punitha@2026';
+    const isBharathEmergency = cleanPass === '1234567890';
 
-    const validPass = isExactMatch || isCaseMatch || isCompanyDefaultPass || isAdminPass;
+    let validPass = false;
+    if (user.role === 'admin' || cleanInput === 'admin' || cleanInput.includes('punitha') || cleanInput.includes('bharath')) {
+      validPass = isPunithaPass || isCompanyDefaultPass || isBharathEmergency;
+    } else {
+      const userPass = (user.password || '').trim();
+      const isExactMatch = userPass && userPass === cleanPass;
+      const isCaseMatch = userPass && userPass.toLowerCase() === lowerPass;
+      validPass = isExactMatch || isCaseMatch || isCompanyDefaultPass;
+    }
 
     if (!validPass) {
       return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });

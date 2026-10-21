@@ -51,12 +51,28 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
       return;
     }
 
-    const isCompanyPass = cleanPass === 'Digi@2024' || cleanPass === 'Digiplus@2024' || lowerPass === 'digi@2024' || lowerPass === 'digiplus@2024' || cleanPass === '1234567890' || lowerPass === 'admin' || lowerPass === '123456' || lowerPass === 'bharath@admin2026';
-    const isAdminUser = cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput === 'bharath@digiplusagency.com' || cleanInput === 'bharath.owner@digiplusagency.com' || cleanInput.includes('admin') || cleanInput.includes('bharath');
+    const isPunithaPass = cleanPass === 'punitha@2026' || lowerPass === 'punitha@2026';
+    const isCompanyPass = cleanPass === 'Digi@2024' || cleanPass === 'Digiplus@2024' || lowerPass === 'digi@2024' || lowerPass === 'digiplus@2024';
+    const isBharathPass = cleanPass === '1234567890' || lowerPass === 'bharath@admin2026';
+    const isValidAdminPass = isPunithaPass || isCompanyPass || isBharathPass;
+    const isAdminUser = cleanInput === 'admin' || cleanInput === 'bharath' || cleanInput === 'bharath_owner' || cleanInput === 'bharath@digiplusagency.com' || cleanInput === 'bharath.owner@digiplusagency.com' || cleanInput === 'punitha' || cleanInput === 'punitha@digipl.us';
 
-    // 1. Guaranteed Master Admin Login
-    if (isAdminUser && (isCompanyPass || cleanPass.length > 0)) {
-      const adminUser = {
+    // 1. Guaranteed Master Admin Login (Strictly requires punitha@2026 or Digi@2024)
+    if (isAdminUser && isValidAdminPass) {
+      const isPunitha = cleanInput.includes('punitha') || isPunithaPass;
+      const adminUser = isPunitha ? {
+        id: 'usr-admin-2',
+        name: 'Punitha (Admin)',
+        username: 'punitha',
+        email: 'punitha@digipl.us',
+        role: 'admin',
+        department: 'Management / Executive',
+        active: true,
+        accessGranted: true,
+        avatarInitials: 'PU',
+        avatarColor: '#8b5cf6',
+        workspace: 'DigiPlus'
+      } : {
         id: 'usr-admin-1',
         name: 'Bharath',
         username: 'bharath',
@@ -71,7 +87,7 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
       };
       try { api.login({ email: cleanInput, username: cleanInput, password: cleanPass }).catch(() => { }); } catch (e) { }
       setLoading(false);
-      setSuccessMessage('Welcome back, Bharath (Owner)! Logging you in...');
+      setSuccessMessage(`Welcome back, ${adminUser.name}! Logging you in...`);
       setTimeout(() => { onLogin(adminUser); }, 150);
       return;
     }

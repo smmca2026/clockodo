@@ -87,7 +87,7 @@ export default function SettingsPage({
     return {
       language: directLang || 'en', // 'en' | 'ta' | 'hi'
       dateFormat: 'DD/MM/YYYY',
-      timeFormat: '12h',
+      timeFormat: '24h',
       firstDayOfWeek: 'monday',
       currency: 'USD ($)',
       numberFormat: 'en-US'
