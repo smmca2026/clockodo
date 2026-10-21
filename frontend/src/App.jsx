@@ -141,6 +141,7 @@ function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && (parsed.id || parsed.email || parsed.name)) {
+          if (parsed.name) parsed.name = parsed.name.replace(/\s*\(Owner\)/gi, '').trim();
           return parsed;
         }
       }
@@ -294,8 +295,12 @@ function App() {
         if (!isMounted) return;
 
         if (usersRes && usersRes.success && Array.isArray(usersRes.data) && usersRes.data.length > 0) {
-          setUsersList(usersRes.data);
-          try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(usersRes.data)); } catch (e) { }
+          const sanitizedUsers = usersRes.data.map(u => ({
+            ...u,
+            name: (u.name || '').replace(/\s*\(Owner\)/gi, '').trim()
+          }));
+          setUsersList(sanitizedUsers);
+          try { localStorage.setItem('clockodo_registered_users_v4', JSON.stringify(sanitizedUsers)); } catch (e) { }
         }
 
         if (actRes && actRes.success && Array.isArray(actRes.data)) {
@@ -915,7 +920,7 @@ function App() {
     const dayKey = getDayKeyFromGroup(entry.group, computedISO);
     const dynamicGroup = getDisplayLabelForDate(computedISO);
 
-    const userName = currentUser?.name || 'Bharath (Owner)';
+    const userName = (currentUser?.name || 'Bharath').replace(/\s*\(Owner\)/gi, '').trim();
     const userEmail = currentUser?.email || '';
     const userId = currentUser?.id || '';
 
@@ -1306,9 +1311,9 @@ function App() {
           durationSeconds: durSec,
           billable: true,
           status: 'Completed',
-          user: userName || currentUser?.name || 'Bharath (Owner)',
-          userName: userName || currentUser?.name || 'Bharath (Owner)',
-          user_name: userName || currentUser?.name || 'Bharath (Owner)',
+          user: userName || currentUser?.name || 'Bharath',
+          userName: userName || currentUser?.name || 'Bharath',
+          user_name: userName || currentUser?.name || 'Bharath',
           userEmail: userEmail || currentUser?.email || '',
           email: userEmail || currentUser?.email || '',
           userId: userId || currentUser?.id || '',

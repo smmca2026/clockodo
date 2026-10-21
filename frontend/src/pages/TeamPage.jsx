@@ -326,7 +326,7 @@ export default function TeamPage({
                         </div>
                         <div>
                           <div className="detailed-user-name" style={{ fontWeight: 700 }}>
-                            {member.name}
+                            {(member.name || '').replace(/\s*\(Owner\)/gi, '')}
                           </div>
                           {member.username && (
                             <div style={{ fontSize: '11px', color: '#94a3b8' }}>@{member.username}</div>

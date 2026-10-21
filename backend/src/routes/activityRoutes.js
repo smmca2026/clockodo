@@ -37,8 +37,8 @@ router.get('/', async (req, res) => {
       return {
         ...r,
         date: dStr || '',
-        user: r.user || r.userName || 'Bharath (Owner)',
-        userName: r.user || r.userName || 'Bharath (Owner)'
+        user: r.user || r.userName || 'Bharath',
+        userName: r.user || r.userName || 'Bharath'
       };
     });
 
@@ -86,7 +86,7 @@ router.post('/', async (req, res) => {
       }
     }
     const curGroup = group || 'Today';
-    const assignedUser = user || bodyUserName || req.body.user_name || (userEmail ? userEmail.split('@')[0] : 'Bharath (Owner)');
+    const assignedUser = user || bodyUserName || req.body.user_name || (userEmail ? userEmail.split('@')[0] : 'Bharath');
 
     // Check if an entry for the exact same ID already exists
     const [existing] = await pool.query('SELECT id FROM activities WHERE id = ?', [id]);

@@ -111,7 +111,7 @@ export default function Header({
     ).slice(0, 5);
 
     const list = usersList && usersList.length > 0 ? usersList : [
-      { id: 'usr-admin-1', name: 'Bharath (Owner)', role: 'Owner', group: 'Management / Executive' }
+      { id: 'usr-admin-1', name: 'Bharath', role: 'admin', group: 'Management / Executive' }
     ];
     const matchedTeam = list.filter(m => 
       (m.name && m.name.toLowerCase().includes(q)) || 
@@ -679,7 +679,7 @@ export default function Header({
             <div className="user-menu-avatar" style={{ background: (currentUser?.role === 'admin') ? 'var(--grad-primary)' : '#16202c', color: (currentUser?.role === 'admin') ? '#04261b' : '#34d399' }}>
               {currentUser?.avatarInitials || userInitials}
             </div>
-            <span className="user-menu-name">{currentUser?.name || USER_PROFILE.name}</span>
+            <span className="user-menu-name">{(currentUser?.name || USER_PROFILE.name).replace(/\s*\(Owner\)/gi, '')}</span>
             <ChevronDown size={14} color="#64748b" />
           </div>
 
@@ -691,7 +691,7 @@ export default function Header({
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div className="profile-popover-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {currentUser?.name || USER_PROFILE.name}
+                    {(currentUser?.name || USER_PROFILE.name).replace(/\s*\(Owner\)/gi, '')}
                   </div>
                   <div className="profile-popover-email" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {currentUser?.email || USER_PROFILE.email}

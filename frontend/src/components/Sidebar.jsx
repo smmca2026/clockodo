@@ -90,11 +90,11 @@ export default function Sidebar({
             </div>
             <div style={{ overflow: 'hidden' }}>
               <div className="workspace-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {currentUser?.name || workspace}
+                {(currentUser?.name || workspace).replace(/\s*\(Owner\)/gi, '')}
               </div>
               <div style={{ fontSize: '10.5px', color: isAdmin ? '#00cc00' : '#94a3b8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {isAdmin ? <ShieldCheck size={11} /> : <User size={11} />}
-                <span>{isAdmin ? t('admin_owner') : t('employee')}</span>
+                <span>{isAdmin ? 'Admin' : t('employee')}</span>
               </div>
             </div>
           </div>

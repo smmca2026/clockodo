@@ -5605,12 +5605,12 @@ export const CALENDAR_DAYS_AUGUST_2026 = [];
 export const INITIAL_NOTIFICATIONS = [];
 
 export const USER_PROFILE = {
-  name: 'Bharath (Owner)',
-  title: 'Administrator / Owner',
+  name: 'Bharath',
+  title: 'Administrator',
   email: 'bharath@digiplusagency.com',
   workspace: 'DigiPlus',
   avatar: null,
-  role: 'Owner',
+  role: 'admin',
   department: 'Management / Executive'
 };
 

@@ -622,7 +622,7 @@ export default function ReportsPage({
     }
 
     const defaultTeam = [
-      { id: 'usr-1', name: 'Bharath (Owner)', role: 'Admin (Owner)', department: 'Management', active: true, avatarColor: '#10b981', avatarInitials: 'BO' },
+      { id: 'usr-1', name: 'Bharath', role: 'Admin', department: 'Management', active: true, avatarColor: '#10b981', avatarInitials: 'B' },
       { id: 'usr-2', name: 'anbu', role: 'Full Stack', department: 'Full Stack', active: true, avatarColor: '#14b8a6', avatarInitials: 'AN' },
       { id: 'usr-3', name: 'Muthu', role: 'Frontend Dev', department: 'Frontend Dev', active: true, avatarColor: '#ec4899', avatarInitials: 'MU' },
       { id: 'usr-4', name: 'mani', role: 'Design & UI', department: 'Design & UI', active: true, avatarColor: '#3b82f6', avatarInitials: 'MA' },
@@ -1146,7 +1146,7 @@ export default function ReportsPage({
           (u.name && u.name.toLowerCase() === rawUser.toLowerCase()) ||
           (u.username && u.username.toLowerCase() === rawUser.toLowerCase()) ||
           (u.email && u.email.toLowerCase() === rawUser.toLowerCase())
-        ) || (rawUser.toLowerCase().includes('bharath') ? { name: 'Bharath (Owner)', username: 'bharath_owner', role: 'admin', avatarColor: '#10b981', avatarInitials: 'BO' } : null);
+        ) || (rawUser.toLowerCase().includes('bharath') ? { name: 'Bharath', username: 'bharath', role: 'admin', avatarColor: '#10b981', avatarInitials: 'B' } : null);
 
         const uName = matchedUser?.name || rawUser || 'Team Member';
         const usernameStr = matchedUser?.username ? `@${matchedUser.username}` : '';
@@ -1373,7 +1373,7 @@ export default function ReportsPage({
           (u.name && u.name.toLowerCase() === rawUser.toLowerCase()) ||
           (u.username && u.username.toLowerCase() === rawUser.toLowerCase()) ||
           (u.email && u.email.toLowerCase() === rawUser.toLowerCase())
-        ) || (rawUser.toLowerCase().includes('bharath') ? { name: 'Bharath (Owner)', role: 'Admin', avatarColor: '#10b981', avatarInitials: 'BO' } : null);
+        ) || (rawUser.toLowerCase().includes('bharath') ? { name: 'Bharath', role: 'Admin', avatarColor: '#10b981', avatarInitials: 'B' } : null);
 
         const uName = matchedUser?.name || rawUser || 'Team Member';
         const uRole = (matchedUser?.role === 'admin' || uName.toLowerCase().includes('owner') || uName.toLowerCase().includes('bharath')) ? 'Admin' : (matchedUser?.department || 'Employee');
@@ -1411,7 +1411,7 @@ export default function ReportsPage({
           const dayMeta = WEEK_DAYS_META.find(d => d.key === singleDayKey);
           rows.push({
             id: `log-${ts.id}-${singleDayKey}`,
-            userName: 'Bharath (Owner)',
+            userName: 'Bharath',
             userRole: 'Admin',
             avatarInitials: 'BO',
             avatarColor: '#10b981',
@@ -1432,7 +1432,7 @@ export default function ReportsPage({
             const dayMeta = WEEK_DAYS_META.find(d => d.key === day);
             rows.push({
               id: `log-${ts.id}-${day}`,
-              userName: 'Bharath (Owner)',
+              userName: 'Bharath',
               userRole: 'Admin',
               avatarInitials: 'BO',
               avatarColor: '#10b981',
@@ -1505,7 +1505,7 @@ export default function ReportsPage({
   // Attendance & Shifts computation - Dynamically built for all workspace team members (Daily Date Only)
   const attendanceLogsList = useMemo(() => {
     const defaultTeam = [
-      { id: 'usr-1', name: 'Bharath (Owner)', role: 'Admin (Owner)', department: 'Management', active: true, avatarColor: '#10b981', avatarInitials: 'BO' },
+      { id: 'usr-1', name: 'Bharath', role: 'Admin', department: 'Management', active: true, avatarColor: '#10b981', avatarInitials: 'B' },
       { id: 'usr-2', name: 'anbu', role: 'Full Stack', department: 'Full Stack', active: true, avatarColor: '#14b8a6', avatarInitials: 'AN' },
       { id: 'usr-3', name: 'Muthu', role: 'Frontend Dev', department: 'Frontend Dev', active: true, avatarColor: '#ec4899', avatarInitials: 'MU' },
       { id: 'usr-4', name: 'mani', role: 'Design & UI', department: 'Design & UI', active: true, avatarColor: '#3b82f6', avatarInitials: 'MA' },
