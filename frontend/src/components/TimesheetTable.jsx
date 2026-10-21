@@ -193,7 +193,7 @@ export default function TimesheetTable({
     }
 
     // Admin view: If filtered by specific teammate
-    if (selectedTeammate) {
+    if (selectedTeammate && selectedTeammate !== 'all') {
       const tEmail = (selectedTeammate.email || '').trim().toLowerCase();
       const tName = (selectedTeammate.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
       const tUsername = (selectedTeammate.username || '').trim().toLowerCase();
@@ -212,11 +212,15 @@ export default function TimesheetTable({
       });
     }
 
+    if (selectedTeammate === 'all') {
+      return activities || [];
+    }
+
     // Admin default view: Show ONLY Admin's own timesheet activities
-    const curEmail = (currentUser.email || '').trim().toLowerCase();
-    const curName = (currentUser.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
-    const curUsername = (currentUser.username || '').trim().toLowerCase();
-    const curId = currentUser.id ? String(currentUser.id) : '';
+    const curEmail = (currentUser?.email || '').trim().toLowerCase();
+    const curName = (currentUser?.name || '').replace(/\s*\(Owner\)|\s*\(Admin\)/i, '').trim().toLowerCase();
+    const curUsername = (currentUser?.username || '').trim().toLowerCase();
+    const curId = currentUser?.id ? String(currentUser.id) : '';
 
     return (activities || []).filter(a => {
       const actEmail = (a.userEmail || a.email || '').trim().toLowerCase();
@@ -522,6 +526,24 @@ export default function TimesheetTable({
     if (!input || typeof input !== 'string') return '';
     const trimmed = input.trim().replace(',', '.');
     if (!trimmed || trimmed === '0' || trimmed === '00:00:00' || trimmed === '00:00' || trimmed === '0:00') return '';
+
+    // 0. Railway time range: e.g. "10:00 - 18:00", "10-18", "09:00 - 17:30"
+    if (trimmed.includes('-')) {
+      const parts = trimmed.split('-').map(s => s.trim());
+      if (parts.length === 2 && parts[0] && parts[1]) {
+        const p1 = parts[0].split(':').map(Number);
+        const p2 = parts[1].split(':').map(Number);
+        const h1 = p1[0] || 0;
+        const m1 = p1[1] || 0;
+        const h2 = p2[0] || 0;
+        const m2 = p2[1] || 0;
+        let diffMin = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (diffMin < 0) diffMin += 24 * 60;
+        const h = Math.floor(diffMin / 60);
+        const m = diffMin % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+      }
+    }
 
     // 1. Check for hour/minute strings like "2h 30m", "45m", "2h", "1.5h", "30min"
     if (/[hm]/i.test(trimmed)) {
@@ -1189,7 +1211,7 @@ export default function TimesheetTable({
                 onClick={() => setShowTeammates(!showTeammates)}
                 title="Filter by Teammate (Admin)"
               >
-                <span>{selectedTeammate ? selectedTeammate.name : 'All Teammates'}</span>
+                <span>{selectedTeammate ? (selectedTeammate === 'all' ? 'All Teammates (Overview)' : selectedTeammate.name) : 'My Timesheet'}</span>
                 <ChevronDown size={14} color="#00cc00" />
               </button>
             )}
@@ -1198,14 +1220,24 @@ export default function TimesheetTable({
               <div className="clockodo-ts-popover">
                 <div className="clockodo-ts-popover-header">Filter by Teammate</div>
                 <div 
-                  className="clockodo-ts-popover-item"
+                  className={`clockodo-ts-popover-item ${!selectedTeammate ? 'active' : ''}`}
                   onClick={() => {
                     setSelectedTeammate(null);
                     setShowTeammates(false);
                   }}
                 >
                   <Users size={14} color="#00cc00" />
-                  <span>All Workspace Activities</span>
+                  <span>My Timesheet ({currentUser?.name || 'Admin'})</span>
+                </div>
+                <div 
+                  className={`clockodo-ts-popover-item ${selectedTeammate === 'all' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedTeammate('all');
+                    setShowTeammates(false);
+                  }}
+                >
+                  <Users size={14} color="#3b82f6" />
+                  <span>All Teammates (Overview)</span>
                 </div>
                 {(usersList && usersList.length > 0 ? usersList : [{ id: 'usr-admin-1', name: 'Bharath (Owner)', role: 'Owner' }]).map(m => (
                   <div 

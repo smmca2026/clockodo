@@ -163,7 +163,7 @@ export default function Header({
       case 'time-tracker':
         return {
           title: 'Time Tracker',
-          subtitle: 'Monitor working sessions, log billable hours, and analyze focus time',
+          subtitle: '',
         };
       case 'timesheet':
         return {
@@ -445,7 +445,7 @@ export default function Header({
 
         <div className="page-titles">
           <h1 className="page-title">{meta.title}</h1>
-          <span className="page-subtitle">{meta.subtitle}</span>
+          {meta.subtitle && <span className="page-subtitle">{meta.subtitle}</span>}
         </div>
       </div>
 

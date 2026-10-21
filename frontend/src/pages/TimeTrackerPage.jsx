@@ -366,6 +366,7 @@ export default function TimeTrackerPage({
   const [editingStartTime, setEditingStartTime] = useState('');
   const [editingEndTime, setEditingEndTime] = useState('');
   const [editingTargetObj, setEditingTargetObj] = useState(null);
+  const [editingMode, setEditingMode] = useState(null); // 'desc_only' | 'time_only' | 'both'
 
   const getTimeFormatPreference = () => {
     try {
@@ -630,10 +631,32 @@ export default function TimeTrackerPage({
     showToast(`✓ Deleted time entry`);
   };
 
-  // Start seamless inline description AND timing editing
-  const startEditingEntry = (itemKey, currentText, startStr, endStr, targetObj, e) => {
+  // 1. Edit Description ONLY (when clicking description text)
+  const startEditingDescOnly = (itemKey, currentText, targetObj, e) => {
     if (e) e.stopPropagation();
     setEditingItemKey(itemKey);
+    setEditingMode('desc_only');
+    setEditingDescText(currentText || '');
+    setEditingTargetObj(targetObj);
+    setActiveMenuId(null);
+  };
+
+  // 2. Edit Timing ONLY (when clicking time interval)
+  const startEditingTimeOnly = (itemKey, startStr, endStr, targetObj, e) => {
+    if (e) e.stopPropagation();
+    setEditingItemKey(itemKey);
+    setEditingMode('time_only');
+    setEditingStartTime(formatTimeDisplay(startStr) || '09:00');
+    setEditingEndTime(formatTimeDisplay(endStr) || '17:00');
+    setEditingTargetObj(targetObj);
+    setActiveMenuId(null);
+  };
+
+  // 3. Edit BOTH Description & Time (when selecting 3-dots "Edit Description & Time")
+  const startEditingBoth = (itemKey, currentText, startStr, endStr, targetObj, e) => {
+    if (e) e.stopPropagation();
+    setEditingItemKey(itemKey);
+    setEditingMode('both');
     setEditingDescText(currentText || '');
     setEditingStartTime(formatTimeDisplay(startStr) || '09:00');
     setEditingEndTime(formatTimeDisplay(endStr) || '17:00');
@@ -641,30 +664,48 @@ export default function TimeTrackerPage({
     setActiveMenuId(null);
   };
 
-  const startEditingDescription = (itemKey, currentText, e) => {
-    startEditingEntry(itemKey, currentText, '', '', null, e);
-  };
+  const startEditingEntry = startEditingBoth;
+  const startEditingDescription = startEditingDescOnly;
 
-  // Save seamless inline description AND timing
+  // Save inline description and/or timing based on active mode
   const handleSaveEntry = (itemOrCluster) => {
     const target = itemOrCluster || editingTargetObj;
     if (!target) {
       setEditingItemKey(null);
+      setEditingMode(null);
       return;
     }
-    const cleanText = (editingDescText || '').trim() || 'Working session';
-    const cleanStart = (editingStartTime || '').trim();
-    const cleanEnd = (editingEndTime || '').trim();
 
-    const updates = { description: cleanText };
-    if (cleanStart) updates.startTime = cleanStart;
-    if (cleanEnd) updates.endTime = cleanEnd;
+    const updates = {};
+    let toastDetails = '';
 
-    if (cleanStart && cleanEnd) {
-      const calculatedDuration = calcDurationFromTimes(cleanStart, cleanEnd);
-      if (calculatedDuration) {
-        updates.durationFormatted = calculatedDuration;
+    if (editingMode === 'desc_only') {
+      const cleanText = (editingDescText || '').trim() || 'Working session';
+      updates.description = cleanText;
+      toastDetails = `description: "${cleanText}"`;
+    } else if (editingMode === 'time_only') {
+      const cleanStart = (editingStartTime || '').trim();
+      const cleanEnd = (editingEndTime || '').trim();
+      if (cleanStart) updates.startTime = cleanStart;
+      if (cleanEnd) updates.endTime = cleanEnd;
+      if (cleanStart && cleanEnd) {
+        const calculatedDuration = calcDurationFromTimes(cleanStart, cleanEnd);
+        if (calculatedDuration) updates.durationFormatted = calculatedDuration;
       }
+      toastDetails = `time: (${cleanStart} - ${cleanEnd})`;
+    } else {
+      // Both
+      const cleanText = (editingDescText || '').trim() || 'Working session';
+      const cleanStart = (editingStartTime || '').trim();
+      const cleanEnd = (editingEndTime || '').trim();
+      updates.description = cleanText;
+      if (cleanStart) updates.startTime = cleanStart;
+      if (cleanEnd) updates.endTime = cleanEnd;
+      if (cleanStart && cleanEnd) {
+        const calculatedDuration = calcDurationFromTimes(cleanStart, cleanEnd);
+        if (calculatedDuration) updates.durationFormatted = calculatedDuration;
+      }
+      toastDetails = `description & time: "${cleanText}" (${cleanStart} - ${cleanEnd})`;
     }
 
     if (target.sessions && Array.isArray(target.sessions)) {
@@ -678,8 +719,9 @@ export default function TimeTrackerPage({
     }
 
     setEditingItemKey(null);
+    setEditingMode(null);
     setEditingTargetObj(null);
-    showToast(`✓ Updated description & time: "${cleanText}" (${cleanStart} - ${cleanEnd})`);
+    showToast(`✓ Updated ${toastDetails}`);
   };
 
   const handleSaveDescription = (itemOrCluster) => {
@@ -856,7 +898,9 @@ export default function TimeTrackerPage({
                         const shouldOpenUpwards = isLastGroup || isLastInGroup;
 
                         const parentRowKey = `parent_${isoDate}_${clusterKey}`;
-                        const isEditingDesc = editingItemKey === parentRowKey;
+                        const isRowActive = editingItemKey === parentRowKey;
+                        const isEditingDesc = isRowActive && (editingMode === 'desc_only' || editingMode === 'both');
+                        const isEditingTime = isRowActive && (editingMode === 'time_only' || editingMode === 'both');
                         const isDatePickerOpen = activeDatePickerKey === parentRowKey;
                         const isProjPickerOpen = activeProjectPickerKey === parentRowKey;
 
@@ -946,8 +990,8 @@ export default function TimeTrackerPage({
                                   ) : (
                                     <span 
                                       className="clockify-entry-desc-clean"
-                                      onClick={(e) => startEditingEntry(parentRowKey, displayDesc, earliestStartStr, latestEndStr, cluster, e)}
-                                      title="Click to edit task description & timing"
+                                      onClick={(e) => startEditingDescOnly(parentRowKey, displayDesc, cluster, e)}
+                                      title="Click to edit task description"
                                     >
                                       {displayDesc || 'Add description...'}
                                       {isMultiSession && (
@@ -980,7 +1024,7 @@ export default function TimeTrackerPage({
                               </div>
 
                               {/* Interval: Earliest start to latest end (Editable timing & 24h display) */}
-                              {isEditingDesc ? (
+                              {isEditingTime ? (
                                 <div className="clockify-entry-window is-editing" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                                   <input 
                                     type="text"
@@ -1017,7 +1061,7 @@ export default function TimeTrackerPage({
                                   </button>
                                   <button 
                                     type="button" 
-                                    onClick={() => setEditingItemKey(null)} 
+                                    onClick={() => { setEditingItemKey(null); setEditingMode(null); }} 
                                     title="Cancel (Esc)" 
                                     style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer' }}
                                   >
@@ -1027,8 +1071,8 @@ export default function TimeTrackerPage({
                               ) : (
                                 <div 
                                   className="clockify-entry-window is-clickable"
-                                  onClick={(e) => startEditingEntry(parentRowKey, displayDesc, earliestStartStr, latestEndStr, cluster, e)}
-                                  title="Click to edit timing & description"
+                                  onClick={(e) => startEditingTimeOnly(parentRowKey, earliestStartStr, latestEndStr, cluster, e)}
+                                  title="Click to edit timing"
                                   style={{ cursor: 'pointer' }}
                                 >
                                   <span>{formatTimeDisplay(earliestStartStr)}</span>
@@ -1121,7 +1165,7 @@ export default function TimeTrackerPage({
                                       <button 
                                         type="button" 
                                         className="clockify-entry-menu-item"
-                                        onClick={(e) => startEditingEntry(parentRowKey, displayDesc, earliestStartStr, latestEndStr, cluster, e)}
+                                        onClick={(e) => startEditingBoth(parentRowKey, displayDesc, earliestStartStr, latestEndStr, cluster, e)}
                                       >
                                         <Edit3 size={13} color="#3b82f6" />
                                         <span>Edit Description & Time</span>
@@ -1150,7 +1194,9 @@ export default function TimeTrackerPage({
                                 {cluster.sessions.map((session, sIdx) => {
                                   const sessionRunning = isItemRunning(session);
                                   const subRowKey = `sub_${session.id || sIdx}`;
-                                  const isSubEditingDesc = editingItemKey === subRowKey;
+                                  const isSubRowActive = editingItemKey === subRowKey;
+                                  const isSubEditingDesc = isSubRowActive && (editingMode === 'desc_only' || editingMode === 'both');
+                                  const isSubEditingTime = isSubRowActive && (editingMode === 'time_only' || editingMode === 'both');
                                   const isSubDatePickerOpen = activeDatePickerKey === subRowKey;
                                   const isSubProjPickerOpen = activeProjectPickerKey === subRowKey;
 
@@ -1189,8 +1235,8 @@ export default function TimeTrackerPage({
                                           ) : (
                                             <span 
                                               className="clockify-entry-desc-clean"
-                                              onClick={(e) => startEditingEntry(subRowKey, session.description, session.startTime, session.endTime, session, e)}
-                                              title="Click to edit session description & timing"
+                                              onClick={(e) => startEditingDescOnly(subRowKey, session.description, session, e)}
+                                              title="Click to edit session description"
                                             >
                                               {session.description || 'Session details'}
                                             </span>
@@ -1219,7 +1265,7 @@ export default function TimeTrackerPage({
 
                                       {/* Exact Session Time Interval (From - To) */}
                                       <div className="clockify-entry-window" onClick={(e) => e.stopPropagation()}>
-                                        {isSubEditingDesc ? (
+                                        {isSubEditingTime ? (
                                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                             <input 
                                               type="text"
@@ -1238,6 +1284,10 @@ export default function TimeTrackerPage({
                                                 background: '#0f172a',
                                                 color: '#f8fafc',
                                                 textAlign: 'center'
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEntry(session);
+                                                if (e.key === 'Escape') { setEditingItemKey(null); setEditingMode(null); }
                                               }}
                                             />
                                             <span className="window-sep">-</span>
@@ -1259,10 +1309,14 @@ export default function TimeTrackerPage({
                                                 color: '#f8fafc',
                                                 textAlign: 'center'
                                               }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEntry(session);
+                                                if (e.key === 'Escape') { setEditingItemKey(null); setEditingMode(null); }
+                                              }}
                                             />
                                             <button
                                               type="button"
-                                              onClick={handleSaveEntry}
+                                              onClick={() => handleSaveEntry(session)}
                                               title="Save (Description & Times)"
                                               style={{
                                                 padding: '2px 6px',
@@ -1277,7 +1331,7 @@ export default function TimeTrackerPage({
                                             >✓</button>
                                             <button
                                               type="button"
-                                              onClick={() => setEditingItemKey(null)}
+                                              onClick={() => { setEditingItemKey(null); setEditingMode(null); }}
                                               title="Cancel"
                                               style={{
                                                 padding: '2px 6px',
@@ -1293,7 +1347,7 @@ export default function TimeTrackerPage({
                                         ) : (
                                           <div 
                                             style={{ cursor: 'pointer' }}
-                                            onClick={(e) => startEditingEntry(subRowKey, session.description, session.startTime, session.endTime, session, e)}
+                                            onClick={(e) => startEditingTimeOnly(subRowKey, session.startTime, session.endTime, session, e)}
                                             title="Click to edit session timing"
                                           >
                                             <span>{formatTimeDisplay(session.startTime)}</span>
@@ -1384,7 +1438,7 @@ export default function TimeTrackerPage({
                                               <button 
                                                 type="button" 
                                                 className="clockify-entry-menu-item"
-                                                onClick={(e) => startEditingEntry(subRowKey, session.description, session.startTime, session.endTime, session, e)}
+                                                onClick={(e) => startEditingBoth(subRowKey, session.description, session.startTime, session.endTime, session, e)}
                                               >
                                                 <Edit3 size={13} color="#3b82f6" />
                                                 <span>Edit Description & Time</span>
