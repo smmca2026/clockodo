@@ -7,7 +7,7 @@ import {
   ChevronRight, 
   ChevronLeft,
   Calendar as CalendarIcon, 
-  IndianRupee, 
+  Clock, 
   Trash2, 
   Copy, 
   CheckCircle2,
@@ -930,12 +930,12 @@ export default function TimeTrackerPage({
                               />
                             </div>
 
-                            {/* Meta Icon: Billable Rupee */}
+                            {/* Meta Icon: Clock */}
                             <div className="clockify-entry-meta">
-                              <IndianRupee 
+                              <Clock 
                                 size={15} 
                                 className={`entry-icon-rupee ${item.billable !== false ? 'is-billable' : ''}`} 
-                                title={item.billable !== false ? "Billable task (₹)" : "Non-billable task"}
+                                title={item.billable !== false ? "Tracked / Billable task" : "Non-billable task"}
                               />
                             </div>
 
