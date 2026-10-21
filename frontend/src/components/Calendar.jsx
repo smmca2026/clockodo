@@ -151,8 +151,37 @@ export default function Calendar({
     });
   }, [activities, currentUser]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [calViewYear, setCalViewYear] = useState(() => selectedDayDate.getFullYear());
+  const [calViewMonth, setCalViewMonth] = useState(() => selectedDayDate.getMonth());
   const datePopoverRef = useRef(null);
   const timelineScrollRef = useRef(null);
+
+  const monthNamesFull = useMemo(() => [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ], []);
+
+  const handlePrevCalMonth = (e) => {
+    e?.stopPropagation();
+    setCalViewMonth((prev) => {
+      if (prev === 0) {
+        setCalViewYear((y) => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const handleNextCalMonth = (e) => {
+    e?.stopPropagation();
+    setCalViewMonth((prev) => {
+      if (prev === 11) {
+        setCalViewYear((y) => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
 
   // Midnight Auto-Refresh Listener: Checks every second if date rolled over
   useEffect(() => {
@@ -694,7 +723,13 @@ export default function Calendar({
           <button 
             type="button" 
             className="calendar-green-btn"
-            onClick={() => setShowDatePicker(!showDatePicker)}
+            onClick={() => {
+              if (!showDatePicker) {
+                setCalViewYear(selectedDayDate.getFullYear());
+                setCalViewMonth(selectedDayDate.getMonth());
+              }
+              setShowDatePicker(!showDatePicker);
+            }}
             title="Pick a Date"
           >
             <CalendarIcon size={15} />
@@ -704,12 +739,33 @@ export default function Calendar({
           {/* Date Picker Popover */}
           {showDatePicker && (
             <div className="calendar-popover-dropdown" ref={datePopoverRef}>
-              <div className="popover-month-header">
-                <span>September 2026</span>
+              <div className="popover-month-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 8px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button 
+                    type="button" 
+                    onClick={handlePrevCalMonth}
+                    title="Previous month"
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', color: '#475569', cursor: 'pointer', padding: '3px 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>
+                    {monthNamesFull[calViewMonth]} {calViewYear}
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={handleNextCalMonth}
+                    title="Next month"
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', color: '#475569', cursor: 'pointer', padding: '3px 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
                 <button 
                   type="button" 
                   onClick={() => setShowDatePicker(false)} 
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '13px' }}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '13px', padding: '2px 4px' }}
+                  title="Close"
                 >
                   ✕
                 </button>
@@ -718,20 +774,41 @@ export default function Calendar({
                 <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
               </div>
               <div className="popover-days-grid">
-                {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
-                  const isCurrentSelected = selectedDayDate.getDate() === d && selectedDayDate.getMonth() === 8 && selectedDayDate.getFullYear() === 2026;
-                  const isToday = currentDate.getDate() === d && currentDate.getMonth() === 8 && currentDate.getFullYear() === 2026;
+                {/* Blank padding days for the first day of the active month */}
+                {Array.from({ length: new Date(calViewYear, calViewMonth, 1).getDay() }).map((_, i) => (
+                  <div key={`cal-pad-${i}`} style={{ height: '26px' }} />
+                ))}
+
+                {Array.from({ length: new Date(calViewYear, calViewMonth + 1, 0).getDate() }, (_, i) => i + 1).map((d) => {
+                  const isCurrentSelected = selectedDayDate.getDate() === d && selectedDayDate.getMonth() === calViewMonth && selectedDayDate.getFullYear() === calViewYear;
+                  const isToday = currentDate.getDate() === d && currentDate.getMonth() === calViewMonth && currentDate.getFullYear() === calViewYear;
                   return (
                     <button
                       key={d}
                       type="button"
                       className={`popover-day-btn ${isToday ? 'is-today' : ''} ${isCurrentSelected ? 'is-selected' : ''}`}
                       onClick={() => {
-                        setSelectedDayDate(new Date(2026, 8, d));
+                        const targetDate = new Date(calViewYear, calViewMonth, d);
+                        setSelectedDayDate(targetDate);
                         setCalendarViewMode('day');
+
+                        // Synchronize weekOffset so Week view is also aligned with chosen date
+                        const nowMon = new Date(currentDate);
+                        const nowDayOfWeek = (nowMon.getDay() + 6) % 7;
+                        nowMon.setDate(nowMon.getDate() - nowDayOfWeek);
+                        nowMon.setHours(0, 0, 0, 0);
+
+                        const targetMon = new Date(targetDate);
+                        const targetDayOfWeek = (targetMon.getDay() + 6) % 7;
+                        targetMon.setDate(targetMon.getDate() - targetDayOfWeek);
+                        targetMon.setHours(0, 0, 0, 0);
+
+                        const diffWeeks = Math.round((targetMon - nowMon) / (7 * 24 * 60 * 60 * 1000));
+                        setWeekOffset(diffWeeks);
+
                         setShowDatePicker(false);
                       }}
-                      title={isToday ? "Today (Active)" : `Sep ${d}, 2026`}
+                      title={isToday ? "Today (Active)" : `${monthNamesFull[calViewMonth].slice(0, 3)} ${d}, ${calViewYear}`}
                     >
                       {d}
                     </button>

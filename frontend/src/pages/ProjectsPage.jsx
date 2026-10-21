@@ -151,6 +151,7 @@ export default function ProjectsPage({
     setAppliedClients(selectedClients);
     setAppliedAccess(selectedAccess);
     setOpenDropdown(null);
+    setCurrentPage(1);
     setToastMessage('Filters applied successfully!');
     setTimeout(() => setToastMessage(''), 2500);
   };
@@ -165,6 +166,7 @@ export default function ProjectsPage({
     setAppliedAccess([]);
     setLocalSearchQuery('');
     setOpenDropdown(null);
+    setCurrentPage(1);
     setToastMessage('All filters have been reset.');
     setTimeout(() => setToastMessage(''), 2500);
   };
@@ -192,15 +194,17 @@ export default function ProjectsPage({
       // 3. Client Filter
       if (appliedClients && appliedClients.length > 0) {
         const hasWithout = appliedClients.includes('without-client');
-        const matchesClient = appliedClients.includes(proj.client);
-        const matchesWithout = hasWithout && (!proj.client || proj.client === '—' || proj.client === 'No Client');
+        const pClient = (proj.client || '').trim();
+        const matchesClient = appliedClients.some(c => c.trim().toLowerCase() === pClient.toLowerCase());
+        const matchesWithout = hasWithout && (!pClient || pClient === '—' || pClient.toLowerCase() === 'no client');
         if (!matchesClient && !matchesWithout) return false;
       }
 
       // 4. Access Filter
       if (appliedAccess && appliedAccess.length > 0) {
-        const pAccess = proj.access || 'Public';
-        if (!appliedAccess.includes(pAccess)) return false;
+        const pAccess = (proj.access || 'Public').trim().toLowerCase();
+        const matchesAccess = appliedAccess.some(a => a.trim().toLowerCase() === pAccess);
+        if (!matchesAccess) return false;
       }
 
       return true;
@@ -484,6 +488,9 @@ export default function ProjectsPage({
                     onClick={() => {
                       setAppliedClients(selectedClients);
                       setOpenDropdown(null);
+                      setCurrentPage(1);
+                      setToastMessage(`Filtered by ${selectedClients.length} client${selectedClients.length === 1 ? '' : 's'}`);
+                      setTimeout(() => setToastMessage(''), 2500);
                     }}
                     style={{ width: '100%', marginTop: '8px', padding: '6px', background: '#00cc00', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}
                   >
@@ -551,6 +558,9 @@ export default function ProjectsPage({
                     onClick={() => {
                       setAppliedAccess(selectedAccess);
                       setOpenDropdown(null);
+                      setCurrentPage(1);
+                      setToastMessage(`Filtered by ${selectedAccess.length} access permission${selectedAccess.length === 1 ? '' : 's'}`);
+                      setTimeout(() => setToastMessage(''), 2500);
                     }}
                     style={{ width: '100%', marginTop: '8px', padding: '6px', background: '#00cc00', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}
                   >

@@ -1150,7 +1150,7 @@ export default function ReportsPage({
 
         const uName = matchedUser?.name || rawUser || 'Team Member';
         const usernameStr = matchedUser?.username ? `@${matchedUser.username}` : '';
-        const uRole = (matchedUser?.role === 'admin' || uName.toLowerCase().includes('owner') || uName.toLowerCase().includes('bharath')) ? 'Admin (Owner)' : (matchedUser?.department || 'Employee');
+        const uRole = (matchedUser?.role === 'admin' || uName.toLowerCase().includes('owner') || uName.toLowerCase().includes('bharath')) ? 'Admin' : (matchedUser?.department || 'Employee');
         const cleanName = uName.replace(/[()]/g, '').trim();
         const initials = matchedUser?.avatar_initials || matchedUser?.avatarInitials || (cleanName.split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase()) || 'TM';
         const avatarColor = matchedUser?.avatar_color || matchedUser?.avatarColor || (uRole.includes('Admin') ? '#10b981' : (uName.toLowerCase().includes('anbu') ? '#14b8a6' : (uName.toLowerCase().includes('muthu') ? '#ec4899' : '#3b82f6')));
@@ -1373,10 +1373,10 @@ export default function ReportsPage({
           (u.name && u.name.toLowerCase() === rawUser.toLowerCase()) ||
           (u.username && u.username.toLowerCase() === rawUser.toLowerCase()) ||
           (u.email && u.email.toLowerCase() === rawUser.toLowerCase())
-        ) || (rawUser.toLowerCase().includes('bharath') ? { name: 'Bharath (Owner)', role: 'Admin (Owner)', avatarColor: '#10b981', avatarInitials: 'BO' } : null);
+        ) || (rawUser.toLowerCase().includes('bharath') ? { name: 'Bharath (Owner)', role: 'Admin', avatarColor: '#10b981', avatarInitials: 'BO' } : null);
 
         const uName = matchedUser?.name || rawUser || 'Team Member';
-        const uRole = (matchedUser?.role === 'admin' || uName.toLowerCase().includes('owner') || uName.toLowerCase().includes('bharath')) ? 'Admin (Owner)' : (matchedUser?.department || 'Employee');
+        const uRole = (matchedUser?.role === 'admin' || uName.toLowerCase().includes('owner') || uName.toLowerCase().includes('bharath')) ? 'Admin' : (matchedUser?.department || 'Employee');
         const cleanName = uName.replace(/[()]/g, '').trim();
         const initials = matchedUser?.avatar_initials || matchedUser?.avatarInitials || (cleanName.split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase()) || 'TM';
         const avatarColor = matchedUser?.avatar_color || matchedUser?.avatarColor || (uRole.includes('Admin') ? '#10b981' : (uName.toLowerCase().includes('anbu') ? '#14b8a6' : (uName.toLowerCase().includes('muthu') ? '#ec4899' : '#3b82f6')));
@@ -1412,7 +1412,7 @@ export default function ReportsPage({
           rows.push({
             id: `log-${ts.id}-${singleDayKey}`,
             userName: 'Bharath (Owner)',
-            userRole: 'Admin (Owner)',
+            userRole: 'Admin',
             avatarInitials: 'BO',
             avatarColor: '#10b981',
             date: dayMeta ? `2026-09-0${dayMeta.dayNum}` : '2026-09-02',
@@ -1433,7 +1433,7 @@ export default function ReportsPage({
             rows.push({
               id: `log-${ts.id}-${day}`,
               userName: 'Bharath (Owner)',
-              userRole: 'Admin (Owner)',
+              userRole: 'Admin',
               avatarInitials: 'BO',
               avatarColor: '#10b981',
               date: dayMeta ? `2026-09-0${dayMeta.dayNum}` : '2026-09-02',
@@ -1518,7 +1518,7 @@ export default function ReportsPage({
       const isApproved = Boolean(u.active) || u.role === 'admin' || u.accessGranted === true;
       const uName = u.name || 'Employee';
       const uRole = (u.role === 'admin' || uName.toLowerCase().includes('owner') || uName.toLowerCase().includes('bharath'))
-        ? 'Admin (Owner)'
+        ? 'Admin'
         : (u.department || (uName.toLowerCase().includes('anbu') ? 'Full Stack' : (uName.toLowerCase().includes('muthu') ? 'Frontend Dev' : (uName.toLowerCase().includes('mani') ? 'Design & UI' : (uName.toLowerCase().includes('sivanparu') ? 'QA & Testing' : 'Employee')))));
       
       const cleanName = uName.replace(/[()]/g, '').trim();

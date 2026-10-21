@@ -192,12 +192,9 @@ export default function TeamPage({
       {/* Top Header Banner */}
       <div className="reports-summary-banner" style={{ marginBottom: '20px', borderRadius: '10px' }}>
         <div>
-          <h2 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>
             Team Members & Access Control
           </h2>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-            MySQL Live Workspace Access • {activeCount} Active • {pendingCount} Pending Approval
-          </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -356,7 +353,7 @@ export default function TeamPage({
                           fontSize: '11px',
                           fontWeight: 700
                         }}>
-                          Admin (Owner)
+                          Admin
                         </span>
                       ) : (
                         <span style={{
@@ -484,7 +481,7 @@ export default function TeamPage({
                       {isMemberAdmin ? (
                         <span style={{ color: '#008a00', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <ShieldCheck size={15} />
-                          <span>Full Access (Owner)</span>
+                          <span>Full Access</span>
                         </span>
                       ) : (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', position: 'relative' }} className="team-action-menu-wrap">
