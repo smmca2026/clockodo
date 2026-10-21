@@ -152,7 +152,7 @@ export default function LoginPage({ usersList = [], onLogin, onRegister }) {
     } catch (e) { }
 
     setLoading(false);
-    setErrorMessage('Incorrect password. Please use company password Digi@2024 or contact Administrator.');
+    setErrorMessage('Incorrect password. Please enter your correct password.');
   };
 
   const handleRegisterSubmit = async (e) => {

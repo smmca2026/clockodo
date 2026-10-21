@@ -113,7 +113,7 @@ function App() {
   }, []);
 
   // Registered users state with localStorage persistence
-  // Clean legacy test storage on startup so existing browsers start 100% fresh
+  // Clean legacy test storage on startup so existing browsers start 100% fresh and fixed to 24h Railway time
   useEffect(() => {
     try {
       localStorage.removeItem('clockodo_activities_v2');
@@ -122,6 +122,15 @@ function App() {
       localStorage.removeItem('clockodo_activities_v4');
       localStorage.removeItem('clockodo_timesheet_rows_v4');
       localStorage.removeItem('clockodo_shared_reports_v2');
+
+      const savedLang = localStorage.getItem('clockodo_language_settings');
+      if (savedLang) {
+        const parsed = JSON.parse(savedLang);
+        if (!parsed.userExplicitlySetTimeFormat) {
+          parsed.timeFormat = '24h';
+          localStorage.setItem('clockodo_language_settings', JSON.stringify(parsed));
+        }
+      }
     } catch (e) { }
   }, []);
 
@@ -917,8 +926,8 @@ function App() {
       description: entry.description || 'Tracked session',
       group: dynamicGroup,
       date: computedISO,
-      startTime: entry.startTime || '09:00 AM',
-      endTime: entry.endTime || '05:00 PM',
+      startTime: entry.startTime || '09:00',
+      endTime: entry.endTime || '17:00',
       durationSeconds: durSec,
       durationFormatted: formattedDuration,
       billable: entry.billable !== undefined ? entry.billable : true,

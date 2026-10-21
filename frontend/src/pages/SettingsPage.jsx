@@ -77,11 +77,17 @@ export default function SettingsPage({
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // Language & Regional State
+  // Language & Regional State (Fixed default: 24h Railway time)
   const [languageSettings, setLanguageSettings] = useState(() => {
     try {
       const saved = localStorage.getItem('clockodo_language_settings');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          timeFormat: parsed.userExplicitlySetTimeFormat ? parsed.timeFormat : '24h'
+        };
+      }
     } catch (e) {}
     const directLang = localStorage.getItem('clockodo_language');
     return {
@@ -305,7 +311,11 @@ export default function SettingsPage({
   const handleSaveLanguage = (e) => {
     if (e) e.preventDefault();
     try {
-      localStorage.setItem('clockodo_language_settings', JSON.stringify(languageSettings));
+      const payload = {
+        ...languageSettings,
+        userExplicitlySetTimeFormat: true
+      };
+      localStorage.setItem('clockodo_language_settings', JSON.stringify(payload));
       setAppLang(languageSettings.language);
     } catch (err) {}
     const msg = languageSettings.language === 'ta'

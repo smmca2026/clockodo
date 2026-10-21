@@ -93,7 +93,7 @@ router.post('/login', async (req, res) => {
     }
 
     if (!validPass) {
-      return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
+      return res.status(401).json({ success: false, message: 'Incorrect password. Please enter your correct password.' });
     }
 
     // Access Check: If employee is pending approval

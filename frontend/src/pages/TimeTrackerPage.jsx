@@ -372,10 +372,12 @@ export default function TimeTrackerPage({
       const saved = localStorage.getItem('clockodo_language_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.timeFormat) return parsed.timeFormat;
+        if (parsed.userExplicitlySetTimeFormat && parsed.timeFormat) {
+          return parsed.timeFormat;
+        }
       }
     } catch (e) {}
-    return '24h'; // Default: Railway time (24-hour format)
+    return '24h'; // Fixed default: Railway time (24-hour format)
   };
 
   const [activeTimeFormat, setActiveTimeFormat] = useState(() => getTimeFormatPreference());
