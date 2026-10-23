@@ -109,10 +109,54 @@ function getActivityDate(act) {
   return todayISO;
 }
 
-function formatTimeWithAmPm(timeStr) {
+function normalizeTimeTo24h(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return '09:00';
+  const trimmed = timeStr.trim();
+  const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([ap]m)?$/i);
+  if (ampmMatch) {
+    let h = parseInt(ampmMatch[1], 10);
+    const m = ampmMatch[2];
+    const marker = ampmMatch[3] ? ampmMatch[3].toUpperCase() : null;
+    if (marker === 'PM' && h < 12) h += 12;
+    if (marker === 'AM' && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${m}`;
+  }
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length === 4) {
+    const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
+    const m = Math.min(59, parseInt(digits.slice(2, 4), 10));
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+  if (trimmed.includes(':')) {
+    const parts = trimmed.split(':');
+    let h = parseInt(parts[0], 10) || 0;
+    let m = parseInt(parts[1], 10) || 0;
+    return `${String(Math.min(23, h)).padStart(2, '0')}:${String(Math.min(59, m)).padStart(2, '0')}`;
+  }
+  return '09:00';
+}
+
+function getGlobalTimeFormatPreference() {
+  try {
+    const direct = localStorage.getItem('clockodo_time_format');
+    if (direct === '12h' || direct === '24h') return direct;
+    const saved = localStorage.getItem('clockodo_language_settings');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.userExplicitlySetTimeFormat && parsed.timeFormat) {
+        return parsed.timeFormat;
+      }
+    }
+  } catch (e) {}
+  return '24h'; // Default: Railway time
+}
+
+function formatTimeDisplay(timeStr, activeFormat = null) {
   if (!timeStr || typeof timeStr !== 'string') return '';
   const trimmed = timeStr.trim();
   if (!trimmed) return '';
+
+  const fmt = activeFormat || getGlobalTimeFormatPreference();
 
   const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([ap]m)?$/i);
   if (ampmMatch) {
@@ -120,19 +164,24 @@ function formatTimeWithAmPm(timeStr) {
     const mins = ampmMatch[2];
     const marker = ampmMatch[3] ? ampmMatch[3].toUpperCase() : null;
 
-    if (marker) {
-      if (hours === 0) hours = 12;
-      return `${String(hours).padStart(2, '0')}:${mins} ${marker}`;
-    } else {
-      const period = hours >= 12 ? 'PM' : 'AM';
-      let h12 = hours % 12;
+    let h24 = hours;
+    if (marker === 'PM' && hours < 12) h24 = hours + 12;
+    if (marker === 'AM' && hours === 12) h24 = 0;
+
+    if (fmt === '12h') {
+      const period = h24 >= 12 ? 'PM' : 'AM';
+      let h12 = h24 % 12;
       if (h12 === 0) h12 = 12;
       return `${String(h12).padStart(2, '0')}:${mins} ${period}`;
+    } else {
+      return `${String(h24).padStart(2, '0')}:${mins}`;
     }
   }
 
   return trimmed;
 }
+
+const formatTimeWithAmPm = formatTimeDisplay;
 
 export default function Calendar({
   calendarSchedule = CALENDAR_WEEK_SCHEDULE,
@@ -296,13 +345,36 @@ export default function Calendar({
     return (projects || []).find(p => p.name === modalProject) || projects[0] || null;
   }, [projects, modalProject]);
 
-        const START_HOUR = 8;
+  // Active 24h vs 12h time format preference
+  const [activeTimeFormat, setActiveTimeFormat] = useState(() => getGlobalTimeFormatPreference());
+
+  useEffect(() => {
+    const handleFormatChange = () => {
+      setActiveTimeFormat(getGlobalTimeFormatPreference());
+    };
+    window.addEventListener('clockodo_format_change', handleFormatChange);
+    window.addEventListener('storage', handleFormatChange);
+    const interval = setInterval(handleFormatChange, 1000);
+    return () => {
+      window.removeEventListener('clockodo_format_change', handleFormatChange);
+      window.removeEventListener('storage', handleFormatChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const START_HOUR = 8;
   const HOUR_HEIGHT = 64;
-  const timelineHours = [
-    '08:00', '09:00', '10:00', '11:00', '12:00', 
-    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', 
-    '20:00', '21:00', '22:00'
-  ];
+  const timelineHours = useMemo(() => {
+    const rawHours = [
+      '08:00', '09:00', '10:00', '11:00', '12:00', 
+      '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', 
+      '20:00', '21:00', '22:00'
+    ];
+    if (activeTimeFormat === '12h') {
+      return rawHours.map(t => formatTimeDisplay(t, '12h'));
+    }
+    return rawHours;
+  }, [activeTimeFormat]);
 
   
   // Clean scroll reset on view change

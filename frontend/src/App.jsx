@@ -123,12 +123,26 @@ function App() {
       localStorage.removeItem('clockodo_timesheet_rows_v4');
       localStorage.removeItem('clockodo_shared_reports_v2');
 
-      const savedLang = localStorage.getItem('clockodo_language_settings');
-      if (savedLang) {
-        const parsed = JSON.parse(savedLang);
-        if (!parsed.userExplicitlySetTimeFormat) {
+      // Default all existing and new user profiles to Railway Time (24h) unless explicitly customized in Settings
+      if (!localStorage.getItem('clockodo_railway_default_v2')) {
+        try {
+          const savedLang = localStorage.getItem('clockodo_language_settings');
+          const parsed = savedLang ? JSON.parse(savedLang) : {};
           parsed.timeFormat = '24h';
+          parsed.userExplicitlySetTimeFormat = false;
           localStorage.setItem('clockodo_language_settings', JSON.stringify(parsed));
+          localStorage.setItem('clockodo_time_format', '24h');
+          localStorage.setItem('clockodo_railway_default_v2', 'true');
+        } catch (e) { }
+      } else {
+        const savedLang = localStorage.getItem('clockodo_language_settings');
+        if (savedLang) {
+          const parsed = JSON.parse(savedLang);
+          if (!parsed.userExplicitlySetTimeFormat) {
+            parsed.timeFormat = '24h';
+            localStorage.setItem('clockodo_language_settings', JSON.stringify(parsed));
+            localStorage.setItem('clockodo_time_format', '24h');
+          }
         }
       }
     } catch (e) { }

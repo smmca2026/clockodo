@@ -370,6 +370,8 @@ export default function TimeTrackerPage({
 
   const getTimeFormatPreference = () => {
     try {
+      const direct = localStorage.getItem('clockodo_time_format');
+      if (direct === '12h' || direct === '24h') return direct;
       const saved = localStorage.getItem('clockodo_language_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -388,9 +390,11 @@ export default function TimeTrackerPage({
       setActiveTimeFormat(getTimeFormatPreference());
     };
     window.addEventListener('storage', checkPref);
+    window.addEventListener('clockodo_format_change', checkPref);
     const interval = setInterval(checkPref, 1000);
     return () => {
       window.removeEventListener('storage', checkPref);
+      window.removeEventListener('clockodo_format_change', checkPref);
       clearInterval(interval);
     };
   }, []);

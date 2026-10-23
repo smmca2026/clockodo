@@ -307,7 +307,7 @@ export default function SettingsPage({
     }
   };
 
-  // 3. SAVE LANGUAGE SETTINGS
+  // 3. SAVE LANGUAGE & REGIONAL SETTINGS
   const handleSaveLanguage = (e) => {
     if (e) e.preventDefault();
     try {
@@ -316,13 +316,23 @@ export default function SettingsPage({
         userExplicitlySetTimeFormat: true
       };
       localStorage.setItem('clockodo_language_settings', JSON.stringify(payload));
+      localStorage.setItem('clockodo_time_format', languageSettings.timeFormat || '24h');
       setAppLang(languageSettings.language);
+
+      // Instantly trigger live formatting update across Time Tracker and Calendar in current tab
+      window.dispatchEvent(new Event('clockodo_format_change'));
+      window.dispatchEvent(new Event('storage'));
     } catch (err) {}
-    const msg = languageSettings.language === 'ta'
-      ? 'மொழி வெற்றிகரமாக தமிழ் (Tamil) க்கு மாற்றப்பட்டது!'
-      : languageSettings.language === 'hi'
-        ? 'भाषा सफलतापूर्वक हिन्दी (Hindi) में बदल दी गई है!'
-        : 'Language successfully updated to English!';
+
+    const is24h = languageSettings.timeFormat === '24h';
+    const timeLabel = is24h ? '24-Hour Format (Railway Time)' : '12-Hour Format (AM/PM)';
+
+    let msg = `✓ Regional preferences saved! (${timeLabel} active)`;
+    if (languageSettings.language === 'ta') {
+      msg = `✓ அமைப்புகள் வெற்றிகரமாக சேமிக்கப்பட்டன! (${is24h ? '24-மணி நேர ரயில்வே நேரம்' : '12-மணி நேர AM/PM'} நடைமுறைக்கு வந்தது)`;
+    } else if (languageSettings.language === 'hi') {
+      msg = `✓ क्षेत्रीय प्राथमिकताएं सहेजी गईं! (${is24h ? '24-घंटे रेलवे प्रारूप' : '12-घंटे AM/PM'})`;
+    }
     showToast(msg);
   };
 
