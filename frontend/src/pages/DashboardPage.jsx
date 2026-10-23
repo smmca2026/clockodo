@@ -1166,6 +1166,20 @@ export default function DashboardPage({
             <div className="dash-metric-val green-highlight" style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', fontFamily: 'var(--font-mono)', color: '#008a00' }}>
               {liveTotalTime}
             </div>
+            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', fontWeight: 600 }}>
+              {isSingleDate ? (
+                <>
+                  Target: {currentUser?.dailyHours || 8}h
+                  {dynamicTotalSec > (currentUser?.dailyHours || 8) * 3600 && (
+                    <span style={{ color: '#008a00', fontWeight: 700, marginLeft: '4px' }}>
+                      (+{formatSecondsToHMS(dynamicTotalSec - (currentUser?.dailyHours || 8) * 3600)} OT)
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>Weekly Goal: {(currentUser?.dailyHours || 8) * 5}h</>
+              )}
+            </div>
           </div>
 
           {/* Card 2: Top Project */}
@@ -1203,6 +1217,16 @@ export default function DashboardPage({
               <span style={{ background: '#f0fdf4', color: '#008a00', border: '1px solid rgba(0,204,0,0.3)', padding: '2px 9px', borderRadius: '12px', fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
                 Total: {liveTotalTime}
               </span>
+              {isSingleDate && (
+                <span style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '2px 9px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                  Target: {String(currentUser?.dailyHours || 8).padStart(2, '0')}:00:00
+                  {dynamicTotalSec > (currentUser?.dailyHours || 8) * 3600 && (
+                    <span style={{ color: '#008a00', marginLeft: '5px' }}>
+                      (+{formatSecondsToHMS(dynamicTotalSec - (currentUser?.dailyHours || 8) * 3600)} OT)
+                    </span>
+                  )}
+                </span>
+              )}
 
               {/* View Switcher: Stacked Overview ("padutha mari mela mela") vs 7-Day View */}
               <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '4px', marginLeft: '6px' }}>
