@@ -1947,11 +1947,6 @@ export default function DashboardPage({
                             <div style={{ fontWeight: 600, color: '#334155', fontSize: '13px' }}>
                               {act.description || act.task || 'Working session'}
                             </div>
-                            {act.billable !== false && (
-                              <span style={{ display: 'inline-block', fontSize: '10px', color: '#008a00', background: 'rgba(0,204,0,0.1)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, marginTop: '3px' }}>
-                                Billable
-                              </span>
-                            )}
                           </td>
                           <td>
                             <div style={{ fontSize: '12.5px', color: '#0f172a', fontWeight: 600 }}>{formatRelativeTime(act.date)}</div>
