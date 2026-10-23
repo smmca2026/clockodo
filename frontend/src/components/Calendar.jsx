@@ -1152,6 +1152,30 @@ export default function Calendar({
                     const heightPx = Math.max(56, durH * HOUR_HEIGHT);
                     const isShortBlock = durH <= 1.25;
 
+                    // Detect overlapping siblings in this day column
+                    const overlappingSiblings = day.blocks.filter(other => {
+                      if (other.id === block.id) return false;
+                      const oRaw = other.topHour || 10;
+                      const oStart = (oRaw >= 1 && oRaw <= 6) ? oRaw + 12 : oRaw;
+                      const oEnd = oStart + (other.durationHours || 1);
+                      const myEnd = startHour + durH;
+                      return (startHour < oEnd && myEnd > oStart);
+                    });
+
+                    let widthStyle = 'calc(100% - 8px)';
+                    let leftStyle = '4px';
+                    let zIndexStyle = 2;
+
+                    if (overlappingSiblings.length > 0) {
+                      const allGroup = [block, ...overlappingSiblings].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+                      const myIdx = allGroup.findIndex(b => b.id === block.id);
+                      const colCount = Math.min(3, allGroup.length);
+                      const colWidth = 100 / colCount;
+                      widthStyle = `calc(${colWidth}% - 6px)`;
+                      leftStyle = `calc(${myIdx * colWidth}% + 3px)`;
+                      zIndexStyle = 3 + myIdx;
+                    }
+
                     return (
                       <div
                         key={block.id}
@@ -1159,8 +1183,12 @@ export default function Calendar({
                         style={{
                           top: `${topPx + 2}px`,
                           height: `${heightPx - 4}px`,
+                          left: leftStyle,
+                          width: widthStyle,
+                          zIndex: zIndexStyle,
                           borderLeftColor: block.color || '#00cc00',
                           background: '#ffffff',
+                          boxShadow: overlappingSiblings.length > 0 ? '0 3px 12px rgba(0,0,0,0.12)' : '0 1px 3px rgba(0,0,0,0.08)',
                           cursor: 'pointer',
                         }}
                         title={`Click to edit: ${block.project}: ${block.title} (${block.duration})`}
@@ -1369,6 +1397,30 @@ export default function Calendar({
                     const heightPx = Math.max(56, durH * HOUR_HEIGHT);
                     const isShortBlock = durH <= 1.25;
 
+                    // Detect overlapping siblings in this day view
+                    const overlappingSiblings = blocksToShow.filter(other => {
+                      if (other.id === block.id) return false;
+                      const oRaw = other.topHour || 10;
+                      const oStart = (oRaw >= 1 && oRaw <= 6) ? oRaw + 12 : oRaw;
+                      const oEnd = oStart + (other.durationHours || 1);
+                      const myEnd = startHour + durH;
+                      return (startHour < oEnd && myEnd > oStart);
+                    });
+
+                    let widthStyle = 'calc(100% - 8px)';
+                    let leftStyle = '4px';
+                    let zIndexStyle = 2;
+
+                    if (overlappingSiblings.length > 0) {
+                      const allGroup = [block, ...overlappingSiblings].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+                      const myIdx = allGroup.findIndex(b => b.id === block.id);
+                      const colCount = Math.min(3, allGroup.length);
+                      const colWidth = 100 / colCount;
+                      widthStyle = `calc(${colWidth}% - 6px)`;
+                      leftStyle = `calc(${myIdx * colWidth}% + 3px)`;
+                      zIndexStyle = 3 + myIdx;
+                    }
+
                     return (
                       <div
                         key={block.id}
@@ -1376,8 +1428,12 @@ export default function Calendar({
                         style={{
                           top: `${topPx + 2}px`,
                           height: `${heightPx - 4}px`,
+                          left: leftStyle,
+                          width: widthStyle,
+                          zIndex: zIndexStyle,
                           borderLeftColor: block.color || '#00cc00',
                           background: '#ffffff',
+                          boxShadow: overlappingSiblings.length > 0 ? '0 3px 12px rgba(0,0,0,0.12)' : '0 1px 3px rgba(0,0,0,0.08)',
                           cursor: 'pointer',
                         }}
                         title={`Click to edit: ${block.project}: ${block.title} (${block.duration})`}

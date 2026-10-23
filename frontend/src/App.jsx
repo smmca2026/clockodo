@@ -1359,26 +1359,52 @@ function App() {
   };
 
   const handleDeleteCalendarEntry = (dayNum, blockId, blockInfo = {}) => {
-    // 1. Synchronously remove from activities (Time Tracker list)
-    setActivities((prev) => {
-      return prev.filter((act) => {
-        if (act.id === blockId) return false;
-        if (blockInfo.title && blockInfo.project) {
-          const actDesc = (act.description || '').trim();
-          const blockTitle = (blockInfo.title || '').trim();
-          const actProj = (act.project || '').trim();
-          const blockProj = (blockInfo.project || '').trim();
-          if (actDesc === blockTitle && actProj === blockProj) return false;
+    if (isGuestSession || !currentUser || currentUser.role === 'guest') {
+      return;
+    }
+    const targetId = blockId || blockInfo?.id;
+    if (!targetId && !blockInfo?.title) return;
+
+    // 1. Collect all IDs that match this deleted calendar entry
+    const toDeleteIds = new Set();
+    if (targetId) toDeleteIds.add(String(targetId));
+
+    (activities || []).forEach(act => {
+      if (String(act.id) === String(targetId)) {
+        toDeleteIds.add(String(act.id));
+      }
+      if (blockInfo.title && blockInfo.project) {
+        const actDesc = (act.description || '').trim().toLowerCase();
+        const blockTitle = (blockInfo.title || '').trim().toLowerCase();
+        const actProj = (act.project || '').trim().toLowerCase();
+        const blockProj = (blockInfo.project || '').trim().toLowerCase();
+        if (actDesc === blockTitle && actProj === blockProj) {
+          if (!blockInfo.isoDate || act.date === blockInfo.isoDate) {
+            toDeleteIds.add(String(act.id));
+          }
         }
-        return true;
-      });
+      }
     });
 
-    // 2. Synchronously remove from calendarSchedule
+    // 2. Synchronously remove from activities (Time Tracker list) & localStorage
+    setActivities((prev) => {
+      const remaining = prev.filter((act) => !toDeleteIds.has(String(act.id)));
+      try {
+        localStorage.setItem('clockodo_activities_v4', JSON.stringify(remaining));
+      } catch (e) { }
+      return remaining;
+    });
+
+    // 3. Permanently DELETE from MySQL Database via API!
+    toDeleteIds.forEach((id) => {
+      api.deleteActivity(id).catch((e) => console.warn('Backend sync failed for deleteCalendarEntry:', e));
+    });
+
+    // 4. Synchronously remove from calendarSchedule
     setCalendarSchedule((prev) => {
-      const updatedDays = prev.days.map((day) => {
+      const updatedDays = (prev?.days || []).map((day) => {
         if (day.dayNum === dayNum) {
-          const updatedBlocks = day.blocks.filter((b) => b.id !== blockId);
+          const updatedBlocks = (day.blocks || []).filter((b) => !toDeleteIds.has(String(b.id)));
           let daySec = 0;
           updatedBlocks.forEach((b) => {
             const parts = (b.duration || '00:00:00').split(':').map(Number);
