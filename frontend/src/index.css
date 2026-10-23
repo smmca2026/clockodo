@@ -4540,27 +4540,48 @@ body {
   z-index: 6;
 }
 
-.event-block-del-btn {
+.event-block-actions {
   position: absolute;
   top: 4px;
   right: 4px;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  z-index: 12;
+}
+
+.timeline-event-block:hover .event-block-actions {
+  display: flex;
+}
+
+.event-block-edit-btn,
+.event-block-del-btn {
   width: 22px;
   height: 22px;
   border-radius: 4px;
-  background: #fee2e2;
-  color: #ef4444;
   border: none;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
   padding: 0;
-  z-index: 12;
 }
 
-.timeline-event-block:hover .event-block-del-btn {
-  display: flex;
+.event-block-edit-btn {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.event-block-edit-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+  transform: scale(1.12);
+}
+
+.event-block-del-btn {
+  background: #fee2e2;
+  color: #ef4444;
 }
 
 .event-block-del-btn:hover {

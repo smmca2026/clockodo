@@ -1567,6 +1567,8 @@ function App() {
               projects={projects}
               onAddManualEntry={handleAddManualEntry}
               onDeleteCalendarEntry={handleDeleteCalendarEntry}
+              onUpdateActivity={handleUpdateActivity}
+              onUpdateActivityDate={handleUpdateActivityDate}
             />
           )}
 

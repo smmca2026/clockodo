@@ -426,38 +426,85 @@ export default function TimeTrackerPage({
     }));
   };
 
+  const normalizeTimeToHHMM = (input) => {
+    if (!input || typeof input !== 'string') return '';
+    const trimmed = input.trim();
+    if (!trimmed) return '';
+
+    if (trimmed.includes(':')) {
+      const parts = trimmed.split(':');
+      let h = parseInt(parts[0], 10);
+      if (isNaN(h)) h = 0;
+      h = Math.min(23, Math.max(0, h));
+
+      let mStr = parts[1] || '00';
+      let m = parseInt(mStr, 10);
+      if (isNaN(m)) m = 0;
+      if (mStr.length === 1 && m > 0 && m <= 5) {
+        m = m * 10;
+      }
+      m = Math.min(59, Math.max(0, m));
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (!digits) return '';
+
+    if (digits.length === 4) {
+      const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
+      const m = Math.min(59, parseInt(digits.slice(2, 4), 10));
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    if (digits.length === 3) {
+      const h = Math.min(23, parseInt(digits.slice(0, 1), 10));
+      const m = Math.min(59, parseInt(digits.slice(1, 3), 10));
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    if (digits.length <= 2) {
+      const num = parseInt(digits, 10);
+      if (num <= 23) {
+        return `${String(num).padStart(2, '0')}:00`;
+      }
+    }
+    return trimmed;
+  };
+
+  const handleTimeTypingLive = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/[^0-9:]/g, '');
+    if (/^\d{4}$/.test(clean)) {
+      return `${clean.slice(0, 2)}:${clean.slice(2, 4)}`;
+    }
+    return clean;
+  };
+
+  const autoFormatTimeHHMM = handleTimeTypingLive;
+
   const parseStartMinutes = (t) => {
     if (!t) return 0;
     const clean = t.trim().toUpperCase();
-    const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)?/);
+    const match = clean.match(/^(\d{1,2}):(\d{1,2})(?::\d{2})?\s*([AP]M)?/);
     if (match) {
       let h = parseInt(match[1], 10);
-      const m = parseInt(match[2], 10) || 0;
+      let mStr = match[2];
+      let m = parseInt(mStr, 10) || 0;
+      if (mStr.length === 1 && m <= 5) m = m * 10;
       const marker = match[3];
       if (marker === 'PM' && h < 12) h += 12;
       if (marker === 'AM' && h === 12) h = 0;
       return h * 60 + m;
     }
+    const digits = clean.replace(/\D/g, '');
+    if (digits.length === 4) {
+      return Math.min(23, parseInt(digits.slice(0, 2), 10)) * 60 + Math.min(59, parseInt(digits.slice(2, 4), 10));
+    }
+    if (digits.length === 3) {
+      return Math.min(23, parseInt(digits.slice(0, 1), 10)) * 60 + Math.min(59, parseInt(digits.slice(1, 3), 10));
+    }
     const parts = t.split(':').map(Number);
     let h = parts[0] || 0;
     if (h >= 1 && h <= 6) h += 12;
     return h * 60 + (parts[1] || 0);
-  };
-
-  const autoFormatTimeHHMM = (input) => {
-    if (!input) return '';
-    const trimmed = input.trim();
-    if (!trimmed) return '';
-    const digits = trimmed.replace(/\D/g, '');
-    if (!digits) return '';
-    if (digits.length <= 2) {
-      const val = parseInt(digits, 10);
-      if (val <= 23 && digits.length === 2) return `${digits}:`;
-      return digits;
-    }
-    const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
-    const m = Math.min(59, parseInt(digits.slice(2, 4), 10));
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
   const calcDurationFromTimes = (startStr, endStr) => {
@@ -684,26 +731,32 @@ export default function TimeTrackerPage({
       updates.description = cleanText;
       toastDetails = `description: "${cleanText}"`;
     } else if (editingMode === 'time_only') {
-      const cleanStart = (editingStartTime || '').trim();
-      const cleanEnd = (editingEndTime || '').trim();
+      const cleanStart = normalizeTimeToHHMM(editingStartTime || '');
+      const cleanEnd = normalizeTimeToHHMM(editingEndTime || '');
       if (cleanStart) updates.startTime = cleanStart;
       if (cleanEnd) updates.endTime = cleanEnd;
       if (cleanStart && cleanEnd) {
         const calculatedDuration = calcDurationFromTimes(cleanStart, cleanEnd);
-        if (calculatedDuration) updates.durationFormatted = calculatedDuration;
+        if (calculatedDuration) {
+          updates.durationFormatted = calculatedDuration;
+          updates.durationSeconds = parseTimeToSeconds(calculatedDuration);
+        }
       }
       toastDetails = `time: (${cleanStart} - ${cleanEnd})`;
     } else {
       // Both
       const cleanText = (editingDescText || '').trim() || 'Working session';
-      const cleanStart = (editingStartTime || '').trim();
-      const cleanEnd = (editingEndTime || '').trim();
+      const cleanStart = normalizeTimeToHHMM(editingStartTime || '');
+      const cleanEnd = normalizeTimeToHHMM(editingEndTime || '');
       updates.description = cleanText;
       if (cleanStart) updates.startTime = cleanStart;
       if (cleanEnd) updates.endTime = cleanEnd;
       if (cleanStart && cleanEnd) {
         const calculatedDuration = calcDurationFromTimes(cleanStart, cleanEnd);
-        if (calculatedDuration) updates.durationFormatted = calculatedDuration;
+        if (calculatedDuration) {
+          updates.durationFormatted = calculatedDuration;
+          updates.durationSeconds = parseTimeToSeconds(calculatedDuration);
+        }
       }
       toastDetails = `description & time: "${cleanText}" (${cleanStart} - ${cleanEnd})`;
     }
@@ -945,7 +998,9 @@ export default function TimeTrackerPage({
                                 <input 
                                   type="text"
                                   value={editingStartTime}
-                                  onChange={(e) => setEditingStartTime(autoFormatTimeHHMM(e.target.value))}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => setEditingStartTime(handleTimeTypingLive(e.target.value))}
+                                  onBlur={() => setEditingStartTime(prev => normalizeTimeToHHMM(prev))}
                                   placeholder="10:00"
                                   title="Start Time"
                                   style={{ width: '56px', padding: '2px 4px', fontSize: '12px', textAlign: 'center', borderRadius: '4px', border: '1px solid #00cc00', outline: 'none', fontFamily: 'var(--font-mono)', background: '#ffffff', color: '#0f172a', fontWeight: 600 }}
@@ -958,7 +1013,9 @@ export default function TimeTrackerPage({
                                 <input 
                                   type="text"
                                   value={editingEndTime}
-                                  onChange={(e) => setEditingEndTime(autoFormatTimeHHMM(e.target.value))}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => setEditingEndTime(handleTimeTypingLive(e.target.value))}
+                                  onBlur={() => setEditingEndTime(prev => normalizeTimeToHHMM(prev))}
                                   placeholder="18:00"
                                   title="End Time"
                                   style={{ width: '56px', padding: '2px 4px', fontSize: '12px', textAlign: 'center', borderRadius: '4px', border: '1px solid #00cc00', outline: 'none', fontFamily: 'var(--font-mono)', background: '#ffffff', color: '#0f172a', fontWeight: 600 }}

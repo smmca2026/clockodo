@@ -11,7 +11,9 @@ export default function CalendarPage({
   projects,
   currentUser,
   onAddManualEntry,
-  onDeleteCalendarEntry
+  onDeleteCalendarEntry,
+  onUpdateActivity,
+  onUpdateActivityDate
 }) {
   return (
     <div className="page-container">
@@ -26,6 +28,8 @@ export default function CalendarPage({
         projects={projects}
         onAddManualEntry={onAddManualEntry}
         onDeleteCalendarEntry={onDeleteCalendarEntry}
+        onUpdateActivity={onUpdateActivity}
+        onUpdateActivityDate={onUpdateActivityDate}
       />
     </div>
   );

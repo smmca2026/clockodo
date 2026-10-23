@@ -189,71 +189,17 @@ export default function TimeTracker({
     setSelectedProjectId(null);
   };
 
-  // Progressive live auto-colon formatting for HH:MM as user types
-  const autoFormatTimeHHMM = (input) => {
-    if (!input) return '';
-    const trimmed = input.trim();
-    if (!trimmed) return '';
-
-    // Direct colon typed like "9:" or "2:"
-    if (/^\d{1,2}:$/.test(trimmed)) {
-      const h = parseInt(trimmed, 10);
-      return `${String(h).padStart(2, '0')}:`;
+  // Live formatting while typing without jumping 3 to 03:
+  const autoFormatTimeHHMM = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/[^0-9:]/g, '');
+    if (/^\d{4}$/.test(clean)) {
+      return `${clean.slice(0, 2)}:${clean.slice(2, 4)}`;
     }
-
-    const digits = trimmed.replace(/\D/g, '');
-    if (!digits) return '';
-
-    // 1 Digit
-    if (digits.length === 1) {
-      const d = parseInt(digits, 10);
-      if (d >= 3 && d <= 9) {
-        return `0${d}:`;
-      }
-      return digits;
-    }
-
-    // 2 Digits
-    if (digits.length === 2) {
-      const val = parseInt(digits, 10);
-      if (val <= 24) {
-        return `${String(val).padStart(2, '0')}:`;
-      } else {
-        const h = parseInt(digits[0], 10);
-        const m = digits[1];
-        return `0${h}:${m}`;
-      }
-    }
-
-    // 3 Digits
-    if (digits.length === 3) {
-      if (digits.startsWith('0')) {
-        return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-      }
-      const firstDigit = parseInt(digits[0], 10);
-      if (firstDigit >= 3) {
-        return `0${firstDigit}:${digits.slice(1, 3)}`;
-      } else {
-        const twoHour = parseInt(digits.slice(0, 2), 10);
-        if (twoHour <= 24 && parseInt(digits[2], 10) <= 5) {
-          return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-        } else {
-          return `0${digits[0]}:${digits.slice(1, 3)}`;
-        }
-      }
-    }
-
-    // 4 Digits
-    if (digits.length >= 4) {
-      const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
-      const m = Math.min(59, parseInt(digits.slice(2, 4), 10));
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    }
-
-    return trimmed;
+    return clean;
   };
 
-  // Final format on Blur / Enter
+  // Final format on Blur / Enter into standard 24h HH:MM
   const formatFinalTimeHHMM = (input) => {
     if (!input || typeof input !== 'string') return '00:00';
     const trimmed = input.trim();
@@ -261,42 +207,49 @@ export default function TimeTracker({
 
     if (trimmed.includes(':')) {
       const parts = trimmed.split(':');
-      const h = Math.min(23, Math.max(0, parseInt(parts[0], 10) || 0));
-      const m = Math.min(59, Math.max(0, parseInt(parts[1], 10) || 0));
+      let h = parseInt(parts[0], 10);
+      if (isNaN(h)) h = 0;
+      h = Math.min(23, Math.max(0, h));
+
+      let mStr = parts[1] || '00';
+      let m = parseInt(mStr, 10);
+      if (isNaN(m)) m = 0;
+      if (mStr.length === 1 && m > 0 && m <= 5) {
+        m = m * 10;
+      }
+      m = Math.min(59, Math.max(0, m));
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     }
 
     const digits = trimmed.replace(/\D/g, '');
-    if (digits.length === 1 || (digits.length === 2 && parseInt(digits, 10) <= 24)) {
-      const h = Math.min(23, parseInt(digits, 10));
-      return `${String(h).padStart(2, '0')}:00`;
-    } else if (digits.length === 3) {
-      const h = Math.min(23, parseInt(digits.slice(0, 1), 10));
-      const m = Math.min(59, parseInt(digits.slice(1, 3), 10));
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    } else if (digits.length >= 4) {
+    if (!digits) return '00:00';
+
+    if (digits.length === 4) {
       const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
       const m = Math.min(59, parseInt(digits.slice(2, 4), 10));
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    if (digits.length === 3) {
+      const h = Math.min(23, parseInt(digits.slice(0, 1), 10));
+      const m = Math.min(59, parseInt(digits.slice(1, 3), 10));
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    if (digits.length <= 2) {
+      const num = parseInt(digits, 10);
+      if (num <= 23) {
+        return `${String(num).padStart(2, '0')}:00`;
+      }
     }
 
     return '00:00';
   };
 
   const handleFromChange = (rawVal) => {
-    let val = rawVal;
-    if (rawVal.length > fromTime.length) {
-      val = autoFormatTimeHHMM(rawVal);
-    }
-    setFromTime(val);
+    setFromTime(autoFormatTimeHHMM(rawVal));
   };
 
   const handleToChange = (rawVal) => {
-    let val = rawVal;
-    if (rawVal.length > toTime.length) {
-      val = autoFormatTimeHHMM(rawVal);
-    }
-    setToTime(val);
+    setToTime(autoFormatTimeHHMM(rawVal));
   };
 
   const handleFromBlur = () => {

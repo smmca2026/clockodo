@@ -11,9 +11,30 @@ import {
   Trash2,
   Search,
   Check,
-  ChevronDown
+  ChevronDown,
+  Edit3
 } from 'lucide-react';
 import { CALENDAR_WEEK_SCHEDULE, INITIAL_PROJECTS } from '../data/mockData';
+
+function formatTime24h(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return '';
+  const trimmed = timeStr.trim();
+  if (!trimmed) return '';
+  const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([ap]m)?$/i);
+  if (ampmMatch) {
+    let hours = parseInt(ampmMatch[1], 10);
+    const mins = ampmMatch[2];
+    const marker = ampmMatch[3] ? ampmMatch[3].toUpperCase() : null;
+    if (marker === 'PM' && hours < 12) hours += 12;
+    if (marker === 'AM' && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${mins}`;
+  }
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length === 4) {
+    return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+  }
+  return trimmed;
+}
 
 function getActivityDate(act) {
   if (!act) return '';
@@ -122,11 +143,14 @@ export default function Calendar({
   projects = INITIAL_PROJECTS,
   currentUser = null,
   onAddManualEntry,
-  onDeleteCalendarEntry
+  onDeleteCalendarEntry,
+  onUpdateActivity,
+  onUpdateActivityDate,
 }) {
   // View mode: 'week' | 'day' (Default to 'week')
   const [calendarViewMode, setCalendarViewMode] = useState('week');
   const [weekOffset, setWeekOffset] = useState(0);
+  const [editingBlock, setEditingBlock] = useState(null);
   
   // Real-time dynamic current date tracking (Auto-rolls over at midnight)
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -311,84 +335,18 @@ export default function Calendar({
     };
   }, [showDatePicker]);
 
-  // Progressive Live Auto-Colon Helper for Time Range
-  const handleTimeTyping = (input, setter) => {
-    if (!input) {
+  // Live progressive typing: let user type freely without prematurely forcing 03:
+  const handleTimeTyping = (val, setter) => {
+    if (!val) {
       setter('');
       return;
     }
-    const trimmed = input.trim();
-
-    // Direct colon typed like "9:" or "10:"
-    if (/^\d{1,2}:$/.test(trimmed)) {
-      const h = parseInt(trimmed, 10);
-      setter(`${String(h).padStart(2, '0')}:`);
+    const clean = val.replace(/[^0-9:]/g, '');
+    if (/^\d{4}$/.test(clean)) {
+      setter(`${clean.slice(0, 2)}:${clean.slice(2, 4)}`);
       return;
     }
-
-    // Has colon with minutes being typed: "09:3", "09:30", "10:15"
-    if (trimmed.includes(':')) {
-      const parts = trimmed.split(':');
-      let h = parts[0].replace(/\D/g, '').slice(0, 2);
-      let m = parts[1].replace(/\D/g, '').slice(0, 2);
-      if (h.length === 1 && parseInt(h, 10) >= 3) {
-        h = '0' + h;
-      }
-      setter(`${h}:${m}`);
-      return;
-    }
-
-    // Only digits without colon
-    const digits = trimmed.replace(/\D/g, '');
-    if (!digits) {
-      setter('');
-      return;
-    }
-
-    // 1 Digit: If 3-9, instantly add colon (e.g. '9' -> '09:', '4' -> '04:')
-    if (digits.length === 1) {
-      const d = parseInt(digits, 10);
-      if (d >= 3 && d <= 9) {
-        setter(`0${d}:`);
-        return;
-      }
-      setter(digits);
-      return;
-    }
-
-    // 2 Digits: If <= 24, append colon (e.g. '10' -> '10:', '09' -> '09:')
-    if (digits.length === 2) {
-      const val = parseInt(digits, 10);
-      if (val <= 24) {
-        setter(`${String(val).padStart(2, '0')}:`);
-        return;
-      } else {
-        setter(`0${digits[0]}:${digits[1]}`);
-        return;
-      }
-    }
-
-    // 3 Digits: (e.g. '930' -> '09:30', '130' -> '01:30')
-    if (digits.length === 3) {
-      const first = parseInt(digits[0], 10);
-      if (first >= 3) {
-        setter(`0${first}:${digits.slice(1, 3)}`);
-        return;
-      } else {
-        setter(`${digits.slice(0, 2)}:${digits[2]}`);
-        return;
-      }
-    }
-
-    // 4 Digits: (e.g. '0930' -> '09:30', '1045' -> '10:45')
-    if (digits.length >= 4) {
-      const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
-      const m = Math.min(59, parseInt(digits.slice(2, 4), 10));
-      setter(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-      return;
-    }
-
-    setter(trimmed);
+    setter(clean);
   };
 
   const handleTimeBlur = (input, setter) => {
@@ -398,24 +356,34 @@ export default function Calendar({
 
     if (trimmed.includes(':')) {
       const parts = trimmed.split(':');
-      const h = Math.min(23, Math.max(0, parseInt(parts[0], 10) || 0));
-      const m = Math.min(59, Math.max(0, parseInt(parts[1], 10) || 0));
+      let h = parseInt(parts[0], 10);
+      if (isNaN(h)) h = 0;
+      h = Math.min(23, Math.max(0, h));
+
+      let mStr = parts[1] || '00';
+      let m = parseInt(mStr, 10);
+      if (isNaN(m)) m = 0;
+      if (mStr.length === 1 && m > 0 && m <= 5) {
+        m = m * 10;
+      }
+      m = Math.min(59, Math.max(0, m));
       setter(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
       return;
     }
 
     const digits = trimmed.replace(/\D/g, '');
-    if (digits.length === 1 || (digits.length === 2 && parseInt(digits, 10) <= 24)) {
-      const h = Math.min(23, parseInt(digits, 10));
-      setter(`${String(h).padStart(2, '0')}:00`);
-    } else if (digits.length === 3) {
-      const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
-      const m = parseInt(digits[2] + '0', 10);
-      setter(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    } else if (digits.length >= 4) {
+    if (!digits) return;
+    if (digits.length === 4) {
       const h = Math.min(23, parseInt(digits.slice(0, 2), 10));
       const m = Math.min(59, parseInt(digits.slice(2, 4), 10));
       setter(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    } else if (digits.length === 3) {
+      const h = Math.min(23, parseInt(digits.slice(0, 1), 10));
+      const m = Math.min(59, parseInt(digits.slice(1, 3), 10));
+      setter(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    } else if (digits.length <= 2) {
+      const h = Math.min(23, parseInt(digits, 10));
+      setter(`${String(h).padStart(2, '0')}:00`);
     }
   };
 
@@ -456,6 +424,7 @@ export default function Calendar({
 
   // Open "Add Time Entry" Modal when clicking any time slot
   const handleOpenAddModal = (dayObj, defaultFrom = '10:00', defaultTo = '11:00') => {
+    setEditingBlock(null);
     setModalDayNum(dayObj.dayNum);
     const fallbackIso = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(dayObj.dayNum || currentDate.getDate()).padStart(2, '0')}`;
     setModalIsoDate(dayObj.isoDate || fallbackIso);
@@ -470,7 +439,42 @@ export default function Calendar({
     setShowAddModal(true);
   };
 
-  // Handle Form Submit (Add Entry & Sync Globally)
+  // Open "Edit Time Entry" Modal when clicking an existing entry
+  const handleOpenEditModal = (block) => {
+    if (!block) return;
+    setEditingBlock(block);
+
+    const originalAct = block.act || (activities || []).find(a => String(a.id) === String(block.id));
+
+    const fallbackIso = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+    const isoDate = originalAct?.date || block.isoDate || fallbackIso;
+    setModalIsoDate(isoDate);
+
+    const [y, m, d] = (isoDate || '').split('-').map(Number);
+    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+      const dateObj = new Date(y, m - 1, d);
+      const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+      const monthName = dateObj.toLocaleDateString('en-US', { month: 'short' });
+      setModalDateLabel(`${dayName}, ${monthName} ${d}`);
+      setModalDayNum(d);
+    } else {
+      setModalDateLabel(block.title || 'Date');
+    }
+
+    const startRaw = originalAct?.startTime || block.startTime || (block.subtitle ? block.subtitle.split('-')[0].trim() : '09:00');
+    const endRaw = originalAct?.endTime || block.endTime || (block.subtitle ? block.subtitle.split('-')[1]?.trim() : '10:00');
+    setModalFromTime(formatTime24h(startRaw) || '09:00');
+    setModalToTime(formatTime24h(endRaw) || '10:00');
+
+    setModalDescription(originalAct?.description || block.title || '');
+    setModalProject(originalAct?.project || block.project || projects[0]?.name || 'No Project');
+    setModalBillable(originalAct?.billable !== false && block.billable !== false);
+    setProjectSearchQuery('');
+    setIsProjectDropdownOpen(false);
+    setShowAddModal(true);
+  };
+
+  // Handle Form Submit (Add or Edit Entry & Sync Globally)
   const handleAddEntrySubmit = (e) => {
     e.preventDefault();
     const fromDec = parseTimeToDecimal(modalFromTime);
@@ -480,7 +484,64 @@ export default function Calendar({
 
     const projObj = projects.find(p => p.name === modalProject);
     const targetISO = modalIsoDate;
-    const groupName = modalDateLabel;
+    const groupName = modalDateLabel.includes(',') ? modalDateLabel.split(',')[0].trim() : 'Today';
+
+    if (editingBlock) {
+      // EDIT EXISTING ENTRY
+      const actId = editingBlock.id;
+      const updates = {
+        description: modalDescription.trim() || 'Working session',
+        project: modalProject,
+        projectColor: projObj?.color || '#00cc00',
+        date: targetISO,
+        group: groupName,
+        startTime: modalFromTime,
+        endTime: modalToTime,
+        durationFormatted: calculatedDuration.timeStr,
+        durationSeconds: Math.round(diffHours * 3600),
+        billable: modalBillable,
+      };
+
+      // 1. Update in customBlocksMap if present
+      setCustomBlocksMap(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(dayKey => {
+          next[dayKey] = (next[dayKey] || []).map(b => {
+            if (String(b.id) === String(actId)) {
+              return {
+                ...b,
+                title: updates.description,
+                project: updates.project,
+                color: updates.projectColor,
+                subtitle: `${formatTimeWithAmPm(modalFromTime)} - ${formatTimeWithAmPm(modalToTime)}`,
+                startTime: modalFromTime,
+                endTime: modalToTime,
+                duration: updates.durationFormatted,
+                durationHours: diffHours,
+                topHour: fromDec,
+                isoDate: targetISO,
+                billable: modalBillable,
+              };
+            }
+            return b;
+          });
+        });
+        return next;
+      });
+
+      // 2. Global Cross-Page Sync via onUpdateActivity
+      if (onUpdateActivity) {
+        onUpdateActivity(actId, updates);
+      }
+      if (onUpdateActivityDate && targetISO) {
+        onUpdateActivityDate(actId, targetISO, groupName);
+      }
+
+      setEditingBlock(null);
+      setShowAddModal(false);
+      setToastMessage(`✓ Updated time entry: ${updates.description}`);
+      return;
+    }
 
     const newBlock = {
       id: `custom-b-${Date.now()}`,
@@ -600,13 +661,20 @@ export default function Calendar({
 
         return {
           id: act.id,
+          act: act,
           title: act.description,
           subtitle: `${formatTimeWithAmPm(act.startTime || '09:00')} - ${formatTimeWithAmPm(act.endTime || '10:00')}`,
+          startTime: act.startTime,
+          endTime: act.endTime,
+          isoDate: isoDate,
+          dayNum: dayNum,
+          dateObj: d,
           project: act.project,
           duration: act.durationFormatted,
           topHour: rawH,
           durationHours: durH,
           color: act.projectColor || '#00cc00',
+          billable: act.billable,
         };
       });
 
@@ -1021,18 +1089,35 @@ export default function Calendar({
                           height: `${heightPx - 4}px`,
                           borderLeftColor: block.color || '#00cc00',
                           background: '#ffffff',
+                          cursor: 'pointer',
                         }}
-                        title={`${block.project}: ${block.title} (${block.duration})`}
-                        onClick={(e) => e.stopPropagation()}
+                        title={`Click to edit: ${block.project}: ${block.title} (${block.duration})`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(block);
+                        }}
                       >
-                        <button
-                          type="button"
-                          className="event-block-del-btn"
-                          onClick={(e) => handleDeleteEntry(day.dayNum, block.id, e, block)}
-                          title="Delete this time entry"
-                        >
-                          <Trash2 size={11} />
-                        </button>
+                        <div className="event-block-actions" style={{ position: 'absolute', top: '3px', right: '3px', display: 'flex', alignItems: 'center', gap: '3px', zIndex: 10 }}>
+                          <button
+                            type="button"
+                            className="event-block-edit-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditModal(block);
+                            }}
+                            title="Edit this time entry"
+                          >
+                            <Edit3 size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            className="event-block-del-btn"
+                            onClick={(e) => handleDeleteEntry(day.dayNum, block.id, e, block)}
+                            title="Delete this time entry"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
                         
                         {isShortBlock ? (
                           <>
@@ -1187,45 +1272,69 @@ export default function Calendar({
 
                     return {
                       id: act.id,
+                      act: act,
                       title: act.description,
                       subtitle: `${formatTimeWithAmPm(act.startTime || '09:00')} - ${formatTimeWithAmPm(act.endTime || '10:00')}`,
+                      startTime: act.startTime,
+                      endTime: act.endTime,
+                      isoDate: dayViewIsoDate,
+                      dayNum: selectedDayDate.getDate(),
+                      dateObj: selectedDayDate,
                       project: act.project,
                       duration: act.durationFormatted,
                       topHour: rawH,
                       durationHours: durH,
                       color: act.projectColor || '#00cc00',
+                      billable: act.billable,
                     };
                   });
 
-                                  return blocksToShow.map((block) => {
-                  const rawStart = block.topHour || 10;
-                  const startHour = (rawStart >= 1 && rawStart <= 6) ? rawStart + 12 : rawStart;
-                  const topPx = Math.max(0, (startHour - START_HOUR) * HOUR_HEIGHT);
-                  const durH = block.durationHours || 1;
-                  const heightPx = Math.max(56, durH * HOUR_HEIGHT);
-                  const isShortBlock = durH <= 1.25;
+                  return blocksToShow.map((block) => {
+                    const rawStart = block.topHour || 10;
+                    const startHour = (rawStart >= 1 && rawStart <= 6) ? rawStart + 12 : rawStart;
+                    const topPx = Math.max(0, (startHour - START_HOUR) * HOUR_HEIGHT);
+                    const durH = block.durationHours || 1;
+                    const heightPx = Math.max(56, durH * HOUR_HEIGHT);
+                    const isShortBlock = durH <= 1.25;
 
-                  return (
-                    <div
-                      key={block.id}
-                      className="timeline-event-block"
-                      style={{
-                        top: `${topPx + 2}px`,
-                        height: `${heightPx - 4}px`,
-                        borderLeftColor: block.color || '#00cc00',
-                        background: '#ffffff',
-                      }}
-                      title={`${block.project}: ${block.title} (${block.duration})`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        type="button"
-                        className="event-block-del-btn"
-                        onClick={(e) => handleDeleteEntry(selectedDayDate.getDate(), block.id, e, block)}
-                        title="Delete this time entry"
+                    return (
+                      <div
+                        key={block.id}
+                        className="timeline-event-block"
+                        style={{
+                          top: `${topPx + 2}px`,
+                          height: `${heightPx - 4}px`,
+                          borderLeftColor: block.color || '#00cc00',
+                          background: '#ffffff',
+                          cursor: 'pointer',
+                        }}
+                        title={`Click to edit: ${block.project}: ${block.title} (${block.duration})`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(block);
+                        }}
                       >
-                        <Trash2 size={11} />
-                      </button>
+                        <div className="event-block-actions" style={{ position: 'absolute', top: '3px', right: '3px', display: 'flex', alignItems: 'center', gap: '3px', zIndex: 10 }}>
+                          <button
+                            type="button"
+                            className="event-block-edit-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditModal(block);
+                            }}
+                            title="Edit this time entry"
+                          >
+                            <Edit3 size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            className="event-block-del-btn"
+                            onClick={(e) => handleDeleteEntry(selectedDayDate.getDate(), block.id, e, block)}
+                            title="Delete this time entry"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
                       
                       {isShortBlock ? (
                         <>
@@ -1265,7 +1374,7 @@ export default function Calendar({
       )}
 
       {showAddModal && (
-        <div className="cal-modal-overlay" onClick={() => setShowAddModal(false)}>
+        <div className="cal-modal-overlay" onClick={() => { setShowAddModal(false); setEditingBlock(null); }}>
           <div className="cal-modal-box" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             <div className="cal-modal-header">
@@ -1274,14 +1383,14 @@ export default function Calendar({
                   <Clock size={18} />
                 </div>
                 <div>
-                  <div className="cal-modal-title">Add Time Entry</div>
-                  <div className="cal-modal-subtitle">Log work directly to calendar timeline</div>
+                  <div className="cal-modal-title">{editingBlock ? 'Edit Time Entry' : 'Add Time Entry'}</div>
+                  <div className="cal-modal-subtitle">{editingBlock ? 'Modify entry details, timing, or project' : 'Log work directly to calendar timeline'}</div>
                 </div>
               </div>
               <button 
                 type="button" 
                 className="cal-modal-close-btn"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => { setShowAddModal(false); setEditingBlock(null); }}
                 title="Close"
               >
                 <X size={18} />
@@ -1579,7 +1688,7 @@ export default function Calendar({
                 <button
                   type="button"
                   className="cal-btn-cancel"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => { setShowAddModal(false); setEditingBlock(null); }}
                 >
                   Cancel
                 </button>
@@ -1587,8 +1696,8 @@ export default function Calendar({
                   type="submit"
                   className="cal-btn-submit"
                 >
-                  <Plus size={15} />
-                  <span>Add Entry</span>
+                  {editingBlock ? <Check size={15} /> : <Plus size={15} />}
+                  <span>{editingBlock ? 'Save Changes' : 'Add Entry'}</span>
                 </button>
               </div>
             </form>
